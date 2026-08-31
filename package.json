@@ -1,0 +1,13 @@
+{
+  "name": "nanorag-docs-tooling",
+  "private": true,
+  "description": "Documentation linters. Not part of the Python package — see pyproject.toml.",
+  "type": "module",
+  "scripts": {
+    "check:mermaid": "node scripts/lint/check_mermaid.mjs ."
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0",
+    "mermaid": "^11.0.0"
+  }
+}

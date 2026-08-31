@@ -9,15 +9,15 @@ the playground: a board with real columns, real fields, and automation that keep
 
 ```mermaid
 flowchart LR
-    B["📥 <b>Backlog</b><br/><i>an idea with a title</i>"] -->|"acceptance criteria written"| R
-    R["✅ <b>Ready</b><br/><i>anyone could pick this up</i>"] -->|"assigned + branch exists"| P
-    P["🔨 <b>In progress</b><br/><i>exactly one owner</i>"] -->|"PR opened"| V
-    V["🔍 <b>In review</b><br/><i>eval gate + human</i>"] -->|"merged"| D
-    D["🎉 <b>Done</b><br/><i>merged and measured</i>"]
+    B["📥 Backlog<br/>an idea with a title"] -->|"acceptance criteria written"| R
+    R["✅ Ready<br/>anyone could pick this up"] -->|"assigned + branch exists"| P
+    P["🔨 In progress<br/>exactly one owner"] -->|"PR opened"| V
+    V["🔍 In review<br/>eval gate + human"] -->|"merged"| D
+    D["🎉 Done<br/>merged and measured"]
     V -.->|"changes requested"| P
-    P -.->|"blocked >3 days"| BL["⛔ <b>Blocked</b><br/><i>needs a name and a date</i>"]
+    P -.->|"blocked >3 days"| BL["⛔ Blocked<br/>needs a name and a date"]
     BL -.-> P
-    R -.->|"superseded"| X["🗄 <b>Won't do</b><br/><i>with a reason</i>"]
+    R -.->|"superseded"| X["🗄 Won't do<br/>with a reason"]
 
     classDef todo fill:#F6F4EF,stroke:#C9C4B8,color:#3A414B
     classDef active fill:#FBF1E2,stroke:#E9A83C,color:#101318

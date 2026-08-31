@@ -116,21 +116,21 @@ panel actually asks, and a checkpoint that re-derives its own answers.
 ```mermaid
 graph TB
     subgraph people["Who uses it"]
-        S["👩‍💻 Student<br/><i>runs notebooks, submits exercises</i>"]
-        F["🎓 Faculty<br/><i>sets assignments, reviews PRs</i>"]
-        R["🔍 Recruiter / interviewer<br/><i>reads the decision records</i>"]
+        S["👩‍💻 Student<br/>runs notebooks, submits exercises"]
+        F["🎓 Faculty<br/>sets assignments, reviews PRs"]
+        R["🔍 Recruiter / interviewer<br/>reads the decision records"]
     end
 
-    P["<b>Advanced RAG — Hands On</b><br/>10 notebooks + nanorag toolkit<br/><i>runs offline, deterministic</i>"]
+    P["Advanced RAG — Hands On<br/>10 notebooks + nanorag toolkit<br/>runs offline, deterministic"]
 
     subgraph optional["Optional — nothing fails without these"]
-        BR["Amazon Bedrock<br/><i>Knowledge Base · Titan · rerank · Converse</i>"]
-        HF["Hugging Face<br/><i>sentence-transformers, cross-encoders</i>"]
-        AN["Claude API<br/><i>generation · judge</i>"]
-        MH["MultiHop-RAG<br/><i>the real dataset, if you want it</i>"]
+        BR["Amazon Bedrock<br/>Knowledge Base · Titan · rerank · Converse"]
+        HF["Hugging Face<br/>sentence-transformers, cross-encoders"]
+        AN["Claude API<br/>generation · judge"]
+        MH["MultiHop-RAG<br/>the real dataset, if you want it"]
     end
 
-    GH["GitHub<br/><i>Issues · Discussions · Projects · Actions</i>"]
+    GH["GitHub<br/>Issues · Discussions · Projects · Actions"]
 
     S -->|Run All| P
     F -->|assignments, reviews| GH
@@ -159,8 +159,8 @@ path has a p95. The control plane is what lets you change either one without gue
 flowchart LR
     subgraph IDX["🏗 INDEX PATH — offline, versioned, has a deploy"]
         direction LR
-        SRC[Sources<br/>docs · tickets · code] --> NORM[Parse &amp; normalise<br/>layout · tables · OCR]
-        NORM --> CH[Chunk &amp; enrich<br/>7 strategies · heading path · ACL]
+        SRC[Sources<br/>docs · tickets · code] --> NORM["Parse &amp; normalise<br/>layout · tables · OCR"]
+        NORM --> CH["Chunk &amp; enrich<br/>7 strategies · heading path · ACL"]
         CH --> EMB[Embed<br/>batched · version pinned]
         EMB --> PUB[Publish<br/>blue/green alias swap]
     end
@@ -175,13 +175,13 @@ flowchart LR
 
     subgraph QRY["⚡ QUERY PATH — online, p95, every request"]
         direction LR
-        Q[Query] --> RT[Route &amp; rewrite]
+        Q[Query] --> RT["Route &amp; rewrite"]
         RT --> HR["Hybrid retrieve<br/>N≈100"]
         HR --> FU["Fuse<br/>RRF or weighted α"]
         FU --> RR["Rerank<br/>→50"]
         RR --> PK["Pack<br/>k=8 · 6k token cap"]
         PK --> GEN[Generate]
-        GEN --> VF[Verify &amp; cite]
+        GEN --> VF["Verify &amp; cite"]
     end
 
     subgraph CTL["🎛 CONTROL PLANE — how you change either path on purpose"]
@@ -218,10 +218,10 @@ asserts it on every commit.
 
 ```mermaid
 flowchart LR
-    A["<b>Stage 1 · cheap</b><br/>O(corpus)<br/><br/>Buys recall<br/><i>knob: N, fusion weights,<br/>chunking, efSearch</i>"]
-    B["<b>Stage 2 · expensive</b><br/>O(N)<br/><br/>Converts recall→precision<br/><i>knob: model class,<br/>candidate depth</i>"]
-    C["<b>Stage 3 · scarce</b><br/>fixed token budget<br/><br/>Every distractor costs<br/>a gold chunk its slot<br/><i>knob: k, dedup, ordering</i>"]
-    D["<b>Stage 4 · judged</b><br/><br/>Turns evidence into a claim<br/>Grounding failures here are<br/>independent of retrieval<br/><i>knob: contract, abstention</i>"]
+    A["Stage 1 · cheap<br/>O(corpus)<br/><br/>Buys recall<br/>knob: N, fusion weights,<br/>chunking, efSearch"]
+    B["Stage 2 · expensive<br/>O(N)<br/><br/>Converts recall→precision<br/>knob: model class,<br/>candidate depth"]
+    C["Stage 3 · scarce<br/>fixed token budget<br/><br/>Every distractor costs<br/>a gold chunk its slot<br/>knob: k, dedup, ordering"]
+    D["Stage 4 · judged<br/><br/>Turns evidence into a claim<br/>Grounding failures here are<br/>independent of retrieval<br/>knob: contract, abstention"]
     A -->|"ceiling"| B -->|"≤ ceiling"| C -->|"≤ ceiling"| D
     A -.->|"❌ the classic mistake:<br/>tuning stage 2 or 3 to fix<br/>a stage-1 recall problem"| C
 
@@ -272,7 +272,7 @@ sequenceDiagram
     P->>C: build_prompt(...)
     C-->>P: PackedContext (stable prefix first, question last)
     P->>G: generate(query, packed)
-    G-->>P: Answer(text, citations[S#], sufficient)
+    G-->>P: Answer(text, citations["S#"], sufficient)
     P->>T: put(Trace)
     Note over T: candidates + scores + packed +<br/>answer + per-stage latency<br/>= replayable, diffable
     P-->>U: Trace
@@ -334,15 +334,15 @@ flowchart TB
         W1[Retrieve top-k globally] --> W2[Restricted chunks are candidates]
         W2 --> W3[…and influence every neighbour's rank]
         W3 --> W4[Drop what the user may not see]
-        W4 --> W5["<b>k collapses</b><br/>8 → 0 for a narrow persona"]
-        W3 --> W6["<b>scores leak</b><br/>existence inferable from<br/>result counts and latency"]
+        W4 --> W5["k collapses<br/>8 → 0 for a narrow persona"]
+        W3 --> W6["scores leak<br/>existence inferable from<br/>result counts and latency"]
     end
     subgraph RIGHT["✅ PRE-FILTER"]
         direction TB
         R1[ACL predicate pushed into<br/>the SQL / ANN query] --> R2[Restricted chunks were<br/>never candidates]
         R2 --> R3[Rank]
-        R3 --> R4["<b>full k, every time</b><br/>provably uninfluenced"]
-        R2 -.->|"cost, stated up front"| R5["selective filters degrade<br/>graph traversal — measure<br/>recall <i>with</i> filters on"]
+        R3 --> R4["full k, every time<br/>provably uninfluenced"]
+        R2 -.->|"cost, stated up front"| R5["selective filters degrade<br/>graph traversal — measure<br/>recall with filters on"]
     end
     classDef bad fill:#FBECE8,stroke:#CF4F35,color:#101318
     classDef good fill:#E9F3EE,stroke:#3F8F6E,color:#101318
@@ -363,13 +363,13 @@ flowchart TD
     T -->|concept| V[Dense]
     T -->|repository| GR[Grep]
     T -->|otherwise| HY[Hybrid]
-    L & V & GR & HY --> RD[3 · Retrieve &amp; read<br/>append with provenance, never overwrite]
-    RD --> SC{{"4 · Sufficiency check<br/><i>separate, cheap, strict schema —<br/>not a vibe inside the main prompt</i>"}}
+    L & V & GR & HY --> RD["3 · Retrieve &amp; read<br/>append with provenance, never overwrite"]
+    RD --> SC{{"4 · Sufficiency check<br/>separate, cheap, strict schema —<br/>not a vibe inside the main prompt"}}
     SC -->|"NO — refine and loop"| T
-    SC -->|YES| SY[5 · Synthesise &amp; cite]
+    SC -->|YES| SY["5 · Synthesise &amp; cite"]
     SY --> A([Answer + trace])
 
-    SC -.->|turn cap| X[["Stop: exhausted<br/><b>partial answer with a stated gap</b>"]]
+    SC -.->|turn cap| X[["Stop: exhausted<br/>partial answer with a stated gap"]]
     SC -.->|token budget| X
     SC -.->|wall clock| X
     SC -.->|repeat detector| X
@@ -478,20 +478,20 @@ This is the part most teaching repos skip, and the part interviewers actually as
 ```mermaid
 flowchart LR
     subgraph learn["Learn"]
-        N[Notebooks] --> RD[Reading assignments<br/><i>Issues, labelled cohort</i>]
+        N[Notebooks] --> RD["Reading assignments<br/>Issues, labelled cohort"]
     end
     subgraph ask["Ask"]
-        QA[Discussions → Q&amp;A<br/><i>searchable, answered once</i>]
-        DR[Discussions → Design Reviews<br/><i>get the objection now</i>]
+        QA["Discussions → Q&amp;A<br/>searchable, answered once"]
+        DR[Discussions → Design Reviews<br/>get the objection now]
     end
     subgraph build["Build"]
         EX[Exercise issue] --> BR[Branch] --> PR[Pull request]
-        PR --> EG{{Eval gate<br/><i>blocks on regression</i>}}
+        PR --> EG{{Eval gate<br/>blocks on regression}}
         EG --> RV[Review] --> M[Merge]
     end
     subgraph show["Show"]
-        ST[Discussions → Show &amp; Tell]
-        PF[docs/PORTFOLIO.md<br/><i>CV / LinkedIn</i>]
+        ST["Discussions → Show &amp; Tell"]
+        PF[docs/PORTFOLIO.md<br/>CV / LinkedIn]
     end
     N --> QA
     QA --> EX

@@ -46,9 +46,9 @@ not `help with retrieval`
 
 ```mermaid
 flowchart LR
-    Q["💬 Q&amp;A question"] -->|"turns out to be a real defect"| I["🐛 Bug issue<br/><i>with a reproduction</i>"]
-    Q -->|"answered, generally useful"| D["📄 Docs PR<br/><i>so nobody asks again</i>"]
-    DR["🏗 Design review"] -->|"design agreed"| E["🚀 Extension issue<br/><i>with a hypothesis</i>"]
+    Q["💬 Q&amp;A question"] -->|"turns out to be a real defect"| I["🐛 Bug issue<br/>with a reproduction"]
+    Q -->|"answered, generally useful"| D["📄 Docs PR<br/>so nobody asks again"]
+    DR["🏗 Design review"] -->|"design agreed"| E["🚀 Extension issue<br/>with a hypothesis"]
     E --> PR["🔀 Pull request"]
     PR --> ST["🎤 Show &amp; Tell"]
     ID["💡 Idea"] -->|"acquires a hypothesis"| E

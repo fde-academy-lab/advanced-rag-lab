@@ -9,15 +9,15 @@ Run the fault-isolation procedure before touching any configuration. Four questi
 
 ```mermaid
 flowchart TD
-    Q1{Is any gold evidence<br/>in the packed context?} -->|NO| R1[Retrieval fault<br/>→ continue to Q2<br/><b>do not touch the prompt</b>]
+    Q1{Is any gold evidence<br/>in the packed context?} -->|NO| R1[Retrieval fault<br/>→ continue to Q2<br/>do not touch the prompt]
     Q1 -->|YES| Q2
     R1 --> Q2{Was every gold chunk<br/>in the top-N pool?}
-    Q2 -->|NO| F1["<b>First-stage recall</b><br/>chunking · encoder · fusion<br/>weights · ANN params · filters"]
+    Q2 -->|NO| F1["First-stage recall<br/>chunking · encoder · fusion<br/>weights · ANN params · filters"]
     Q2 -->|YES| Q3{Did the packed context keep it,<br/>intact and attributed?}
-    Q3 -->|NO| F2["<b>Ranking or packing</b><br/>reranker · fusion · k · dedup<br/>truncation · provenance loss"]
+    Q3 -->|NO| F2["Ranking or packing<br/>reranker · fusion · k · dedup<br/>truncation · provenance loss"]
     Q3 -->|YES| Q4{Is the answer entailed<br/>by the packed evidence?}
-    Q4 -->|NO| F3["<b>Generation</b><br/>grounding instruction · abstention<br/>citation contract · model choice"]
-    Q4 -->|YES| F4["<b>Suspect the label,<br/>the question, or the rubric</b><br/><i>the most under-reported source<br/>of 'regressions'</i>"]
+    Q4 -->|NO| F3["Generation<br/>grounding instruction · abstention<br/>citation contract · model choice"]
+    Q4 -->|YES| F4["Suspect the label,<br/>the question, or the rubric<br/>the most under-reported source<br/>of 'regressions'"]
 
     classDef fault fill:#FBECE8,stroke:#CF4F35,color:#101318
     classDef ok fill:#E9F3EE,stroke:#3F8F6E,color:#101318

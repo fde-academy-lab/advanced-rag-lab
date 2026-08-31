@@ -36,34 +36,34 @@ Five decisions shape everything else. Each has an [ADR](adr/) with the alternati
 ```mermaid
 graph TB
     subgraph data["Data layer"]
-        CO[corpus.py<br/><i>fact graph → docs, chunks, eval set</i>]
-        CH[chunking.py<br/><i>7 strategies, stable ids</i>]
-        EM[embed.py<br/><i>LSA · Hashing · ST · Bedrock</i>]
+        CO["corpus.py<br/>fact graph → docs, chunks, eval set"]
+        CH["chunking.py<br/>7 strategies, stable ids"]
+        EM[embed.py<br/>LSA · Hashing · ST · Bedrock]
     end
     subgraph store["Storage layer"]
-        ST[store.py<br/><i>sqlite :memory: — FTS5, vectors,<br/>NSW graph, ACL, versions, aliases</i>]
-        TR[trace.py<br/><i>queryable trace store + diff</i>]
+        ST["store.py<br/>sqlite :memory: — FTS5, vectors,<br/>NSW graph, ACL, versions, aliases"]
+        TR[trace.py<br/>queryable trace store + diff]
     end
     subgraph retrieval["Retrieval layer"]
-        RE[retrieve.py<br/><i>fusion · rerankers · packing</i>]
-        CX[context.py<br/><i>prompt assembly, volatility order</i>]
-        GE[generate.py<br/><i>extractive · Bedrock · Claude</i>]
+        RE[retrieve.py<br/>fusion · rerankers · packing]
+        CX["context.py<br/>prompt assembly, volatility order"]
+        GE[generate.py<br/>extractive · Bedrock · Claude]
     end
     subgraph measure["Measurement layer"]
-        ME[metrics.py<br/><i>recall, nDCG, κ, bootstrap</i>]
-        JU[judge.py<br/><i>rubrics, calibration, bias probes</i>]
-        PI[pipeline.py<br/><i>config object + evaluate()</i>]
-        CS[costs.py<br/><i>tokens, cache, latency, unit economics</i>]
+        ME["metrics.py<br/>recall, nDCG, κ, bootstrap"]
+        JU["judge.py<br/>rubrics, calibration, bias probes"]
+        PI["pipeline.py<br/>config object + evaluate()"]
+        CS["costs.py<br/>tokens, cache, latency, unit economics"]
     end
     subgraph teach["Teaching layer"]
-        CA[catalog.py<br/><i>deck trees + matrices as data</i>]
-        TE[trees.py<br/><i>render · tabulate · execute</i>]
+        CA[catalog.py<br/>deck trees + matrices as data]
+        TE[trees.py<br/>render · tabulate · execute]
         VI[viz.py]
         TA[tables.py]
     end
-    AG[agent.py<br/><i>decompose → tool → sufficiency → stop</i>]
-    BE[bedrock.py<br/><i>KB retriever + local→AWS map</i>]
-    BO[bootstrap.py<br/><i>one-click env + seeding</i>]
+    AG[agent.py<br/>decompose → tool → sufficiency → stop]
+    BE[bedrock.py<br/>KB retriever + local→AWS map]
+    BO[bootstrap.py<br/>one-click env + seeding]
 
     CO --> CH --> EM --> ST
     ST --> RE --> CX --> GE
@@ -275,16 +275,16 @@ these. If your idea does not fit one, it is probably two ideas.
 
 ```mermaid
 flowchart LR
-    S1(["① Corpus / chunking<br/><code>chunking.STRATEGIES</code>"]) --> S2
-    S2(["② Encoder<br/><code>BaseEmbedder</code>"]) --> S3
-    S3(["③ First-stage retriever<br/><code>.search(query, cfg) → List[Hit]</code>"]) --> S4
-    S4(["④ Fusion<br/><code>rrf()</code> / <code>weighted_fusion()</code>"]) --> S5
-    S5(["⑤ Reranker<br/><code>.rerank(query, hits, depth)</code>"]) --> S6
-    S6(["⑥ Packer<br/><code>pack_context()</code> / <code>order_for_position()</code>"]) --> S7
-    S7(["⑦ Prompt<br/><code>context.build_prompt()</code>"]) --> S8
-    S8(["⑧ Generator<br/><code>.generate(query, packed) → Answer</code>"]) --> S9
-    S9(["⑨ Judge / metrics<br/><code>judge_all()</code>, <code>metrics.*</code>"])
-    S3 -.-> A(["⑩ Agent loop<br/><code>decompose</code> · <code>choose_tool</code> · <code>sufficiency_check</code>"])
+    S1(["① Corpus / chunking<br/>chunking.STRATEGIES"]) --> S2
+    S2(["② Encoder<br/>BaseEmbedder"]) --> S3
+    S3(["③ First-stage retriever<br/>.search(query, cfg) → List[Hit]"]) --> S4
+    S4(["④ Fusion<br/>rrf() / weighted_fusion()"]) --> S5
+    S5(["⑤ Reranker<br/>.rerank(query, hits, depth)"]) --> S6
+    S6(["⑥ Packer<br/>pack_context() / order_for_position()"]) --> S7
+    S7(["⑦ Prompt<br/>context.build_prompt()"]) --> S8
+    S8(["⑧ Generator<br/>.generate(query, packed) → Answer"]) --> S9
+    S9(["⑨ Judge / metrics<br/>judge_all(), metrics.*"])
+    S3 -.-> A(["⑩ Agent loop<br/>decompose · choose_tool · sufficiency_check"])
     A -.-> S6
     classDef seam fill:#FBF1E2,stroke:#E9A83C,color:#101318
     class S1,S2,S3,S4,S5,S6,S7,S8,S9,A seam

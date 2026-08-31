@@ -29,3 +29,7 @@ Thumbs.db
 .idea/
 .vscode/
 !.vscode/settings.json
+
+# Documentation linters only — see package.json
+node_modules/
+package-lock.json

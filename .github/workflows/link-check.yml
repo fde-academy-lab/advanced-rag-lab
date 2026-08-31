@@ -31,3 +31,16 @@ jobs:
               sys.exit(1)
           print("all relative links resolve")
           PY
+
+  mermaid:
+    name: Mermaid renders on GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install --no-audit --no-fund
+      # Parses every diagram with htmlLabels:false — GitHub's setting, not mermaid's default.
+      # Validating under the default is how eight broken diagrams shipped looking fine locally.
+      - run: npm run check:mermaid
