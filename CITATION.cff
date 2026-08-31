@@ -4,8 +4,8 @@ message: "If you use this material in teaching or research, please cite it."
 type: software
 authors:
   - name: "the maintainers"
-    website: "https://github.com/akash-coded/nanorag"
-repository-code: "https://github.com/akash-coded/nanorag"
+    website: "https://github.com/fde-academy-lab/nanorag"
+repository-code: "https://github.com/fde-academy-lab/nanorag"
 abstract: >-
   A runnable retrieval, RAG and evaluation curriculum. Ten Jupyter notebooks and a Python
   toolkit implementing lexical and dense retrieval, approximate nearest-neighbour search,
