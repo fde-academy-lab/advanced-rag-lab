@@ -17,14 +17,17 @@ on:
       steps:
         description: "Which steps to run"
         required: true
-        default: discussions
+        default: settings,discussions,project
         type: choice
         options:
+          # Everything a Claude Code session's egress proxy refuses: repository settings,
+          # topics, branch protection, and the two GraphQL-only surfaces.
+          - settings,discussions,project
           - discussions
           - project
+          - settings
           - discussions,project
-          - settings,labels,milestones,issues
-          - settings,labels,milestones,issues,discussions
+          - settings,labels,milestones,issues,discussions,project
       dry_run:
         description: "Print the plan without changing anything"
         required: false
