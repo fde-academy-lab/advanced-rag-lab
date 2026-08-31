@@ -33,7 +33,16 @@ def token() -> str:
             "  Contents: read/write · Issues: read/write · Discussions: read/write\n"
             "  Pull requests: read/write · Administration: read/write (for labels + settings)\n"
             "and, if you want the board, the account permission: Projects: read/write\n\n"
-            "  export GITHUB_TOKEN=github_pat_..."
+            "  export GITHUB_TOKEN=github_pat_<your token>"
+        )
+    # A token ending in "..." is the placeholder from the docs pasted verbatim. Saying so
+    # here is worth a great deal more than the "Bad credentials" GitHub would answer with.
+    if tok.endswith("...") or tok in {"github_pat_...", "ghp_...", "<your token>"}:
+        sys.exit(
+            f"GITHUB_TOKEN is set to the placeholder {tok!r}, not a real token.\n\n"
+            "Create one at https://github.com/settings/tokens?type=beta and export the\n"
+            "actual value:\n\n"
+            "  export GITHUB_TOKEN=github_pat_11ABC...   # the full string GitHub showed you"
         )
     return tok
 

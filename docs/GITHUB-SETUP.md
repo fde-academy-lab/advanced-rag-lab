@@ -124,6 +124,18 @@ to this one repository:
 
 A classic PAT with `repo` + `project` scopes also works and is simpler if you are in a hurry.
 
+Export the **actual token string**, not the placeholder:
+
+```bash
+export GITHUB_TOKEN=github_pat_11ABC...      # the full value GitHub showed you, once
+curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user | head -3
+```
+
+That curl prints your account JSON when the token is good and
+`{"message":"Bad credentials"}` when it is not. `setup_github.py` runs the same check itself
+before it creates anything, so a bad token costs you a message rather than a half-provisioned
+repository.
+
 ## 4 · Run it
 
 ```bash

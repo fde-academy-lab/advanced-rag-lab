@@ -44,6 +44,39 @@ STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions",
 
 
 
+def preflight(owner):
+    """Prove the token works and report who it is, before anything is created.
+
+    Every later failure is easier to read once this has run: a 404 means the repository is
+    missing rather than the token being wrong, and a 403 means a permission is missing rather
+    than the credential being bad.
+    """
+    try:
+        me = request("GET", "/user")
+    except GitHubError as exc:
+        if exc.status == 401:
+            print("\n\033[31mGITHUB_TOKEN is not valid.\033[0m  GitHub answered: "
+                  f"{exc.message}")
+            print("\nMost often this is the placeholder pasted verbatim, an expired token, or")
+            print("one copied with a trailing space. Check with:")
+            print('  curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" '
+                  "https://api.github.com/user")
+            print("\nA working token prints your account JSON; a bad one prints "
+                  '{"message":"Bad credentials"}.')
+        else:
+            print(f"\n\033[31mCannot authenticate: {exc.message}\033[0m")
+        return False
+    preflight.login = me.get("login")
+    detail = "" if preflight.login.lower() == owner.lower() else \
+        f"  \033[33m(--owner is {owner} — an org, or a typo?)\033[0m"
+    print(f"  authenticated as \033[1m{preflight.login}\033[0m{detail}")
+    return True
+
+
+preflight.login = None
+
+
+
 def run_step(name, fn, *args):
     """Run one provisioning step, reporting a failure instead of aborting the rest.
 
@@ -101,16 +134,19 @@ def create_repository(owner, repo, private, dry):
         return None
 
     # /user/repos when the token's own login owns it, /orgs/{owner}/repos otherwise.
-    try:
-        login = request("GET", "/user")["login"]
-    except GitHubError:
-        login = None
+    # preflight() has already proved the token works, so a None login here means the owner is
+    # genuinely an organisation rather than an authentication failure in disguise.
+    login = preflight.login
     path = "/user/repos" if login and login.lower() == owner.lower() else f"/orgs/{owner}/repos"
     try:
         info = request("POST", path, payload)
     except GitHubError as exc:
         fail(f"{owner}/{repo}", exc.message)
         print(f"    tried POST {path}")
+        if path.startswith("/orgs/"):
+            print(f"    the token authenticates as {login!r}, which is not {owner!r}, so this "
+                  "was\n    treated as an organisation. If it is your own account, check the "
+                  "spelling\n    of --owner.")
         print("    a fine-grained PAT needs Administration: read/write on the target account,")
         print("    or use:  gh repo create "
               f"{owner}/{repo} --{'private' if private else 'public'}")
@@ -495,6 +531,9 @@ def main() -> int:
 
     print(f"\n\033[1mProvisioning {args.owner}/{args.repo}\033[0m"
           + ("  \033[33m(dry run)\033[0m" if args.dry_run else ""))
+
+    if not preflight(args.owner):
+        return 1
 
     # Keep the tree's badges, clone URL, CODEOWNERS and packaging metadata in step with the
     # owner/repo actually being provisioned, so a fork does not ship badges pointing upstream.
