@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Ask a question (Q&A)
-    url: https://github.com/akash-coded/nanorag/discussions/categories/q-a
+    url: https://github.com/fde-academy-lab/nanorag/discussions/categories/q-a
     about: "Stuck on an exercise, an error, or a concept? Ask in Discussions — questions get answered there and stay searchable. Issues are for tracked work."
   - name: 🏗 Propose a design (Design Reviews)
-    url: https://github.com/akash-coded/nanorag/discussions/categories/design-reviews
+    url: https://github.com/fde-academy-lab/nanorag/discussions/categories/design-reviews
     about: "Have an architecture you want challenged before you build it? Post it for review."
   - name: 🎤 Share what you built (Show & Tell)
-    url: https://github.com/akash-coded/nanorag/discussions/categories/show-and-tell
+    url: https://github.com/fde-academy-lab/nanorag/discussions/categories/show-and-tell
     about: "Post your capstone, your decision record, or a result that surprised you."
   - name: 📚 Reading list and references
-    url: https://github.com/akash-coded/nanorag/blob/main/docs/READING-LIST.md
+    url: https://github.com/fde-academy-lab/nanorag/blob/main/docs/READING-LIST.md
     about: "Papers and posts behind each section, with what to look for in each."

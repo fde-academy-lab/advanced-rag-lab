@@ -24,6 +24,26 @@ step fails independently, so a token without Projects access still gets you the 
 | `project` | Projects v2 board, 5 custom fields, every issue placed | **GraphQL** |
 | `push` | Adds `origin`, pushes `main` with its 20 phased commits | git |
 
+### If you cannot run this from a terminal
+
+An account you can only reach in a browser can still provision itself, because an Actions
+runner has the network access and the credentials that your laptop is missing.
+
+1. Create the repository and push (or have someone push) — this is the only part a runner
+   cannot bootstrap, since the workflow has to already be in the repository to run.
+2. Create the three Discussion categories in Settings ▸ Discussions.
+3. **Actions ▸ Provision GitHub surface ▸ Run workflow**, pick the steps, run it.
+
+The `discussions` step works on the built-in `GITHUB_TOKEN`; the workflow requests
+`discussions: write` and needs nothing else configured.
+
+The `project` step does not, and the reason is worth knowing: a Projects v2 board belongs to
+the **account**, not to the repository, and the built-in token is scoped to the repository —
+no permissions block can widen it. Add a PAT with account-level Projects: read/write as a
+repository secret named `PROJECT_TOKEN` (Settings ▸ Secrets and variables ▸ Actions), then run
+the workflow with `project`. Without the secret the run warns and stops rather than failing
+obscurely.
+
 ### Renaming or forking
 
 Nothing in the tree is hard-bound to an account. A handful of things genuinely cannot be
@@ -85,7 +105,7 @@ ordinary PAT and all eight steps work.
 The `create` step does this for you. To do it by hand instead:
 
 ```bash
-gh repo create akash-coded/nanorag \
+gh repo create fde-academy-lab/nanorag \
   --public \
   --description "Runnable retrieval/RAG/evaluation curriculum — 10 notebooks and a toolkit that run entirely in memory, with an eval gate in CI"
 ```
@@ -103,7 +123,7 @@ The `push` step does this too. By hand:
 
 ```bash
 cd nanorag
-git remote add origin https://github.com/akash-coded/nanorag.git
+git remote add origin https://github.com/fde-academy-lab/nanorag.git
 git push -u origin main
 ```
 

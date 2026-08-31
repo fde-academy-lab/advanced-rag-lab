@@ -15,7 +15,7 @@ asked for it before review, not after.
 ## Setup
 
 ```bash
-git clone https://github.com/akash-coded/nanorag.git
+git clone https://github.com/fde-academy-lab/nanorag.git
 cd nanorag
 make setup
 make test          # ~30 s

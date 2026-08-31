@@ -1,0 +1,94 @@
+name: Provision GitHub surface
+
+# Discussions and Projects v2 are GraphQL-only APIs. Anywhere that cannot reach GitHub's
+# GraphQL endpoint — a restricted network, a machine without credentials for this account —
+# cannot seed them. An Actions runner can, and it is reachable from a browser tab, so this
+# workflow is the terminal-free path: Actions ▸ Provision GitHub surface ▸ Run workflow.
+#
+# Discussions run on the built-in GITHUB_TOKEN and need no setup.
+# The project board does not: a board belongs to the *account*, not the repository, and the
+# built-in token is scoped to the repository. That step needs a PROJECT_TOKEN secret holding
+# a PAT with account-level Projects: read/write (fine-grained) or the `project` scope
+# (classic). Without it the step reports what is missing and stops.
+
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Which steps to run"
+        required: true
+        default: discussions
+        type: choice
+        options:
+          - discussions
+          - project
+          - discussions,project
+          - settings,labels,milestones,issues
+          - settings,labels,milestones,issues,discussions
+      dry_run:
+        description: "Print the plan without changing anything"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+  discussions: write
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Choose a token
+        id: tok
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          # The board step needs the PAT; every other step is happy with the built-in token.
+          if [ -n "$PROJECT_TOKEN" ]; then
+            echo "have_pat=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_pat=false" >> "$GITHUB_OUTPUT"
+            case "${{ inputs.steps }}" in
+              *project*)
+                echo "::warning::No PROJECT_TOKEN secret is set. A Projects v2 board belongs to the account rather than the repository, so the built-in GITHUB_TOKEN cannot create one. Add a PAT with account-level Projects: read/write as a repository secret named PROJECT_TOKEN, then re-run." ;;
+            esac
+          fi
+
+      - name: Provision
+        env:
+          # The PAT when present, the built-in token otherwise. The built-in token carries
+          # discussions:write from the permissions block above, which is all that step needs.
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/setup_github.py \
+            --owner "${GITHUB_REPOSITORY%%/*}" \
+            --repo  "${GITHUB_REPOSITORY##*/}" \
+            --only  "${{ inputs.steps }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: What is left to do by hand
+        if: always()
+        run: |
+          {
+            echo "### Provisioning finished"
+            echo ""
+            echo "Ran: \`${{ inputs.steps }}\`${{ inputs.dry_run && ' (dry run)' || '' }}"
+            echo ""
+            echo "GitHub has no API for these, so they stay manual:"
+            echo ""
+            echo "1. **Discussion categories** — Settings ▸ Discussions ▸ New category:"
+            echo "   *Design Reviews*, *Reading Club*, *Interview Prep*. Set **Q&A** to the"
+            echo "   Question / Answer format. Seeded threads whose category is missing are"
+            echo "   skipped, so create these *before* running the \`discussions\` step."
+            echo "2. **Pages** — Settings ▸ Pages ▸ Source: **GitHub Actions**."
+            echo "3. **Pins** — pin 2 announcements and 3–4 issues."
+            echo "4. **Social preview** — Settings ▸ General ▸ Social preview."
+          } >> "$GITHUB_STEP_SUMMARY"
