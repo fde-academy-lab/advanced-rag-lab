@@ -455,8 +455,12 @@ def create_discussions(owner, repo, dry):
 
 
 # ─────────────────────────────────────────────────────────────────── project ──
+# repositoryOwner is the interface both User and Organization implement, so this resolves a
+# personal account and an org through one field and cannot half-fail the way asking for both
+# separately does. The typename is worth having: a board on a user account and a board on an
+# org differ in who can see it and which token scope creates it.
 OWNER_ID_Q = """
-query($login:String!){ user(login:$login){ id } organization(login:$login){ id } }"""
+query($login:String!){ repositoryOwner(login:$login){ id __typename } }"""
 
 CREATE_PROJECT_M = """
 mutation($ownerId:ID!,$title:String!){
@@ -502,14 +506,16 @@ def create_project(owner, repo, issues, dry):
         skip("project board", "would create 'Advanced RAG — Delivery' with 5 custom fields")
         return
     try:
-        ids = graphql(OWNER_ID_Q, {"login": owner})
+        ids = graphql(OWNER_ID_Q, {"login": owner}, partial_ok=True)
     except GitHubError as exc:
         warn("project board", f"cannot resolve owner — {exc.message[:80]}")
         return
-    owner_id = (ids.get("organization") or ids.get("user") or {}).get("id")
+    node = ids.get("repositoryOwner") or {}
+    owner_id, kind = node.get("id"), node.get("__typename", "account")
     if not owner_id:
-        warn("project board", "owner id not resolvable")
+        warn("project board", f"no GitHub account named {owner!r}")
         return
+    ok("  owner", f"{owner} · {kind}")
 
     try:
         out = graphql(CREATE_PROJECT_M,

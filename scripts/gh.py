@@ -84,11 +84,25 @@ def request(method: str, path: str, payload=None, accept="application/vnd.github
     raise GitHubError(0, "exhausted retries", url)
 
 
-def graphql(query: str, variables: dict | None = None):
+def graphql(query: str, variables: dict | None = None, partial_ok: bool = False):
+    """Run a GraphQL operation.
+
+    GraphQL answers a partly-resolvable query with data *and* errors together: asking for
+    `user` and `organization` under one login resolves whichever the account is and reports
+    NOT_FOUND for the other. Raising on the presence of `errors` therefore discards a correct
+    answer sitting next to an expected miss. `partial_ok` keeps the data in that case.
+
+    It stays off by default: for a mutation the payload is null when the operation failed, and
+    callers index into it, so a silent partial there would surface as an unreadable TypeError
+    instead of a clean GitHubError.
+    """
     payload = {"query": query, "variables": variables or {}}
     out = request("POST", GRAPHQL, payload)
-    if "errors" in out:
-        raise GitHubError(200, json.dumps(out["errors"])[:500], GRAPHQL)
+    errors = out.get("errors")
+    if errors:
+        data = out.get("data") or {}
+        if not (partial_ok and any(v is not None for v in data.values())):
+            raise GitHubError(200, json.dumps(errors)[:500], GRAPHQL)
     return out["data"]
 
 
