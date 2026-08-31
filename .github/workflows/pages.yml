@@ -37,7 +37,7 @@ jobs:
           h1{{letter-spacing:-.02em}} li{{margin:.4rem 0}}</style>
           <h1>Advanced RAG — hands on</h1>
           <p>Executed notebooks, rendered with their outputs. Source:
-          <a href="https://github.com/fde-academy-lab/nanorag">GitHub</a>.</p>
+          <a href="https://github.com/fde-academy-lab/advanced-rag-lab">GitHub</a>.</p>
           <ul>{links}</ul>""")
           PY
       - uses: actions/upload-pages-artifact@v3

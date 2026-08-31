@@ -105,7 +105,7 @@ ordinary PAT and all eight steps work.
 The `create` step does this for you. To do it by hand instead:
 
 ```bash
-gh repo create fde-academy-lab/nanorag \
+gh repo create fde-academy-lab/advanced-rag-lab \
   --public \
   --description "Runnable retrieval/RAG/evaluation curriculum — 10 notebooks and a toolkit that run entirely in memory, with an eval gate in CI"
 ```
@@ -123,7 +123,7 @@ The `push` step does this too. By hand:
 
 ```bash
 cd nanorag
-git remote add origin https://github.com/fde-academy-lab/nanorag.git
+git remote add origin https://github.com/fde-academy-lab/advanced-rag-lab.git
 git push -u origin main
 ```
 

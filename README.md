@@ -4,9 +4,9 @@
 
 **The whole retrieval stack — BM25, dense, ANN, fusion, reranking, evaluation — with no vector database, no framework, and no API key. It runs in memory, in about ten seconds.**
 
-[![CI](https://github.com/fde-academy-lab/nanorag/actions/workflows/ci.yml/badge.svg)](https://github.com/fde-academy-lab/nanorag/actions/workflows/ci.yml)
-[![Notebooks](https://github.com/fde-academy-lab/nanorag/actions/workflows/notebooks.yml/badge.svg)](https://github.com/fde-academy-lab/nanorag/actions/workflows/notebooks.yml)
-[![Eval gate](https://github.com/fde-academy-lab/nanorag/actions/workflows/eval-regression.yml/badge.svg)](https://github.com/fde-academy-lab/nanorag/actions/workflows/eval-regression.yml)
+[![CI](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml)
+[![Notebooks](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml)
+[![Eval gate](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/eval-regression.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/eval-regression.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Discussions](https://img.shields.io/badge/ask-Discussions-8A63D2)](../../discussions)
@@ -49,7 +49,7 @@ retriever, **not** the harness, the metrics, or the eval set. That property is t
 ## Quick start
 
 ```bash
-git clone https://github.com/fde-academy-lab/nanorag.git
+git clone https://github.com/fde-academy-lab/advanced-rag-lab.git
 cd nanorag
 make setup          # or: pip install -e ".[dev]"
 make lab            # opens JupyterLab → start with 00_start_here.ipynb

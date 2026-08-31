@@ -31,10 +31,10 @@ dev     = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "nbclient>=0.9", "nbfo
            "jupyterlab>=4.2"]
 
 [project.urls]
-Homepage      = "https://github.com/fde-academy-lab/nanorag"
-Documentation = "https://github.com/fde-academy-lab/nanorag/tree/main/docs"
-Discussions   = "https://github.com/fde-academy-lab/nanorag/discussions"
-Issues        = "https://github.com/fde-academy-lab/nanorag/issues"
+Homepage      = "https://github.com/fde-academy-lab/advanced-rag-lab"
+Documentation = "https://github.com/fde-academy-lab/advanced-rag-lab/tree/main/docs"
+Discussions   = "https://github.com/fde-academy-lab/advanced-rag-lab/discussions"
+Issues        = "https://github.com/fde-academy-lab/advanced-rag-lab/issues"
 
 [tool.setuptools.packages.find]
 include = ["nanorag*"]
