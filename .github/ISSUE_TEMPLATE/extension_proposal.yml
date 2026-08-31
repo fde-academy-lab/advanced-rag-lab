@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Open items are catalogued in
-        [docs/EXTENSION-POINTS.md](../blob/main/docs/EXTENSION-POINTS.md).
+        [docs/09-research/extension-points.md](../blob/main/docs/09-research/extension-points.md).
         Check there first — the one you want may already have a design sketch.
   - type: input
     id: technique
@@ -26,7 +26,7 @@ body:
     id: seam
     attributes:
       label: Which seam does it plug into?
-      description: "Retriever, fusion, reranker, packer, generator, judge, or agent loop? See docs/ARCHITECTURE.md."
+      description: "Retriever, fusion, reranker, packer, generator, judge, or agent loop? See docs/01-architecture/overview.md."
     validations: { required: true }
   - type: textarea
     id: cost

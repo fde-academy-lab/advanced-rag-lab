@@ -19,7 +19,7 @@ question filed as an issue either sits open forever or gets closed without being
 
 ## Asking a question people can answer
 
-The [Q&A template](../.github/DISCUSSION_TEMPLATE/q-a.yml) has four fields, and the second one
+The [Q&A template](../../.github/DISCUSSION_TEMPLATE/q-a.yml) has four fields, and the second one
 is the important one.
 
 1. **The question in one line.** If you cannot, you have two questions.

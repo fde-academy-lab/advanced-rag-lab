@@ -476,7 +476,7 @@ result should be distrusted.
 - [ ] Offline path works with no network
 - [ ] Evidence recall **sliced by query class**, with 95% intervals
 - [ ] Added latency measured, not estimated
-- [ ] A note in `docs/EXTENSION-POINTS.md` recording the result — including if it is negative
+- [ ] A note in `docs/09-research/extension-points.md` recording the result — including if it is negative
 
 Good first extension: one seam, a clear hypothesis, and a well-understood technique.""",
     },
@@ -673,7 +673,7 @@ context with the same status as the system prompt.
       cost, measured
 - [ ] `SECURITY.md` updated to reflect what changed
 
-Linked: `docs/EXTENSION-POINTS.md` #17.""",
+Linked: `docs/09-research/extension-points.md` #17.""",
     },
     {
         "title": "[chore] Add a real ANN backend behind the same Hit interface",
@@ -700,9 +700,9 @@ threshold is more useful than the swap itself.
 - [ ] Optional dependency; the offline path is unchanged when it is absent
 - [ ] Recall/latency curve for both, at two corpus sizes
 - [ ] The crossover point, stated
-- [ ] `docs/ARCHITECTURE.md` local→AWS table updated
+- [ ] `docs/01-architecture/overview.md` local→AWS table updated
 
-Linked: `docs/EXTENSION-POINTS.md` #18.""",
+Linked: `docs/09-research/extension-points.md` #18.""",
     },
 ]
 
@@ -720,7 +720,7 @@ CATEGORIES = [
      "lives here.", "DISCUSSION"),
     ("Interview Prep", "🎯",
      "Practise an answer and get it critiqued. Nothing under NDA — use the scenarios in "
-     "docs/INTERVIEW-PREP.md or invent your own.", "DISCUSSION"),
+     "docs/06-interview-prep/legacy-bank.md or invent your own.", "DISCUSSION"),
 ]
 
 # ───────────────────────────────────────────────────────────────── discussions ──
@@ -765,7 +765,7 @@ README.
 
 ## A thing worth knowing on day one
 
-There is a `good first issue` label with real, scoped work behind it, and a `docs/EXERCISES.md`
+There is a `good first issue` label with real, scoped work behind it, and a `docs/03-exercises/catalogue.md`
 with 22 exercises graded by difficulty. You are not expected to invent your own starting point.
 
 Ask anything. The only bad question here is the one asked in a DM, because it helps one person
@@ -1486,7 +1486,7 @@ exist after one cohort. If it is 15, this is not worth building. If it is 60, it
     {
         "category": "Interview Prep",
         "title": "Critique my answer: 'How would you separate a retrieval failure from a generation failure?' [worked example]",
-        "body": """Practising Q1-adjacent from `docs/INTERVIEW-PREP.md`. Here is my answer — please tear it
+        "body": """Practising Q1-adjacent from `docs/06-interview-prep/legacy-bank.md`. Here is my answer — please tear it
 apart.
 
 ---

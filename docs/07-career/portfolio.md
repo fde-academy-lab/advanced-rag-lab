@@ -213,7 +213,7 @@ result, and ends on a mechanism you understood rather than a feature you built.
 | Evaluation rigour | `notebooks/06_…` — κ, bias probes, judge drift |
 | Cost engineering | `notebooks/07_…` — four cache killers, priced |
 | Engineering practice | `.github/workflows/eval-regression.yml`, the PR template, `tests/` |
-| Communication | `docs/ARCHITECTURE.md`, the ADRs, and this document |
+| Communication | `docs/01-architecture/overview.md`, the ADRs, and this document |
 
 ---
 

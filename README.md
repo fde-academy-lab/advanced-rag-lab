@@ -11,7 +11,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Discussions](https://img.shields.io/badge/ask-Discussions-8A63D2)](../../discussions)
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Curriculum](docs/CURRICULUM.md) · [Exercises](docs/EXERCISES.md) · [Interview prep](docs/INTERVIEW-PREP.md) · [Put it on your CV](docs/PORTFOLIO.md)
+[Quick start](#quick-start) · [Architecture](#architecture) · [Curriculum](docs/02-curriculum/syllabus.md) · [Exercises](docs/03-exercises/catalogue.md) · [Interview prep](docs/06-interview-prep/legacy-bank.md) · [Put it on your CV](docs/07-career/portfolio.md)
 
 </div>
 
@@ -467,7 +467,7 @@ hits = kb.search("Which organization acquired Tessera Analytics?", n=25)
 
 Credentials come from the ordinary boto3 chain. **Nothing in this repository reads or stores a
 key.** `nanorag.bedrock.LOCAL_TO_AWS` maps every local component to its managed equivalent and
-names what changes when you move — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#local--aws).
+names what changes when you move — see [docs/01-architecture/overview.md](docs/01-architecture/overview.md#local--aws).
 
 ---
 
@@ -491,7 +491,7 @@ flowchart LR
     end
     subgraph show["Show"]
         ST["Discussions → Show &amp; Tell"]
-        PF[docs/PORTFOLIO.md<br/>CV / LinkedIn]
+        PF[docs/07-career/portfolio.md<br/>CV / LinkedIn]
     end
     N --> QA
     QA --> EX
@@ -504,11 +504,11 @@ flowchart LR
 
 | Surface | Used for | Guide |
 |---|---|---|
-| **Discussions** | Questions, design reviews, show & tell, announcements, polls | [docs/DISCUSSIONS-GUIDE.md](docs/DISCUSSIONS-GUIDE.md) |
+| **Discussions** | Questions, design reviews, show & tell, announcements, polls | [docs/10-community/discussions-guide.md](docs/10-community/discussions-guide.md) |
 | **Issues** | Tracked work with an owner and acceptance criteria | [templates](.github/ISSUE_TEMPLATE) |
-| **Projects** | Delivery board with phase, effort, cohort and risk fields | [docs/PROJECT-BOARD.md](docs/PROJECT-BOARD.md) |
+| **Projects** | Delivery board with phase, effort, cohort and risk fields | [docs/08-project-management/board.md](docs/08-project-management/board.md) |
 | **Actions** | CI, notebook execution, the eval gate, Pages, board automation | [.github/workflows](.github/workflows) |
-| **ADRs** | Decisions that were genuinely hard, with the alternative that lost | [docs/adr](docs/adr) |
+| **ADRs** | Decisions that were genuinely hard, with the alternative that lost | [docs/adr](docs/01-architecture/adr) |
 
 > **House rule, enforced by the PR template and the eval gate:** any change that could move a
 > number ships with the number — before, after, delta, and a 95% interval. A delta inside the
@@ -520,13 +520,13 @@ flowchart LR
 
 | If you are… | Start here |
 |---|---|
-| Working through the course | [notebooks/00_start_here.ipynb](notebooks/00_start_here.ipynb), then [docs/EXERCISES.md](docs/EXERCISES.md) |
-| Preparing for an AI-engineer interview | [docs/INTERVIEW-PREP.md](docs/INTERVIEW-PREP.md) — 18 questions with full answers |
-| Deciding what to build next | [docs/EXTENSION-POINTS.md](docs/EXTENSION-POINTS.md) — 20 techniques with hypotheses and seams |
-| Wanting to understand the code | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — HLD, LLD, every seam |
-| Putting this on a CV or LinkedIn | [docs/PORTFOLIO.md](docs/PORTFOLIO.md) |
+| Working through the course | [notebooks/00_start_here.ipynb](notebooks/00_start_here.ipynb), then [docs/03-exercises/catalogue.md](docs/03-exercises/catalogue.md) |
+| Preparing for an AI-engineer interview | [docs/06-interview-prep/legacy-bank.md](docs/06-interview-prep/legacy-bank.md) — 18 questions with full answers |
+| Deciding what to build next | [docs/09-research/extension-points.md](docs/09-research/extension-points.md) — 20 techniques with hypotheses and seams |
+| Wanting to understand the code | [docs/01-architecture/overview.md](docs/01-architecture/overview.md) — HLD, LLD, every seam |
+| Putting this on a CV or LinkedIn | [docs/07-career/portfolio.md](docs/07-career/portfolio.md) |
 | Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| Reading the papers behind it | [docs/READING-LIST.md](docs/READING-LIST.md) |
+| Reading the papers behind it | [docs/09-research/reading-list.md](docs/09-research/reading-list.md) |
 
 ---
 

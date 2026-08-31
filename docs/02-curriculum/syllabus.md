@@ -33,7 +33,7 @@ graph LR
     end
     S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
     S8 --> CAP["NB 09 · CAP-01<br/>the build brief"]
-    CAP --> PF["docs/PORTFOLIO.md<br/>the decision record<br/>goes on your CV"]
+    CAP --> PF["docs/07-career/portfolio.md<br/>the decision record<br/>goes on your CV"]
 
     classDef sec fill:#FBF1E2,stroke:#E9A83C,color:#101318
     classDef cap fill:#E9F3EE,stroke:#3F8F6E,color:#101318

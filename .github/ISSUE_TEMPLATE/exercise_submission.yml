@@ -8,7 +8,7 @@ body:
       value: |
         Open this **after** you have pushed a branch. Faculty review the branch, not the issue —
         the issue is where the conversation and the grade live.
-        Exercises are listed in [docs/EXERCISES.md](../blob/main/docs/EXERCISES.md).
+        Exercises are listed in [docs/03-exercises/catalogue.md](../blob/main/docs/03-exercises/catalogue.md).
   - type: input
     id: exercise
     attributes:

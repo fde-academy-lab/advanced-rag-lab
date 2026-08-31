@@ -157,7 +157,7 @@ someone changes your chunking and every downstream BM25 score moves.
 ## How faculty assign these
 
 Reading assignments are published as issues with the `type: reading` and `cohort` labels, using
-the [reading assignment template](../.github/ISSUE_TEMPLATE/reading_assignment.yml). Each one
+the [reading assignment template](../../.github/ISSUE_TEMPLATE/reading_assignment.yml). Each one
 names 2–3 required readings **with what to look for**, and 2–4 questions students answer as
 comments. Those comment threads become the seminar agenda — so a student who has not read
 cannot free-ride on the discussion.

@@ -90,7 +90,7 @@ In order:
 
 ## Adding a new technique
 
-Extensions plug into one of the ten [seams](docs/ARCHITECTURE.md#the-seams--where-to-plug-things-in).
+Extensions plug into one of the ten [seams](docs/01-architecture/overview.md#the-seams--where-to-plug-things-in).
 
 1. Open an issue with a **falsifiable hypothesis** — which metric, on which slice, moving by
    how much, and why.

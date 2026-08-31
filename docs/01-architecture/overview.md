@@ -1,7 +1,7 @@
 # Architecture
 
 > **Audience:** anyone about to change `nanorag/`, and anyone who wants to explain this system
-> in an interview. Read [the README's architecture section](../README.md#architecture) first for
+> in an interview. Read [the README's architecture section](../../README.md#architecture) first for
 > the context and HLD diagrams; this document is the level below that.
 
 ## Contents
@@ -270,7 +270,7 @@ the trace store, so a sweep costs nothing but the evaluation itself.
 
 ## The seams — where to plug things in
 
-Every extension in [EXTENSION-POINTS.md](EXTENSION-POINTS.md) attaches at exactly one of
+Every extension in [EXTENSION-POINTS.md](../09-research/extension-points.md) attaches at exactly one of
 these. If your idea does not fit one, it is probably two ideas.
 
 ```mermaid

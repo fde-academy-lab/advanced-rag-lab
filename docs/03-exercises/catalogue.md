@@ -336,7 +336,7 @@ three measured improvements, frozen-slice check, rubric self-assessment, decisio
 
 Post the decision record in
 [Discussions → Show & Tell](../../discussions/categories/show-and-tell). It is the single most
-useful artefact you will produce here — see [PORTFOLIO.md](PORTFOLIO.md) for why it is also
+useful artefact you will produce here — see [PORTFOLIO.md](../07-career/portfolio.md) for why it is also
 the one to put in front of an interviewer.
 
 ---

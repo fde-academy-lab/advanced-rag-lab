@@ -24,7 +24,7 @@ jobs:
             - If you are reporting a number that looks wrong, paste the number. The house
               rule here is that evidence beats adjectives.
             - New? Start with `notebooks/00_start_here.ipynb` and
-              [docs/EXERCISES.md](../../blob/main/docs/EXERCISES.md).
+              [docs/03-exercises/catalogue.md](../../blob/main/docs/03-exercises/catalogue.md).
 
             A maintainer will triage this shortly.
           pr-message: |

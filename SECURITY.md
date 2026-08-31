@@ -21,7 +21,7 @@ precise about it is part of the lesson.
 |---|---|
 | **Credential or key leakage** | Anything in the repo, the notebooks, or CI logs that could expose an AWS or API credential |
 | **The ACL model** | A path by which a persona receives evidence outside its groups — including through caches, traces, result counts or latency |
-| **Prompt injection through retrieved content** | Retrieved documents are untrusted input. The current prompt contract does **not** treat them as such, and hardening it is a known gap — see [EXTENSION-POINTS.md #17](docs/EXTENSION-POINTS.md) |
+| **Prompt injection through retrieved content** | Retrieved documents are untrusted input. The current prompt contract does **not** treat them as such, and hardening it is a known gap — see [EXTENSION-POINTS.md #17](docs/09-research/extension-points.md) |
 | **Dependency vulnerabilities** | Reported by Dependabot; PRs welcome |
 | **CI workflow injection** | `pull_request_target` workflows that could be made to run untrusted code |
 

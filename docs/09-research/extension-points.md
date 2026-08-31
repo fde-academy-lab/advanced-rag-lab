@@ -4,7 +4,7 @@ Twenty techniques you can add, each with a falsifiable hypothesis, the seam it p
 it costs, and how you would know it worked. **Open items are labelled `type: extension` and
 `good first issue` in the tracker** — claim one by commenting on its issue.
 
-The [seams](ARCHITECTURE.md#the-seams--where-to-plug-things-in) are numbered ①–⑩. If your idea
+The [seams](../01-architecture/overview.md#the-seams--where-to-plug-things-in) are numbered ①–⑩. If your idea
 does not fit exactly one, it is probably two ideas.
 
 > **Every entry here is written as a hypothesis, not a feature.** "Improves quality" is not a

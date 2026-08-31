@@ -52,5 +52,5 @@ links is not navigable, and recall collapsed as the corpus grew). The FTS5 token
 find rather than a lesson we planned.
 
 **Revisit when:** the curriculum needs to teach sharding, replication or multi-region
-residency. Those are genuinely not teachable here, and `docs/EXTENSION-POINTS.md` #18 is the
+residency. Those are genuinely not teachable here, and `docs/09-research/extension-points.md` #18 is the
 migration path.

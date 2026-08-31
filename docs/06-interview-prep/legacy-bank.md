@@ -77,7 +77,7 @@ that 8% of queries are unanswerable, then 95% correct-or-correctly-refused is ac
 **Red flags I would avoid:** jumping to "I'd try a better embedding model"; proposing three
 changes at once so that no delta is attributable; accepting 95% as well-defined.
 
-> **Run it:** [notebook 01 §1.6](../notebooks/01_retrieval_and_evaluation_foundations.ipynb)
+> **Run it:** [notebook 01 §1.6](../../notebooks/01_retrieval_and_evaluation_foundations.ipynb)
 > executes exactly this tree over the full failure set and produces the distribution.
 
 ---
@@ -117,7 +117,7 @@ The thing I would refuse to do is ship on the average and let the unit discover 
 aggregate that improved while a named segment got worse is exactly the case my release gate
 blocks by default, and overriding a gate is a decision that gets logged with a name on it.
 
-> **Run it:** [notebook 06 §6.4](../notebooks/06_evaluation_approaches.ipynb) executes the
+> **Run it:** [notebook 06 §6.4](../../notebooks/06_evaluation_approaches.ipynb) executes the
 > release-gate tree against a real candidate change, including the per-slice check.
 
 ---
@@ -169,7 +169,7 @@ is fixed by leaning harder on the lexical leg, not by reverting.
 **Red flags:** starting at step 7; not knowing flat search gives you a ground-truth comparison;
 having no plan to bisect.
 
-> **Run it:** [notebook 04 §4.7](../notebooks/04_retrieval_methods_and_reranking.ipynb)
+> **Run it:** [notebook 04 §4.7](../../notebooks/04_retrieval_methods_and_reranking.ipynb)
 > reproduces steps 1–6 on a live index, each with the measured recall drop.
 
 ---
@@ -219,7 +219,7 @@ which costs latency on every query — that is a tradeoff for them to own.
 disjoint evidence sets, in the release gate, not as a one-off review. If someone later changes
 the filter, the chunking, or the ACL denormalisation, the build fails rather than UAT.
 
-> **Run it:** [notebook 03 §3.7](../notebooks/03_rag_system_design.ipynb) measures the
+> **Run it:** [notebook 03 §3.7](../../notebooks/03_rag_system_design.ipynb) measures the
 > k-collapse and runs the two-persona isolation test;
 > `tests/test_retrieval.py` has it wired into CI.
 
@@ -274,9 +274,9 @@ visible."
 **Red flags:** agreeing to $0.15 without a plan; "we'll use a cheaper model" as the whole
 answer; naming no quality cost for any lever.
 
-> **Run it:** [notebook 07 §7.6](../notebooks/07_cost_and_token_optimization.ipynb) computes
+> **Run it:** [notebook 07 §7.6](../../notebooks/07_cost_and_token_optimization.ipynb) computes
 > the blended cost under different hard-traffic shares;
-> [notebook 08 §8.4](../notebooks/08_agentic_search_and_evaluation.ipynb) measures the
+> [notebook 08 §8.4](../../notebooks/08_agentic_search_and_evaluation.ipynb) measures the
 > escalation policy against always-loop.
 
 ---
@@ -324,7 +324,7 @@ claim, and I would push back on anyone who wanted to put it in a contract.
 **Red flags:** "we'd spot-check some outputs"; raw agreement on a skewed set; same model family
 as generator and judge with no note about it.
 
-> **Run it:** [notebook 06 §6.3](../notebooks/06_evaluation_approaches.ipynb) computes κ, runs
+> **Run it:** [notebook 06 §6.3](../../notebooks/06_evaluation_approaches.ipynb) computes κ, runs
 > the verbosity and position probes, and demonstrates judge drift from a single rubric
 > parameter.
 
