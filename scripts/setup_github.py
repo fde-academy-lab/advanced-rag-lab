@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import seed_content as content  # noqa: E402
 from gh import GitHubError, fail, graphql, ok, request, skip, warn  # noqa: E402
+from gh import token as gh_token  # noqa: E402
 
 STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions",
          "project", "push")
@@ -156,15 +157,29 @@ def create_repository(owner, repo, private, dry):
 
 
 def push_repository(owner, repo, dry):
-    """Point origin at the new repository and push the full phased history."""
+    """Point origin at the new repository and push the full phased history.
+
+    The push authenticates with GITHUB_TOKEN rather than falling through to git's interactive
+    prompt. GitHub stopped accepting account passwords for git operations in August 2021, so
+    that prompt can only ever fail — and it fails after asking for a secret, which is the worst
+    possible shape for a credential error.
+
+    The token reaches git through GIT_ASKPASS, reading it from the environment. It is never
+    written into the remote URL (which persists in .git/config, survives the run, and gets
+    copied by anyone who clones your working tree), never passed on a command line (visible in
+    ps to every user on the box), and never written to the askpass script itself.
+    """
+    import os
+    import stat
     import subprocess
+    import tempfile
 
     root = Path(__file__).resolve().parent.parent
     url = f"https://github.com/{owner}/{repo}.git"
 
-    def git(*a, check=True):
+    def git(*a, check=True, env=None):
         return subprocess.run(["git", "-C", str(root), *a], check=check,
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, env=env)
 
     branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     existing = git("remote", "get-url", "origin", check=False)
@@ -177,11 +192,34 @@ def push_repository(owner, repo, dry):
     if existing.returncode != 0:
         git("remote", "add", "origin", url)
         ok("origin", url)
-    res = git("push", "-u", "origin", branch, check=False)
+
+    askpass = tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False)
+    askpass.write(
+        "#!/bin/sh\n"
+        "case \"$1\" in\n"
+        "  *[Uu]sername*) printf 'x-access-token' ;;\n"
+        "  *) printf '%s' \"$GH_PUSH_TOKEN\" ;;\n"
+        "esac\n")
+    askpass.close()
+    os.chmod(askpass.name, stat.S_IRWXU)  # 0700 — readable only by this user
+
+    env = {**os.environ,
+           "GIT_ASKPASS": askpass.name,
+           "GH_PUSH_TOKEN": gh_token(),
+           "GIT_TERMINAL_PROMPT": "0"}  # fail loudly rather than hanging on a hidden prompt
+    try:
+        res = git("push", "-u", "origin", branch, check=False, env=env)
+    finally:
+        os.unlink(askpass.name)
+
     if res.returncode != 0:
-        fail("push", (res.stderr or res.stdout).strip().splitlines()[-1] if
-             (res.stderr or res.stdout).strip() else "failed")
-        print(f"    run manually:  git push -u origin {branch}")
+        detail = (res.stderr or res.stdout).strip()
+        fail("push", detail.splitlines()[-1] if detail else "failed")
+        if "403" in detail or "not accessible" in detail or "denied" in detail:
+            print("    the token authenticated but is not allowed to write here — a "
+                  "fine-grained PAT\n    needs Contents: read/write on this repository.")
+        print(f"    or push by hand:  git push -u origin {branch}")
+        print("    (at the password prompt paste the token, not your account password)")
         return
     ok("push", f"{branch} → {url}")
 

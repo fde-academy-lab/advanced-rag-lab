@@ -1,14 +1,14 @@
 # Every PR gets a reviewer. Swap this handle (or a team, @your-org/maintainers)
 # if you fork — `python scripts/retarget.py --owner <handle>` does it everywhere.
 
-*                       @fde-academy-lab
+*                       @akash-coded
 
 # The curriculum. Changing a notebook changes what a reader is taught.
-/notebooks/             @fde-academy-lab
-/docs/CURRICULUM.md     @fde-academy-lab
-/docs/EXERCISES.md      @fde-academy-lab
+/notebooks/             @akash-coded
+/docs/CURRICULUM.md     @akash-coded
+/docs/EXERCISES.md      @akash-coded
 
 # The measurement. A change here silently changes every number in the repo.
-/nanorag/metrics.py     @fde-academy-lab
-/nanorag/corpus.py      @fde-academy-lab
-/.github/eval-baseline.json @fde-academy-lab
+/nanorag/metrics.py     @akash-coded
+/nanorag/corpus.py      @akash-coded
+/.github/eval-baseline.json @akash-coded

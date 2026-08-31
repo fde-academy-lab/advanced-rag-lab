@@ -20,7 +20,7 @@ jobs:
         if: github.event.action == 'opened' || github.event.action == 'reopened'
         uses: actions/add-to-project@v1.0.2
         with:
-          project-url: https://github.com/users/fde-academy-lab/projects/1
+          project-url: https://github.com/users/akash-coded/projects/1
           github-token: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
