@@ -1,0 +1,91 @@
+# The simulator's weekly look at itself.
+#
+# It reads the grading bot's own replies and tallies which *check* caught people most often.
+# That is feedback on the units, not on the learners: a check almost everyone trips is either
+# the lesson landing or a brief that failed to set it up, and those need opposite responses.
+#
+# Deliberately not a leaderboard. Ranking learners on a public repository mostly ranks who had a
+# free weekend, and the number that would result is not one anybody should act on.
+name: L.A.B. Simulator · digest
+
+on:
+  schedule:
+    - cron: "17 8 * * 1"          # Monday morning, after the weekend's attempts
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days to look back"
+        required: false
+        default: "7"
+      post:
+        description: "Post it as a discussion, or just print it"
+        required: false
+        default: "print"
+        type: choice
+        options: [print, post]
+
+permissions:
+  discussions: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pyyaml
+
+      - name: Tally the week
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/labsim_digest.py \
+            --owner "${{ github.repository_owner }}" \
+            --repo "${{ github.event.repository.name }}" \
+            --days "${{ inputs.days || 7 }}" \
+            --out digest.md
+
+      - name: Step summary
+        if: always()
+        run: cat digest.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Post it as a discussion
+        if: github.event_name == 'schedule' || inputs.post == 'post'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import datetime, os, pathlib, sys
+          sys.path.insert(0, "scripts")
+          from gh import graphql
+
+          owner, repo = os.environ["GITHUB_REPOSITORY"].split("/")
+          body = pathlib.Path("digest.md").read_text()
+
+          info = graphql("""
+            query($o:String!,$n:String!){ repository(owner:$o,name:$n){
+              id discussionCategories(first:50){ nodes { id name } } } }""",
+            {"o": owner, "n": repo})["repository"]
+
+          def norm(s):
+              return "".join(ch for ch in s.lower() if ch.isalpha())
+
+          wanted = {"labsimulator", "labsimulatorexercises", "exercisessubmissions"}
+          cat = next((c for c in info["discussionCategories"]["nodes"]
+                      if norm(c["name"]) in wanted), None)
+          if cat is None:
+              print("::warning::no simulator discussion category; printing only")
+              sys.exit(0)
+
+          week = datetime.date.today().isocalendar()
+          title = f"Simulator digest · {week.year} week {week.week:02d}"
+          out = graphql("""
+            mutation($r:ID!,$c:ID!,$t:String!,$b:String!){
+              createDiscussion(input:{repositoryId:$r,categoryId:$c,title:$t,body:$b}){
+                discussion { url } } }""",
+            {"r": info["id"], "c": cat["id"], "t": title, "b": body})
+          print("posted", out["createDiscussion"]["discussion"]["url"])
+          PY

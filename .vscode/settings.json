@@ -1,0 +1,19 @@
+{
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["tests", "-m", "not notebooks"],
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+
+  // Same reasoning as .devcontainer/devcontainer.json: the worked answers and the reference
+  // solutions are tracked on purpose — CI grades them on every change — and hidden from the
+  // sidebar so reading one is a decision rather than an accident. Set these to false when you
+  // want to read them; that act is the point.
+  "files.exclude": {
+    "**/lab-simulator/units/*/reference": true,
+    "**/lab-simulator/units/*/SOLUTION.md": true
+  },
+  "search.exclude": {
+    "**/lab-simulator/units/*/reference": true,
+    "**/lab-simulator/units/*/SOLUTION.md": true
+  }
+}

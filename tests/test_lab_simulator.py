@@ -9,6 +9,7 @@ see it, because the self-test runs *through* the engine.
 """
 from __future__ import annotations
 
+import re
 import sys
 import textwrap
 from pathlib import Path
@@ -341,3 +342,153 @@ def test_every_shipped_unit_accepts_its_reference_and_rejects_its_decoys():
     assert not gaps, gaps
     broken = [f"{o.case.label}: {o.why}" for o in outcomes if not o.ok]
     assert not broken, "\n".join(broken)
+
+
+# --------------------------------------------------------------- briefs and hints
+
+def test_every_unit_ships_hints():
+    """`/hint` is the one affordance a stuck learner has in Discussions. It has to exist."""
+    from labsim.brief import hints
+    thin = {u.uid: len(hints((u.directory / "BRIEF.md").read_text()))
+            for u in registry.all_units()}
+    assert all(n >= 2 for n in thin.values()), thin
+
+
+def test_hints_are_numbered_in_order():
+    from labsim.brief import hints
+    for u in registry.all_units():
+        got = hints((u.directory / "BRIEF.md").read_text())
+        assert [h.number for h in got] == list(range(1, len(got) + 1)), u.uid
+
+
+def test_rendering_a_brief_hides_the_hint_bodies():
+    """The point of a collapsed hint is that reading it is a decision."""
+    from labsim.brief import hints, render
+    unit = registry.by_id("R2")
+    md = (unit.directory / "BRIEF.md").read_text()
+    out = render(md, width=90, colour=False)
+    for h in hints(md):
+        body = " ".join(h.body.split())[:60]
+        assert body not in " ".join(out.split()), f"hint {h.number} leaked into the render"
+        assert h.summary.split("—")[0].strip() in out, "the hint's teaser should still show"
+
+
+def test_rendering_strips_markup_but_keeps_tables():
+    from labsim.brief import render
+    md = "# Title\n\nSome **bold** and `code`.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n"
+    out = render(md, width=80, colour=False)
+    assert "**" not in out and "`" not in out
+    assert "| a | b |" in out
+
+
+# --------------------------------------------------------------- the discussions bridge
+
+FORM_BODY = """### Which unit
+
+R1 — Make a citation resolve
+
+### Your approach, before the code
+
+Map each marker to the chunk it came from.
+
+### Your solution.py
+
+```python
+def pack_context(hits):
+    return None
+```
+
+### What surprised you
+
+The randomised check.
+"""
+
+
+def test_a_form_submission_is_parsed():
+    from labsim.discussion import parse_submission
+    sub = parse_submission("R1 · attempt", FORM_BODY)
+    assert sub.unit_id == "R1"
+    assert "solution.py" in sub.files and "pack_context" in sub.files["solution.py"]
+    assert sub.reflection.startswith("The randomised")
+    assert sub.usable
+
+
+def test_a_submission_that_ignored_the_form_is_still_parsed():
+    """Refusing a submission on a formatting technicality is how you stop getting submissions."""
+    from labsim.discussion import parse_submission
+    sub = parse_submission("my go at R2", "here you are\n\n```yaml\ndecision: ship dense\n```")
+    assert sub.unit_id == "R2" and "decision.yaml" in sub.files
+
+
+def test_a_submission_naming_no_real_unit_is_not_usable():
+    from labsim.discussion import parse_submission
+    assert not parse_submission("Z9 · hello", "```python\nx = 1\n```").usable
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("/check", ("check", None)),
+    ("  /hint", ("hint", None)),
+    ("stuck. /hint 3", ("hint", 3)),
+    ("/solution please", ("solution", None)),
+    ("nothing to see", None),
+    ("see docs/check for this", None),
+])
+def test_commands_are_recognised_where_people_actually_write_them(text, expected):
+    from labsim.discussion import parse_command
+    assert parse_command(text) == expected
+
+
+def test_a_command_inside_a_code_fence_is_not_a_command():
+    """A pasted diff containing /check must not re-grade somebody's thread."""
+    from labsim.discussion import parse_command
+    assert parse_command("look:\n\n```\nrm /check\n```\n") is None
+
+
+def test_the_grade_reply_carries_a_machine_readable_tag():
+    """The weekly digest tallies these. If the format drifts, the digest silently empties."""
+    from labsim.discussion import render_grade
+    from labsim.grader import grade
+    unit = registry.by_id("R1")
+    result = grade(unit, unit.directory / "reference" / "fail-cites-the-document")
+    body = render_grade("R1", result, repo="o/r")
+    assert "<!-- labsim-bot -->" in body
+    assert re.search(r"<!-- labsim:R1:fail:[^>]*-->", body)
+    assert "markers map to the input chunk_ids" in body
+
+
+def test_solution_is_gated_until_the_thread_clears():
+    from labsim.discussion import render_solution
+    closed = render_solution("R1", passed=False)
+    assert "stays closed" in closed and "SOLUTION.md" in closed
+    opened = render_solution("R1", passed=True)
+    assert "cleared" in opened
+
+
+def test_hint_replies_walk_forward_and_stop():
+    from labsim.discussion import render_hint
+    first = render_hint("R2", None)
+    assert "hint 1 of 4" in first and "/hint 2" in first
+    last = render_hint("R2", 4)
+    assert "last hint" in last
+    past = render_hint("R2", 9)
+    assert "asked for 9" in past
+
+
+# --------------------------------------------------------------- the bot's sanitiser
+
+def test_the_bot_neutralises_mentions_and_foreign_html():
+    """The grade job runs a stranger's code and writes the reply. Assume the reply is hostile."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from discussion_bot import sanitise
+    out = sanitise("<!-- labsim-bot -->\nping @everyone\n<!-- payload -->\n"
+                   "<!-- labsim:R1:pass: -->")
+    assert "`@everyone`" in out, "a mention must survive as text"
+    assert not re.search(r"(?<!`)@everyone", out), "…but not as a live mention"
+    assert "<!-- payload -->" not in out
+    assert "<!-- labsim:R1:pass: -->" in out, "our own tags must survive"
+
+
+def test_the_bot_adds_its_marker_when_missing():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from discussion_bot import sanitise
+    assert sanitise("bare text").startswith("<!-- labsim-bot -->")

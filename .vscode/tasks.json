@@ -1,0 +1,74 @@
+{
+  "version": "2.0.0",
+  "options": { "cwd": "${workspaceFolder}/lab-simulator" },
+  "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+  "inputs": [
+    {
+      "id": "unit",
+      "type": "pickString",
+      "description": "Which unit?",
+      "default": "F1",
+      "options": [
+        { "label": "F1 · Chunk so the answer survives the cut  (implement, easy)", "value": "F1" },
+        { "label": "R1 · Make a citation resolve  (implement, easy)", "value": "R1" },
+        { "label": "E1 · The two recalls that disagree by thirty points  (implement, medium)", "value": "E1" },
+        { "label": "R2 · Decide whether to fuse at all  (decide, medium)", "value": "R2" },
+        { "label": "C1 · Five characters that cost two thirds of the bill  (diagnose, hard)", "value": "C1" },
+        { "label": "R3 · Build the rule you rejected  (measure, hard)", "value": "R3" },
+        { "label": "P1 · The measurement note that survives you leaving  (ship, medium)", "value": "P1" }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "label": "L.A.B: what should I do now",
+      "type": "shell",
+      "command": "python -m labsim next",
+      "problemMatcher": [],
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "L.A.B: read the brief",
+      "type": "shell",
+      "command": "python -m labsim brief ${input:unit}",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: start a unit (opens brief + attempt)",
+      "type": "shell",
+      "command": "python -m labsim start ${input:unit} --open",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: spend a hint",
+      "type": "shell",
+      "command": "python -m labsim hint ${input:unit}",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: grade my attempt",
+      "type": "shell",
+      "command": "python -m labsim check ${input:unit}",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: where am I",
+      "type": "shell",
+      "command": "python -m labsim progress",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: doctor",
+      "type": "shell",
+      "command": "python -m labsim doctor",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: what I can put on a CV",
+      "type": "shell",
+      "command": "python -m labsim badge",
+      "problemMatcher": []
+    }
+  ]
+}

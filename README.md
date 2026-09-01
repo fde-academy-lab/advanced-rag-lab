@@ -150,15 +150,22 @@ panel actually asks, and a checkpoint that re-derives its own answers.
 ## The L.A.B. Simulator
 
 The notebooks show you. [`lab-simulator/`](lab-simulator/) makes you do it, and grades the
-result.
+result — in an editor, in a discussion thread, or in your terminal, with the same grader behind
+all three.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/fde-academy-lab/advanced-rag-lab?quickstart=1)
 
 ```bash
 cd lab-simulator
-python -m labsim next          # what to do now
-python -m labsim brief F1      # read it
-python -m labsim start F1      # scaffold an attempt
-python -m labsim check F1      # grade it
+python -m labsim next              # what to do now
+python -m labsim brief F1          # read it, rendered, hints collapsed
+python -m labsim start F1 --open   # scaffold an attempt, open it beside the brief
+python -m labsim check F1          # grade it
 ```
+
+Or without cloning anything: post a unit in the **LAB Simulator** discussion category and a bot
+grades it and replies with the named checks that failed — `/hint` for the next hint, `/solution`
+once you clear. [How that works, and why it is safe to run strangers' code](lab-simulator/DISCUSSIONS.md).
 
 Practice material for this subject has converged on one shape — a starter function with a `TODO`
 and hidden tests. It teaches syntax and not judgement, for three reasons that drove every design

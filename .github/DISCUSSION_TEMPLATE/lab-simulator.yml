@@ -1,0 +1,81 @@
+title: "[UNIT] · "
+labels: ["lab-simulator"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Post a unit and a bot grades it.** It runs the same `python -m labsim check` you would
+        run locally, on a clean checkout, and replies with the named checks that failed.
+
+        Nothing here needs a clone. If you would rather have an editor,
+        [open the repository in Codespaces](../../codespaces/new) and run `python -m labsim next`.
+
+        Once your post exists, these work as comments on it:
+        `/check` re-grade · `/hint` the next hint from the brief · `/solution` (opens once you
+        clear) · `/status` the pathway.
+
+  - type: dropdown
+    id: unit
+    attributes:
+      label: Which unit
+      options:
+        - "F1 — Chunk so the answer survives the cut (implement, easy)"
+        - "R1 — Make a citation resolve (implement, easy)"
+        - "E1 — Build the two recalls that disagree by thirty points (implement, medium)"
+        - "R2 — Decide whether to fuse at all (decide, medium)"
+        - "C1 — Find the five characters that cost two thirds of the bill (diagnose, hard)"
+        - "R3 — Build the rule you rejected (measure, hard)"
+        - "P1 — Write the measurement note that survives you leaving (ship, medium)"
+    validations: { required: true }
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Your approach, before the code
+      description: >-
+        Two or three sentences on what you decided to do and why that was the thing to do.
+        This field is first on purpose. Writing it after the code turns reasoning into
+        rationalisation, and nobody can tell afterwards — including you.
+      placeholder: "I read the promise as being about spans rather than sizes, so…"
+    validations: { required: true }
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Your solution.py"
+      description: "Paste the whole file. Leave this empty for a decide-mode unit (R2)."
+      render: python
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: "Your decision.yaml"
+      description: >-
+        For units that gate on a decision (R2). All four fields, and remember the grader
+        rejects a falsifier that names the conclusion instead of an observation.
+      render: yaml
+
+  - type: textarea
+    id: measurement
+    attributes:
+      label: "Your measurement.md"
+      description: "For P1. Prose is fine — no fence needed."
+
+  - type: textarea
+    id: surprised
+    attributes:
+      label: What surprised you
+      description: >-
+        The part that did not go how you expected. It is the most useful paragraph in the
+        thread for whoever reads it next, and it is the one people skip.
+    validations: { required: true }
+
+  - type: checkboxes
+    id: honesty
+    attributes:
+      label: Before you post
+      options:
+        - label: "I read the brief and spent the hints I needed, rather than opening SOLUTION.md first"
+          required: true
+        - label: "I understand my code will be executed by a GitHub Action in a job with no token and no secrets"
+          required: true

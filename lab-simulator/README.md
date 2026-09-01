@@ -3,11 +3,26 @@
 A graded, progressive hands-on lab. Every concept in this repository becomes a unit you can
 work, and the units form a pathway rather than a list.
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/fde-academy-lab/advanced-rag-lab?quickstart=1)
+
+Three ways in, one grader behind all of them.
+
+**In Codespaces** — nothing to install. *Code ▸ Codespaces ▸ Create codespace on main*, and you
+land in a terminal that already says what to do next.
+
+**In a discussion thread** — nothing to clone. Post a unit in the **LAB Simulator** category and
+a bot grades it and replies with the named checks that failed. See
+[DISCUSSIONS.md](DISCUSSIONS.md).
+
+**Locally** — `pip install -e ".[dev]"`, then:
+
 ```bash
 python -m labsim next          # what to do now
-python -m labsim brief R1      # read it
-python -m labsim start R1      # scaffold an attempt
-python -m labsim check R1      # grade it
+python -m labsim brief F1      # read it, rendered, with the hints collapsed
+python -m labsim hint  F1      # spend one, when you are stuck rather than before
+python -m labsim start F1 --open   # scaffold an attempt, open it beside the brief
+python -m labsim check F1      # grade it
+python -m labsim doctor        # can this machine run the lab?
 ```
 
 ---
@@ -232,6 +247,30 @@ in the top-level README.
 
 The `integrity` job is the other half — it runs `validate` and `selftest`, so a change that
 weakens a check fails the build even though nothing "broke".
+
+## Working in Codespaces
+
+`.devcontainer/` installs the toolkit during the **prebuild**, so a learner opening this
+repository gets a warm machine rather than two minutes of pip. `F1 → Run Task` has the whole
+loop as a menu — *what should I do now*, *read the brief*, *start a unit*, *spend a hint*,
+*grade my attempt* — with a pick-list of units that CI keeps in sync with the registry
+(`scripts/lint/check_devcontainer.py`, which exists because that list is exactly the kind of
+thing that goes stale in silence).
+
+`labsim start F1 --open` opens the brief and your attempt as tabs; `⌘K V` renders the brief
+beside your code, which is the layout the work actually wants.
+
+One deliberate choice worth knowing about. The editor hides
+`lab-simulator/units/*/reference/` and `SOLUTION.md` from the explorer and from search:
+
+```jsonc
+"files.exclude": { "**/lab-simulator/units/*/SOLUTION.md": true }
+```
+
+They are tracked in git on purpose — CI grades the reference answers on every change, which is
+what makes the graders testable — and hidden from the sidebar because *"don't look"* is a weak
+defence when the file is two clicks away. Reading one should be a decision. Flip the setting in
+`.vscode/settings.json` when you want to make it.
 
 ## Local progress
 

