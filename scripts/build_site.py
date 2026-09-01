@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -169,6 +170,7 @@ the evaluation that judges it. Ten runnable notebooks, no vector database, no AP
     <a class="btn primary" href="{gh}">Open on GitHub</a>
     <a class="btn" href="{gh}/blob/main/docs/00-orientation/client-zero.md">The engagement</a>
     <a class="btn" href="{gh}/discussions">Discussions</a>
+    <a class="btn" href="deck/">The deck &middot; 97 slides</a>
     <a class="btn" href="{gh}/tree/main/interview-bank">Interview bank</a>
   </div>
 </div></header>
@@ -196,6 +198,22 @@ the evaluation that judges it. Ten runnable notebooks, no vector database, no AP
   which the expected result returns. A negative finding without that condition is an anecdote.</p>
   {findings}
 
+  <h2>Concepts and case studies</h2>
+  <p class="sub">The taught material, four studies of retrieval systems meeting reality, a full
+  engagement walked end to end, and the templates that go with it.</p>
+  <div class="lab">
+    <div><h3>The deck</h3><p>97 slides &mdash; decision trees, matrices, high-level designs and
+    engineering budgets. <a href="deck/">Open it</a>.</p></div>
+    <div><h3>Case studies</h3><p>Three published with citations and reported figures, one our own
+    &mdash; including the results that went the wrong way.
+    <a href="{gh}/tree/main/concepts-and-case-studies/case-studies">Read them</a>.</p></div>
+    <div><h3>Scenarios</h3><p>A full engagement from the sentence the client said to the
+    postmortem, with the PRD, the ADR-lites and the dissection.
+    <a href="{gh}/tree/main/concepts-and-case-studies/scenarios">Work one</a>.</p></div>
+    <div><h3>Templates</h3><p>PRD, ADR-lite, PDLC and solution dissection, each with a worked
+    example. <a href="{gh}/tree/main/concepts-and-case-studies/templates">Take them</a>.</p></div>
+  </div>
+
   <h2>The notebooks</h2>
   <p class="sub">Executed with their outputs. No dataset to download, no API key, no service to
   start — the entire retrieval stack lives inside <code>sqlite3.connect(":memory:")</code>.</p>
@@ -210,6 +228,34 @@ the evaluation that judges it. Ten runnable notebooks, no vector database, no AP
 </div></footer>
 </body></html>
 """
+
+
+def copy_deck(out: Path) -> bool:
+    """Copy the 97-slide deck so it is viewable online rather than only downloadable.
+
+    It is a self-contained export — one HTML file plus two runtime scripts, loaded by relative
+    path — so publishing it is a copy rather than a build. Keeping the three together is the
+    whole requirement.
+    """
+    src = ROOT / "concepts-and-case-studies" / "deck"
+    if not (src / "retrieval-rag-and-evals.dc.html").exists():
+        print("::warning::deck not found; skipping")
+        return False
+    dest = out / "deck"
+    dest.mkdir(parents=True, exist_ok=True)
+    for name in ("retrieval-rag-and-evals.dc.html", "support.js", "deck-stage.js"):
+        if (src / name).exists():
+            shutil.copy2(src / name, dest / name)
+    # The deck's own filename is not an index, so give the directory one.
+    (dest / "index.html").write_text(
+        '<!doctype html><meta charset="utf-8">'
+        '<title>Retrieval, RAG and Evals — the deck</title>'
+        '<meta http-equiv="refresh" content="0; url=retrieval-rag-and-evals.dc.html">'
+        '<link rel="canonical" href="retrieval-rag-and-evals.dc.html">'
+        '<p>Redirecting to <a href="retrieval-rag-and-evals.dc.html">the deck</a>.</p>',
+        encoding="utf-8")
+    print("  copied the deck")
+    return True
 
 
 def export_notebooks(out: Path) -> list[str]:
@@ -238,6 +284,7 @@ def main() -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    copy_deck(out)
     exported = export_notebooks(out) if args.notebooks else []
 
     owner, name = repo()
