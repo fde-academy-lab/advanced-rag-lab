@@ -1,7 +1,12 @@
 name: Docs links
 on:
   push: { paths: ["**/*.md", ".github/workflows/link-check.yml"] }
-  pull_request: { paths: ["**/*.md"] }
+  # No `paths` filter on pull_request, deliberately. Both jobs here are required status checks
+  # on `main`, and a required check that is path-filtered never reports on a pull request
+  # outside those paths — GitHub leaves it "Expected" and the branch can never be merged except
+  # by an administrator bypassing protection. Thirty seconds a pull request is the price of the
+  # gate actually being a gate.
+  pull_request:
   schedule: [{ cron: "30 5 * * 0" }]
 permissions:
   contents: read

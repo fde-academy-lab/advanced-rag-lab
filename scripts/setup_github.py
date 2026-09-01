@@ -299,17 +299,7 @@ def configure_repository(owner, repo, dry):
     # this repository is zero.
     reviewers = int(os.environ.get("REQUIRED_REVIEWERS", "0"))
     protection = {
-        "required_status_checks": {
-            "strict": True,
-            "contexts": [
-                "Lint",
-                "Tests (py3.11)",
-                "One-click promise (fresh machine, no pip install)",
-                # The two doc checks. Cheap, and both have failed for real reasons.
-                "links",
-                "Mermaid renders on GitHub",
-            ],
-        },
+        "required_status_checks": {"strict": True, "contexts": list(REQUIRED_CHECKS)},
         "enforce_admins": False,
         "required_pull_request_reviews": (
             {"required_approving_review_count": reviewers, "dismiss_stale_reviews": True}
@@ -332,6 +322,26 @@ def configure_repository(owner, repo, dry):
            + (f" + {reviewers} review(s)" if reviewers else ", no review requirement"))
     except GitHubError as exc:
         warn("branch protection", f"skipped — {exc.message[:90]}")
+
+
+# Status checks `main` requires before a merge.
+#
+# Every one of these must be produced by a job that runs on **every** pull request. A required
+# context whose workflow is `paths`-filtered never reports on a pull request outside those
+# paths, GitHub shows it as "Expected" forever, and the pull request cannot be merged by
+# anybody who is not an administrator bypassing protection. That deadlock shipped here and was
+# invisible for a day, because every merge until then was an admin bypass.
+#
+# tests/test_workflows.py enforces the invariant. Add a context here and the test tells you if
+# its workflow is filtered.
+REQUIRED_CHECKS = (
+    "Lint",
+    "Tests (py3.11)",
+    "One-click promise (fresh machine, no pip install)",
+    # The two doc checks. Cheap, and both have failed for real reasons.
+    "links",
+    "Mermaid renders on GitHub",
+)
 
 
 # ──────────────────────────────────────────────────────────────────── labels ──
