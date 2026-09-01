@@ -202,10 +202,33 @@ the evaluation that judges it. Ten runnable notebooks, no vector database, no AP
   the first two numbers is the entire multi-hop problem, stated numerically.</p>
   <div class="metrics">{metrics}</div>
 
-  <h2>Three results that contradict the expected answer</h2>
-  <p class="sub">Each is measured, reproducible from a notebook cell, and names the condition under
-  which the expected result returns. A negative finding without that condition is an anecdote.</p>
+  <h2>Four results that contradict the expected answer</h2>
+  <p class="sub">Each is measured, reproducible in one command, and names the condition under which
+  the expected result returns. A negative finding without that condition is an anecdote.</p>
+  <p class="sub">The first one is also a correction. It previously read <i>&ldquo;equal-weight RRF
+  does not beat BM25 alone&rdquo;</i>, was quoted in about twenty places here, and does not
+  reproduce &mdash; so it was re-measured, retracted and replaced. <a
+  href="{gh}/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md">ADR-0015</a>
+  records what was claimed, what was measured, and why nothing was structured to notice.</p>
   {findings}
+
+  <h2>The L.A.B. Simulator</h2>
+  <p class="sub">The notebooks show you. The simulator makes you do it, and grades the result
+  &mdash; seven units, five modes, a pathway derived from prerequisites rather than declared.</p>
+  <div class="lab">
+    <div><h3>Three gates, not one</h3><p>A <b>decision</b> committed before any code, whose
+    falsifier is rejected if it names the conclusion instead of an observation. The <b>checks</b>.
+    And a <b>metric bar</b>, measured on the real corpus.</p></div>
+    <div><h3>Five modes</h3><p><code>implement</code>, <code>diagnose</code>, <code>decide</code>,
+    <code>measure</code>, <code>ship</code>. The last two are what make it a lab rather than a
+    problem set. <a href="{gh}/tree/main/lab-simulator">Start at F1</a>.</p></div>
+    <div><h3>Graders that are graded</h3><p>Every unit ships a worked answer the grader must accept
+    and decoys it must reject. A check that has never rejected anything is a function that returns
+    true, and you cannot tell those apart by reading it.</p></div>
+    <div><h3>Graded on a pull request</h3><p>Push an attempt and the Action comments the result.
+    A failed attempt does not fail the build &mdash; a red tick on a third try at a hard unit is
+    information, not a gate.</p></div>
+  </div>
 
   <h2>Concepts and case studies</h2>
   <p class="sub">The taught material, four studies of retrieval systems meeting reality, a full
