@@ -459,6 +459,9 @@ query($owner:String!,$name:String!,$number:Int!){
 # Enough to repair a thread that already exists: is it answered, and which comment should be
 # the answer. Seeding is create-only otherwise, so a thread created before a bug was fixed
 # stays broken forever unless somebody deletes it by hand.
+# Lets the fallback recognise its own work, so a retraction comment is posted once.
+RETRACTION_MARK = "<!-- labsim-retraction -->"
+
 UPDATE_DISCUSSION_M = """
 mutation($id:ID!,$body:String!){
   updateDiscussion(input:{discussionId:$id,body:$body}){ discussion { number url } }
@@ -514,16 +517,35 @@ def retire_orphans(owner, repo, existing, dry) -> int:
         banner = content.RETIREMENT_BANNER.format(
             replacement=new_title, owner=owner, repo=repo,
             url=f"/{owner}/{repo}/discussions/{new_number}")
+        # Two ways to say "retracted", and the second one is the reason this works.
+        #
+        # Editing the body is better — the notice sits above the wrong text where nobody can
+        # miss it. But `updateDiscussion` edits a thread this token did not author, and that is
+        # a permission the built-in Actions token may simply not have. Adding a comment is a
+        # mutation the seeder already performs a hundred times a run, so it is known to work.
+        #
+        # Try the good one, fall back to the certain one. A retraction that depends on a
+        # permission you have not verified is a retraction that silently does not happen.
         try:
             mutate(UPDATE_DISCUSSION_M, {"id": disc["id"], "body": banner + body})
-        except GitHubError as exc:
-            # Not truncated. A GraphQL error puts the actionable part at the end — which
-            # permission is missing, which field is unknown — and 70 characters cuts it off.
-            warn(f"retire #{number}", f"updateDiscussion refused: {exc.message}")
+            ok(f"#{number}", f"{'retracted in the body':<24} {old_title[:44]}")
+            banded += 1
+            time.sleep(1.1)
             continue
-        ok(f"#{number}", f"{'retracted, points at #' + str(new_number):<24} {old_title[:44]}")
-        banded += 1
-        time.sleep(1.1)
+        except GitHubError as exc:
+            warn(f"retire #{number}", f"updateDiscussion refused: {exc.message}")
+
+        if any(RETRACTION_MARK in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"retire #{number}", "already carries a retraction comment")
+            continue
+        try:
+            mutate(ADD_COMMENT_M, {"discussionId": disc["id"],
+                                   "body": RETRACTION_MARK + "\n" + banner})
+            ok(f"#{number}", f"{'retracted by comment':<24} {old_title[:44]}")
+            banded += 1
+            time.sleep(1.1)
+        except GitHubError as exc:
+            fail(f"retire #{number}", f"could not retract at all: {exc.message}")
 
     defined = {t["title"] for t in content.DISCUSSIONS} | set(getattr(content, "RETIRED", {}))
     strays = [t for t in existing if t not in defined and "Discussions!" not in t]
