@@ -35,6 +35,16 @@ FENCE = re.compile(r"```(?P<lang>[\w.]*)\s*\n(?P<code>.*?)```", re.S)
 COMMAND = re.compile(r"(?:^|\s)/(check|hint|solution|status|help)\b[ \t]*(\d+)?", re.M | re.I)
 
 # Which form field feeds which file in the attempt directory.
+#
+# Matched against the field's label in two passes, and the order is the point. A label that
+# literally names the file wins; only then does the loose keyword pass run, and it skips labels
+# that are asking for prose.
+#
+# The form's first textarea is "Your approach, before the code". Under a single loose pass that
+# label contains "code" and captures any fenced block in it as the learner's solution — so
+# somebody who sketches an approach in code, or pastes their answer one field too early, gets a
+# grade for a file they did not submit.
+FILENAMES = ("solution.py", "decision.yaml", "measurement.md")
 FIELD_TO_FILE = {
     "solution": "solution.py",
     "code": "solution.py",
@@ -42,6 +52,12 @@ FIELD_TO_FILE = {
     "measurement": "measurement.md",
     "note": "measurement.md",
 }
+PROSE_FIELDS = ("approach", "surprised", "reflect", "before you post", "which unit")
+
+# GitHub renders an untouched optional textarea as this literal string rather than omitting the
+# section. Taken at face value it becomes a file: a P1 attempt that left the note blank was
+# graded against a measurement.md whose entire contents were "_No response_".
+NO_RESPONSE = re.compile(r"^\s*_?\s*no response\s*_?\s*$", re.I)
 
 
 @dataclasses.dataclass
@@ -64,6 +80,20 @@ def _sections(body: str) -> dict[str, str]:
     return out
 
 
+def _target_file(label: str) -> str | None:
+    """Which attempt file a form field feeds, or None when the field is prose."""
+    low = label.lower()
+    for filename in FILENAMES:
+        if filename in low:
+            return filename
+    if any(word in low for word in PROSE_FIELDS):
+        return None
+    for key, filename in FIELD_TO_FILE.items():
+        if key in low:
+            return filename
+    return None
+
+
 def _first_fence(text: str, *langs: str) -> str | None:
     for m in FENCE.finditer(text):
         if not langs or (m.group("lang") or "").lower() in langs:
@@ -83,24 +113,32 @@ def parse_submission(title: str, body: str) -> Submission:
     reflection = ""
 
     for label, text in sections.items():
+        if NO_RESPONSE.match(text or ""):
+            continue                    # an untouched optional field, not an empty submission
         if unit_id is None and ("unit" in label or "which" in label):
             for token in UID_IN_TITLE.findall(text.upper()):
                 if by_id(token):
                     unit_id = by_id(token).uid
                     break
-        for key, filename in FIELD_TO_FILE.items():
-            if key in label:
-                code = _first_fence(text)
-                # A measurement note is prose, so it may arrive without a fence at all.
-                if code is None and filename.endswith(".md") and text:
-                    code = text.strip() + "\n"
-                if code:
-                    files[filename] = code
+        filename = _target_file(label)
+        if filename:
+            code = _first_fence(text)
+            # A measurement note is prose, so it may arrive without a fence at all.
+            if code is None and filename.endswith(".md") and text.strip():
+                code = text.strip() + "\n"
+            if code:
+                files[filename] = code
         if "surprised" in label or "reflect" in label:
             reflection = text.strip()
 
-    # Not a form, or a form somebody fought with: fall back to the whole body.
-    if not files:
+    # Not a form: fall back to scanning the whole body, so somebody who ignores the template
+    # and pastes a code block under a title of "R1 attempt" is still graded.
+    #
+    # Only when the post is not form-shaped, though. A form that names its file fields has
+    # already said which block is which, and re-scanning would defeat that — the approach field
+    # comes first, so a learner sketching in code would be graded on the sketch.
+    form_like = any(_target_file(label) for label in sections)
+    if not files and not form_like:
         for filename, langs in (("solution.py", ("python", "py")),
                                 ("decision.yaml", ("yaml", "yml"))):
             code = _first_fence(body or "", *langs)

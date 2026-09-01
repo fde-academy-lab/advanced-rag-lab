@@ -492,3 +492,100 @@ def test_the_bot_adds_its_marker_when_missing():
     sys.path.insert(0, str(ROOT / "scripts"))
     from discussion_bot import sanitise
     assert sanitise("bare text").startswith("<!-- labsim-bot -->")
+
+
+# ------------------------------------------- the form GitHub actually renders
+
+def rendered_form(**fields) -> str:
+    """A discussion body in the exact shape GitHub produces from a category form.
+
+    Two details of that shape are load-bearing and neither is obvious from the YAML: an
+    untouched optional textarea becomes the literal `_No response_` rather than being omitted,
+    and every field label becomes an `###` heading — including the prose ones.
+    """
+    labels = [
+        ("unit", "Which unit"),
+        ("approach", "Your approach, before the code"),
+        ("solution", "Your solution.py"),
+        ("decision", "Your decision.yaml"),
+        ("measurement", "Your measurement.md"),
+        ("surprised", "What surprised you"),
+    ]
+    out = []
+    for key, label in labels:
+        out.append(f"### {label}\n\n{fields.get(key, '_No response_')}\n")
+    out.append("### Before you post\n\n- [X] I read the brief\n")
+    return "\n".join(out)
+
+
+def test_the_form_labels_match_what_the_parser_looks_for():
+    """The contract between the YAML and the parser, checked against the YAML itself."""
+    import yaml as _yaml
+
+    from labsim.discussion import _target_file
+    form = _yaml.safe_load(
+        (ROOT / ".github" / "DISCUSSION_TEMPLATE" / "lab-simulator.yml").read_text())
+    labels = {f["attributes"]["label"]: f.get("id")
+              for f in form["body"] if f.get("type") != "markdown"}
+    for label, field_id in labels.items():
+        target = _target_file(label)
+        if field_id in ("solution", "decision", "measurement"):
+            assert target, f"form field {label!r} feeds no file"
+        else:
+            assert target is None, (
+                f"form field {label!r} is prose and would be written to {target}. "
+                "'Your approach, before the code' contains 'code' — a loose match captures it.")
+
+
+def test_an_untouched_optional_field_is_not_a_file():
+    """`_No response_` is what GitHub writes for a blank optional textarea, not content.
+
+    Taken at face value it becomes a file: a P1 attempt that left the note blank was graded
+    against a measurement.md whose entire contents were the words "_No response_".
+    """
+    from labsim.discussion import parse_submission
+    sub = parse_submission("[R1] attempt", rendered_form(
+        unit="R1 — Make a citation resolve (implement, easy)",
+        solution="```python\ndef pack_context(hits):\n    return None\n```",
+        surprised="The randomised check."))
+    assert sub.unit_id == "R1"
+    assert list(sub.files) == ["solution.py"], sub.files
+    assert sub.reflection == "The randomised check."
+
+
+def test_code_in_the_approach_field_is_not_taken_as_the_solution():
+    """Somebody sketching an approach in code must not be graded on that sketch."""
+    from labsim.discussion import parse_submission
+    sub = parse_submission("[R1] attempt", rendered_form(
+        unit="R1 — Make a citation resolve",
+        approach="Roughly:\n\n```python\n# map marker -> chunk_id, then format\n```",
+        solution="```python\nREAL = True\n```"))
+    assert sub.files["solution.py"].strip() == "REAL = True"
+
+
+def test_an_approach_with_code_and_no_solution_submits_nothing():
+    """Better to say 'no code to grade' than to grade the wrong field."""
+    from labsim.discussion import parse_submission
+    sub = parse_submission("[R1] attempt", rendered_form(
+        unit="R1 — Make a citation resolve",
+        approach="```python\n# just thinking out loud\n```"))
+    assert not sub.files and not sub.usable
+
+
+def test_the_unit_comes_from_the_dropdown_when_the_title_placeholder_is_left_in():
+    """The form's title prefill is `[UNIT] · ` and people submit it unedited."""
+    from labsim.discussion import parse_submission
+    sub = parse_submission("[UNIT] · my first go", rendered_form(
+        unit="R2 — Decide whether to fuse at all (decide, medium)",
+        decision="```yaml\ndecision: ship dense alone\n```"))
+    assert sub.unit_id == "R2" and list(sub.files) == ["decision.yaml"]
+
+
+def test_a_prose_measurement_note_still_arrives_without_a_fence():
+    """P1 says prose is fine. The `_No response_` guard must not break that."""
+    from labsim.discussion import parse_submission
+    sub = parse_submission("[P1] note", rendered_form(
+        unit="P1 — Write the measurement note that survives you leaving",
+        measurement="# Measurement\n\n- **Date** 2026-09-01\n- **Command** `x`"))
+    assert "measurement.md" in sub.files
+    assert sub.files["measurement.md"].startswith("# Measurement")
