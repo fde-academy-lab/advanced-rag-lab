@@ -443,6 +443,49 @@ These are the parts worth your attention, and they are reported rather than tune
 A decision matrix names a mechanism you should go and test. **The test is allowed to come back
 negative**, and saying so is the difference between a result and a story.
 
+### How to re-test this
+
+Each finding names a mechanism. The mechanism is the thing to challenge, not the number.
+
+**1. Equal-weight RRF does not beat BM25 alone** ([notebook 04, cells 30–34, section 4.9](notebooks/04_retrieval_methods_and_reranking.ipynb))
+
+Run the α sweep (`cells 30–33`) and the comparison table (`cell 33`). The three legs
+(BM25 only, dense only, RRF) are evaluated on `sweep` (90 dev questions) with `rerank="none"`.
+
+- **What to change:** swap the LSA encoder for a sentence-transformer embedder
+  (e.g. `sentence-transformers/all-MiniLM-L6-v2`) by passing a different embedder to
+  `RagPipeline`. Re-encode the index and re-run `cell 32`.
+- **What falsifies the finding:** RRF evidence recall exceeds BM25-only evidence recall
+  by a delta whose 95% bootstrap CI excludes zero. The α that maximises evidence recall
+  will also shift upward, confirming the dense leg now carries its weight.
+
+**2. Comparison-question starvation does not reproduce** ([notebook 02, cells 11–12, section 2.2](notebooks/02_multihop_rag_use_case.ipynb))
+
+Cell 12 measures the share of packed slots held by each entity and the corpus prevalence
+ratio between the two entities named in each comparison question.
+
+- **What to change:** use a client corpus (or synthetic one) where two entities have
+  highly unequal document counts — e.g. one product line with 10,000 tickets and another
+  with 200. Re-run `cell 12` against that corpus.
+- **What falsifies the finding:** the prevalence ratio between the two entities exceeds
+  ~5x, and the weaker entity's share of packed slots drops below 25% on a measurable
+  fraction of comparison questions. Full-chain recall on those questions should degrade
+  in the direction the prevalence ratio predicts.
+
+**3. No retrieval-score threshold separates answerable from unanswerable** ([docs/04-evaluation/metrics.md](docs/04-evaluation/metrics.md), [notebook 06](notebooks/06_evaluation_approaches.ipynb))
+
+The abstention result (best F1 0.38) is measured across four signals: top-1 score,
+score gap between ranks 1 and 2, mean of top-k, and score entropy.
+
+- **What to change:** construct a null set whose questions use *paraphrased* vocabulary
+  (not the corpus's own entity names), or use a corpus where null questions and
+  answerable questions have similar lexical overlap with the index. Alternatively,
+  implement a sufficiency-based signal (entailment check) rather than a similarity
+  threshold, as tracked in issue #10.
+- **What falsifies the finding:** a retrieval-score threshold that achieves F1 above
+  0.70 on a held-out null/answerable split. This would show that the sign reversal
+  is a property of this specific eval set's construction, not a fundamental barrier.
+
 ---
 
 ## Connecting Amazon Bedrock
