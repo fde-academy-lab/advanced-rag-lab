@@ -92,6 +92,18 @@ jobs:
           if [ "$DRY" = "true" ]; then args+=(--dry-run); fi
           python scripts/setup_github.py "${args[@]}" | tee seed.log
 
+      # The step summary is not retrievable through the API, and neither are job logs on a
+      # restricted network. An artifact is — so when seeding warns about something, the warning
+      # can actually be read afterwards instead of inferred from what did not change.
+      - name: Keep the seed log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: seed.log
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Summary
         if: always()
         run: |

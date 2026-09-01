@@ -506,7 +506,7 @@ def retire_orphans(owner, repo, existing, dry) -> int:
                            {"owner": owner, "name": repo,
                             "number": number})["repository"]["discussion"]["body"] or ""
         except GitHubError as exc:
-            warn(f"retire #{number}", exc.message[:70])
+            warn(f"retire #{number}", f"could not read it — {exc.message}")
             continue
         if body.lstrip().startswith("> [!WARNING]"):
             skip(f"retire #{number}", "already banded")
@@ -517,7 +517,9 @@ def retire_orphans(owner, repo, existing, dry) -> int:
         try:
             mutate(UPDATE_DISCUSSION_M, {"id": disc["id"], "body": banner + body})
         except GitHubError as exc:
-            warn(f"retire #{number}", exc.message[:70])
+            # Not truncated. A GraphQL error puts the actionable part at the end — which
+            # permission is missing, which field is unknown — and 70 characters cuts it off.
+            warn(f"retire #{number}", f"updateDiscussion refused: {exc.message}")
             continue
         ok(f"#{number}", f"{'retracted, points at #' + str(new_number):<24} {old_title[:44]}")
         banded += 1
