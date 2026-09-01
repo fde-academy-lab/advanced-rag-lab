@@ -243,7 +243,7 @@ that is disconnected there.
 
 ---
 
-## M5 · Cohen's κ is 0.31 but the annotators agree 85% of the time. Explain.
+## M5 · Cohen's kappa is 0.31 but the annotators agree 85% of the time. Explain.
 
 **Asked at:** Anthropic, Scale, Surge, any team building an LLM judge.
 

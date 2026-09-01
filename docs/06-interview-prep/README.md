@@ -16,6 +16,18 @@ things that lose the room.
 | [mock-loops.md](mock-loops.md) | — | Four full loops, timed, with the interviewer's script and scoring sheet |
 | [legacy-bank.md](legacy-bank.md) | — | The original 18-question set, kept because the answers are still good |
 
+## Drilling it
+
+The prose here holds the answers. [`interview-bank/`](../../interview-bank/) holds the practice
+loop — eight named approach models, a machine-readable index over these files, and a timed drill:
+
+```bash
+python interview-bank/practice.py --drill models
+```
+
+That makes you name which mental model fires **before** you answer, times you at ninety seconds,
+then shows the trap and the follow-ups the interviewer has queued.
+
 Answer quality is graded on a four-level scale used consistently throughout: **misses**,
 **passes a screen**, **hires at mid-level**, **hires at senior**. Read the senior answer and
 the mid answer together — the delta between them is the thing being taught.

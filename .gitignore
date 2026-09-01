@@ -33,3 +33,6 @@ Thumbs.db
 # Documentation linters only — see package.json
 node_modules/
 package-lock.json
+
+# Your practice scores, not the repo's
+interview-bank/.progress.json
