@@ -720,7 +720,20 @@ CATEGORIES = [
      "lives here.", "DISCUSSION"),
     ("Interview Prep", "🎯",
      "Practise an answer and get it critiqued. Nothing under NDA — use the scenarios in "
-     "docs/06-interview-prep/legacy-bank.md or invent your own.", "DISCUSSION"),
+     "docs/06-interview-prep/ or invent your own.", "ANSWER"),
+    ("Exercises & Submissions", "🧪",
+     "Every exercise runs here. Approach before code, submission with an interval, one peer "
+     "review owed before one is asked for. See docs/10-community/exercise-workflow.md.",
+     "ANSWER"),
+    ("Math & Theory", "🧮",
+     "Derivations, proofs and the question behind the formula. If you can state it in LaTeX, "
+     "state it in LaTeX.", "ANSWER"),
+    ("Debugging Clinic", "🐞",
+     "Bring a failure you cannot explain. Symptom first, then what you have already ruled out. "
+     "Threads here are long on purpose.", "ANSWER"),
+    ("Weekly Standup & Retro", "🗓",
+     "What moved, what is blocked, what we got wrong. One thread per week, posted by the "
+     "maintainers.", "ANNOUNCEMENT"),
 ]
 
 # ───────────────────────────────────────────────────────────────── discussions ──
@@ -1606,3 +1619,11 @@ either. It is a rigorous piece of engineering with a stated scope. Say that, and
 decision record — which is the artefact almost nobody else in the pile will have.""",
     },
 ]
+
+
+# ─────────────────────────────────────────────────── modular thread collections ──
+# Threads live in scripts/seed/ by category once they carry full reply chains — a single
+# literal holding sixty threads and three hundred replies is not reviewable in a diff.
+from seed import threads_clinic, threads_exercises  # noqa: E402
+
+DISCUSSIONS = DISCUSSIONS + threads_exercises.THREADS + threads_clinic.THREADS

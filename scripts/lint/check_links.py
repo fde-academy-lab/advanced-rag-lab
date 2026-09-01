@@ -7,7 +7,6 @@ External URLs are checked by the link-check workflow instead; this is the offlin
 """
 from __future__ import annotations
 
-import os
 import pathlib
 import re
 import sys

@@ -389,7 +389,7 @@ mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
 ADD_COMMENT_M = """
 mutation($discussionId:ID!,$body:String!){
   addDiscussionComment(input:{discussionId:$discussionId,body:$body}){
-    comment { id }
+    comment { id databaseId }
   }
 }"""
 
@@ -400,65 +400,100 @@ query($owner:String!,$name:String!,$number:Int!){
 
 
 def create_discussions(owner, repo, dry):
+    """Seed threads, each with its full reply chain and an accepted answer.
+
+    A thread is not a post. The teaching value is in the arc — a plausible wrong answer, the
+    counter-example that refutes it, the revision — and an engine that can only write a body
+    and one answer cannot express any of that. Replies are posted in order so the timestamps
+    read as a conversation, and the reply marked `accepted` is promoted to the answer in
+    categories that allow one.
+    """
+    from seed.personas import render  # noqa: PLC0415  (kept local: seed data, not core code)
+
     data = graphql(REPO_Q, {"owner": owner, "name": repo})["repository"]
     if not data["hasDiscussionsEnabled"]:
-        fail("discussions", "not enabled — run the `settings` step first")
+        fail("discussions", "not enabled — Settings → General → Features → Discussions")
         return []
 
     categories = {c["name"]: c["id"] for c in data["discussionCategories"]["nodes"]}
+    answerable = {c["name"] for c in data["discussionCategories"]["nodes"]
+                  if c.get("isAnswerable")}
     existing = {d["title"] for d in data["discussions"]["nodes"]}
 
     missing = {name for name, *_ in content.CATEGORIES} - set(categories)
     if missing:
-        warn("discussion categories",
-             f"create manually in Settings → Discussions: {', '.join(sorted(missing))}")
-        print("      (the GitHub API cannot create discussion categories; "
-              "threads for missing categories fall back to General)")
+        warn("categories absent", ", ".join(sorted(missing)))
+        print("      No API creates a discussion category. Settings → Discussions → New "
+              "category.\n      Threads for a missing category are skipped, not misfiled.")
 
-    created = []
+    created, posts, answers = [], 0, 0
     for spec in content.DISCUSSIONS:
         title = spec["title"]
         if title in existing:
-            skip(f"discussion “{title[:52]}…”", "exists")
+            skip(f"“{title[:56]}”", "exists")
             continue
-        cat_id = categories.get(spec["category"]) or categories.get("General")
+        cat = spec["category"]
+        cat_id = categories.get(cat)
         if not cat_id:
-            fail(f"discussion “{title[:40]}…”", "no usable category")
+            warn(f"“{title[:46]}”", f"category “{cat}” missing — skipped")
             continue
         if dry:
-            skip(f"discussion “{title[:52]}…”", spec["category"])
+            skip(f"“{title[:52]}”", f"{cat} · {len(spec.get('replies', []))} replies")
             continue
 
-        body = spec["body"]
-        if "[worked example]" in title or spec["category"] in ("Q&A", "Design Reviews",
-                                                              "Show and tell", "Reading Club",
-                                                              "Interview Prep"):
-            body += content.SEED_FOOTER
         try:
             out = graphql(CREATE_DISCUSSION_M, {
-                "repoId": data["id"], "catId": cat_id, "title": title, "body": body})
+                "repoId": data["id"], "catId": cat_id, "title": title,
+                "body": render(spec.get("author", "maintainer"), spec["body"])})
             disc = out["createDiscussion"]["discussion"]
-            created.append((disc["number"], title))
-            ok(f"discussion #{disc['number']}", f"{spec['category']:<16} {title[:48]}")
-
-            if spec.get("answer"):
-                ids = graphql(DISCUSSION_ID_Q,
-                              {"owner": owner, "name": repo, "number": disc["number"]})
-                graphql(ADD_COMMENT_M, {
-                    "discussionId": ids["repository"]["discussion"]["id"],
-                    "body": spec["answer"] + content.SEED_FOOTER})
-                ok("  ↳ answer posted")
-            time.sleep(0.8)
         except GitHubError as exc:
-            fail(f"discussion “{title[:40]}…”", exc.message[:90])
+            fail(f"“{title[:46]}”", exc.message[:90])
+            continue
+
+        created.append((disc["number"], title))
+        posts += 1
+        ids = graphql(DISCUSSION_ID_Q,
+                      {"owner": owner, "name": repo, "number": disc["number"]})
+        disc_id = ids["repository"]["discussion"]["id"]
+
+        accepted_id = None
+        for reply in spec.get("replies", []):
+            try:
+                res = graphql(ADD_COMMENT_M, {
+                    "discussionId": disc_id,
+                    "body": render(reply["by"], reply["body"])})
+                posts += 1
+                if reply.get("accepted"):
+                    accepted_id = res["addDiscussionComment"]["comment"]["id"]
+            except GitHubError as exc:
+                warn("  ↳ reply", exc.message[:70])
+            time.sleep(0.35)
+
+        # Only answerable categories accept an answer; marking one elsewhere is an error,
+        # not a no-op, so the category's own flag decides rather than a hardcoded list.
+        if accepted_id and cat in answerable:
+            try:
+                graphql(MARK_ANSWER_M, {"id": accepted_id})
+                answers += 1
+            except GitHubError as exc:
+                warn("  ↳ mark answer", exc.message[:70])
+
+        ok(f"#{disc['number']}", f"{cat:<24} {len(spec.get('replies', [])):>2} replies  "
+                                 f"{title[:44]}")
+        time.sleep(0.5)
+
+    ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked")
     return created
 
 
-# ─────────────────────────────────────────────────────────────────── project ──
-# repositoryOwner is the interface both User and Organization implement, so this resolves a
-# personal account and an org through one field and cannot half-fail the way asking for both
-# separately does. The typename is worth having: a board on a user account and a board on an
-# org differ in who can see it and which token scope creates it.
+MARK_ANSWER_M = """
+mutation($id:ID!){ markDiscussionCommentAsAnswer(input:{id:$id}){ clientMutationId } }"""
+
+ADD_REACTION_M = """
+mutation($id:ID!,$content:ReactionContent!){
+  addReaction(input:{subjectId:$id,content:$content}){ clientMutationId }
+}"""
+
 OWNER_ID_Q = """
 query($login:String!){ repositoryOwner(login:$login){ id __typename } }"""
 
