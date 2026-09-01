@@ -324,7 +324,12 @@ def configure_repository(owner, repo, dry):
     }
     try:
         request("PUT", f"/repos/{owner}/{repo}/branches/main/protection", protection)
-        ok("branch protection", "main requires CI + 1 review")
+        # Report what was actually applied. This line used to say "CI + 1 review" whatever
+        # REQUIRED_REVIEWERS was, so a run that set zero reviewers logged that it had set one —
+        # and the only way to find out otherwise was to be refused by a merge.
+        ok("branch protection",
+           "main requires CI"
+           + (f" + {reviewers} review(s)" if reviewers else ", no review requirement"))
     except GitHubError as exc:
         warn("branch protection", f"skipped — {exc.message[:90]}")
 
