@@ -7,15 +7,29 @@ once in this repository's history, and each violation produced a number somebody
 
 243 questions over 484 documents and 2,430 chunks, generated from a fact graph.
 
+**By structure** — disjoint, sums to 243:
+
 | Slice | n | Why it exists |
 |---|---|---|
-| Single-hop factoid | 96 | The baseline case |
+| Single-hop factoid | 128 | The baseline case |
 | Multi-hop (2 pieces) | 61 | Where full-chain recall separates from evidence recall |
 | Multi-hop (3+) | 18 | Where single-shot retrieval structurally cannot win |
+| Unanswerable (null) | 36 | Where abstention is the correct answer |
+
+207 of those are answerable and carry gold evidence; the 36 nulls do not, and are excluded from
+recall denominators.
+
+**By attribute** — cross-cutting, so these overlap the table above and each other:
+
+| Attribute | n | Why it exists |
+|---|---|---|
 | Identifier / error code | 24 | Where tokenisation decides the outcome |
 | Temporal ("as of Q3") | 20 | Where the right document is the wrong version |
-| Unanswerable (null) | 36 | Where abstention is the correct answer |
 | ACL-restricted | 15 | Where the right document exists and must not be returned |
+
+These are attributes of a question, not a category it belongs to — a two-hop question can name an
+error code and be time-qualified. Adding all seven numbers together gives 270 and means nothing,
+which is exactly the mistake this split exists to prevent.
 
 **Gold evidence is true by construction.** The generator knows which documents carry each fact,
 so there is no annotator and therefore no annotation-error floor. When a metric moves, the

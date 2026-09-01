@@ -79,15 +79,23 @@ DEFAULT_CROSS_WEIGHTS = {
 }
 ```
 
-Fitted to this corpus with this encoder. Two of them are worth noticing, because they are
-counter-intuitive and both are real:
+**These are point estimates with no uncertainty attached, and that is a real limitation.** The
+fit reports coefficients only — no standard errors, no intervals. A coefficient printed to four
+decimal places reads as a precise finding whether or not it is one, and at least one of these
+almost certainly is not: `maxsim` at −0.0590 is small enough that it would very likely not
+separate from zero given an interval, which would make it a coefficient that did nothing rather
+than a small negative effect.
+
+Adding bootstrap intervals to the coefficients is tracked; until they exist, read the two large
+ones as findings and the small ones as noise. Two are worth noticing:
 
 - **`phrase` is negative.** Exact phrase matches in this corpus are more often boilerplate than
   evidence — every incident report repeats the same stock sentences.
-- **`maxsim` is near zero and slightly negative** while `doc_cosine` is the largest positive
-  weight. Document-level semantic similarity carries the dense signal here; token-level MaxSim
-  adds almost nothing on top of it once `doc_cosine` is present. That is a statement about this
-  encoder, not about late interaction.
+- **`maxsim` is near zero** while `doc_cosine` is the largest positive weight. The honest reading
+  is that document-level semantic similarity carries the dense signal here and token-level MaxSim
+  adds nothing measurable once `doc_cosine` is present — *not* that MaxSim hurts. The sign on a
+  coefficient this small is not information. That is a statement about this encoder, not about
+  late interaction.
 
 Neither generalises. Quoting these numbers anywhere else would be citing an artefact.
 

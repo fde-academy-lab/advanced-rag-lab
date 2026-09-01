@@ -29,9 +29,18 @@ evidence = len(found) / len(needed)          # per piece
 chain    = 1.0 if needed <= set(retrieved[:k]) else 0.0   # per question
 ```
 
-If retrieval events were independent with probability *p*, a two-piece question would clear
-full-chain with probability *p²* — at *p* = 0.7645 that is 0.584. Measured: **0.4686**, below
-independence.
+If retrieval events were independent with probability *p*, a question needing *j* pieces would
+clear full-chain with probability *pʲ*. The eval set is a mixture, so the comparison has to be
+too — using *p²* alone assumes every question is two-piece and understates the expected value:
+
+| pieces | n | *pʲ* at *p* = 0.7645 |
+|---|---|---|
+| 1 | 128 | 0.7645 |
+| 2 | 61 | 0.5845 |
+| 3 | 18 | 0.4468 |
+
+Weighted over the 207 answerable questions, independence predicts **0.6838**. Measured:
+**0.4686** — a shortfall of 0.215, not the 0.116 that the naive *p²* comparison implies.
 
 The shortfall is the diagnosis. Hop-1 evidence resembles the query; hop-2 evidence resembles the
 *answer to hop 1*. Widening k returns more hop-1 and leaves hop-2 flat:
@@ -58,8 +67,10 @@ several times wider, which is how a real improvement gets called insignificant.
 result list were selected by the same retriever; resampling them understates variance and
 produces intervals that are too narrow — the more dangerous error.
 
-**1,000 resamples** is where the percentile bounds stop moving in the third decimal on this set.
-Raising it to 10,000 changes nothing measurable and quadruples the eval runtime.
+**1,000 resamples** is where the percentile bounds stop moving in the third decimal *on this
+dataset, for a 95% interval*. Both qualifiers matter. Required B scales with how extreme a
+quantile you want: at 99% the tail is estimated from a tenth as many samples and 1,000 is not
+enough. Change the confidence level and B has to be revisited.
 
 ## `cohens_kappa`
 
