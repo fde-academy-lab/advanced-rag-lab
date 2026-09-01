@@ -1,0 +1,27 @@
+# R2 · the worked answer. Graded in CI: if this stops being accepted, the gate has drifted away
+# from what the brief asks for.
+
+decision: >-
+  Ship the dense leg alone at k=8. No fusion, no second index, no alpha. Keep the BM25 index
+  built and unwired behind a flag so the identifier slice can be re-tested cheaply.
+
+why: >-
+  The fused configurations lose because they do not win. Equal-weight RRF scores 0.7742 against
+  the dense leg's 0.7733, which is +0.0008 with an interval of -0.0101 to +0.0109, and on nDCG
+  the unfused leg beats it outright by 0.075. Fusion only pays when the two legs fail on
+  different queries, and here they do not: BM25 is the weak leg on paraphrase and inference
+  prose because term overlap has almost nothing to score, so it mostly re-finds what the dense
+  leg already had. A second index and a fusion rule in the query hot path is permanent cost
+  bought with a number whose interval contains zero.
+
+rejected: >-
+  Weighted fusion at alpha 0.5, which would have been right if the per-query overlap of the two
+  legs' failures were low, or once the identifier slice grows enough that BM25's real win stops
+  being invisible in the aggregate. I would also take it over RRF if we ever need the scores
+  themselves downstream, since RRF discards them.
+
+would_change_if: >-
+  I plot the per-query failure overlap between the legs and find BM25 succeeding on a
+  meaningful share of the questions the dense leg misses, rather than a subset of them. Or the
+  identifier and exact-match slice grows past roughly a fifth of traffic, which is where its
+  aggregate contribution stops rounding to nothing.

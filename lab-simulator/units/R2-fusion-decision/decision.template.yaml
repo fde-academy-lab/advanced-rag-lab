@@ -1,0 +1,13 @@
+# R2 · Fusion decision
+#
+# The grader checks all four fields are filled, and that `would_change_if` names an observation
+# rather than restating `decision`. Six words minimum per field — a low bar, there to stop
+# one-word answers rather than to demand an essay.
+
+decision: <the rule you would ship, specifically>
+
+why: <why the alternative loses. Not why yours wins — those are different sentences>
+
+rejected: <what you did not choose, and the condition under which it would have been right>
+
+would_change_if: <the observation that would make you wrong. Something you could see>

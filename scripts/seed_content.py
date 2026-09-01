@@ -786,17 +786,23 @@ instead of every future cohort.""",
     },
     {
         "category": "Announcements",
-        "title": "The three findings in this repo that contradict the deck — and why we kept them",
-        "body": """Three measurements in these notebooks contradict what the source deck's decision matrices
-predict. Each one could have been engineered away. We kept all three, and this post explains
+        "title": "The findings in this repo that contradict the deck — and the one of them that was wrong",
+        "body": """Four measurements in these notebooks contradict what the source deck's decision matrices
+predict. Each one could have been engineered away. We kept all four, and this post explains
 why, because it is the single most important thing about how this material is taught.
+
+One of them used to say the opposite of what it says now. That correction is at the bottom and
+it is the part worth reading twice.
 
 ## The findings
 
-**1 · Equal-weight RRF does not beat BM25 alone here.** Weighted fusion at α=0.2 does. The
-mechanism: RRF gives both legs the same vote, and our offline dense leg is a fifty-year-old
-method that is genuinely weaker on this corpus. Fusing a strong retriever with a weak one at
-equal weight moves you toward the weak one.
+**1 · Fusion does not separate from its better single leg.** Dense alone scores 0.7733 evidence
+recall; equal-weight RRF scores 0.7742. That gap is +0.0008 with a 95% interval of
+(−0.0101, +0.0109) — not a small difference, *not a difference*. On nDCG the **unfused** dense
+leg wins outright, by 0.075. The mechanism: fusion turns two signals into a better one only when
+the legs fail on *different* queries, and here they fail together. Shipping the fused system
+means a second index and a fusion rule in the query hot path, bought with a number whose
+interval contains zero.
 
 **2 · Comparison-question starvation does not reproduce.** The matrix predicts one entity
 dominating top-k while the other is starved. Our corpus is balanced by construction — every
@@ -807,6 +813,13 @@ is ≈1 and nothing starves.
 signals were tried; all sit near chance. Null questions name real entities in the corpus's own
 vocabulary while real questions paraphrase — so the unanswerable ones are *lexically closer* to
 the corpus.
+
+**4 · No retrieval configuration moves answer correctness.** Evidence recall spans 0.7118 →
+0.7790 across five fusion configurations — a real 9.4% relative improvement — while
+`answer_correct` stays inside the noise band on *every* pairwise comparison, and the numerically
+best answers come from the numerically worst retriever. The system is generation-limited, not
+retrieval-limited. It was visible the whole time in the 0.4686 → 0.4115 gap between full-chain
+recall and answer correctness, and nobody joined it up.
 
 ## Why we did not fix them
 
@@ -830,7 +843,37 @@ under which the expected result would return.
 That sequence — measure, contradict, explain, bound — is most of what separates a senior
 engineer from a competent one in this field.
 
-Full write-up: [ADR-0007](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0007-report-negative-results.md).""",
+## The one that was wrong
+
+Finding 1 used to read: **"Equal-weight RRF does not beat BM25 alone here; weighted fusion at
+α=0.2 does."** With a mechanism: RRF gives both legs the same vote, our dense leg is a
+fifty-year-old method and therefore the weak one, and fusing strong with weak at equal weight
+moves you toward the weak one.
+
+Re-measured, none of that holds. RRF *beats* BM25 by +0.0624, ci (+0.0407, +0.0857). The dense
+leg is the **stronger** of the two, not the weaker — +0.0616 evidence recall and +0.2416 nDCG
+over BM25 — because these questions are paraphrase and inference over prose, where term overlap
+has almost nothing to score. And weighted α=0.2 is not the argmax; α=0.5 measures better.
+
+It was wrong for months and quoted in about twenty places, including material some of you have
+already learned from and quoted in interviews. That is a real cost and we are not going to
+soften it.
+
+**The part worth your attention is why nothing caught it.** The eval gate compares one
+configuration against its own history and never against alternatives — so a claim about which
+*configuration* is better sat outside everything the CI was capable of checking. The gate was
+working perfectly and could not have noticed. Two fixes went in: `python scripts/run_eval.py
+--compare`, which produces the whole table with intervals in one command, and a retraction ADR
+that records what was claimed, what was measured, and this paragraph.
+
+If you take one habit from this repository, take that one. When you publish a comparison, ask
+what would have to break for you to find out you were wrong — and if the answer is "somebody
+re-runs it by hand", you have not published a finding, you have published a belief.
+
+Full write-up: [ADR-0007](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0007-report-negative-results.md)
+and the retraction, [ADR-0015](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md).
+The measurement note with every interval is
+[here](/fde-academy-lab/advanced-rag-lab/blob/main/docs/09-research/measurements/fusion-rules.md).""",
     },
 
     # ── Q&A ──────────────────────────────────────────────────────────────────

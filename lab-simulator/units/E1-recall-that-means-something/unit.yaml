@@ -1,0 +1,15 @@
+id: E1
+slug: recall-that-means-something
+title: Build the two recalls that disagree by thirty points
+track: evaluation
+difficulty: medium
+minutes: 40
+mode: implement
+teaches: [evidence recall, full-chain recall, nDCG, multi-hop, metric design]
+prereqs: [F1, R1]
+bars: []
+artefact: null
+summary: >-
+  Implement evidence recall, full-chain recall and graded nDCG. Then work out why the first two
+  differ by thirty points on the same run, and why that gap is the most informative number the
+  harness produces.

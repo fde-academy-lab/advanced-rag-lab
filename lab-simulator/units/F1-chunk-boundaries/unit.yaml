@@ -1,0 +1,15 @@
+id: F1
+slug: chunk-boundaries
+title: Chunk so the answer survives the cut
+track: foundations
+difficulty: easy
+minutes: 30
+mode: implement
+teaches: [chunking, overlap, recall ceiling, coverage]
+prereqs: []
+bars: []
+artefact: null
+summary: >-
+  Split documents into windows. The graded property is not that the windows are the right size —
+  it is that no answer gets cut in half, because a fact split across two chunks cannot be
+  retrieved by either of them and no amount of reranking gets it back.

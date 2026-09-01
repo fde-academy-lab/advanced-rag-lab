@@ -1,0 +1,15 @@
+id: P1
+slug: measurement-note
+title: Write the measurement note that survives you leaving
+track: delivery
+difficulty: medium
+minutes: 40
+mode: ship
+teaches: [measurement notes, reproducibility, PDLC artefacts, stating the condition]
+prereqs: [R3]
+bars: []
+artefact: measurement
+summary: >-
+  Turn R3's run into the artefact an FDE hands over. The grader re-runs the measurement and
+  checks that the numbers in your note match — because a write-up that disagrees with its own
+  code is the failure mode that let a wrong finding stand in this repository for months.

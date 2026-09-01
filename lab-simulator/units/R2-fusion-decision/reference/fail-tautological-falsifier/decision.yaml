@@ -1,0 +1,22 @@
+# Decoy · every field is thoughtful except the one that matters.
+#
+# The commonest first attempt, and it is not lazy: the reasoning above the last field is good.
+# The falsifier is the field people write last, when the answer already feels settled, and what
+# comes out is the conclusion wearing a conditional. It has to stay rejected, or decide mode
+# teaches nothing that implement mode does not.
+
+decision: >-
+  Ship the dense leg alone at k=8, with no fusion and no second index in the hot path.
+
+why: >-
+  The fused configurations do not separate from the better single leg. RRF is +0.0008 against
+  dense alone with an interval straddling zero, and loses nDCG outright. Fusion pays when the
+  legs fail on different queries; here BM25 is the weak leg on paraphrase prose and mostly
+  re-finds what the dense leg already had.
+
+rejected: >-
+  Weighted fusion at alpha 0.5, which would have been right if the per-query overlap of the two
+  legs' failures were low enough that BM25 was reaching questions dense misses.
+
+would_change_if: >-
+  I would revisit this if shipping the dense leg alone turned out to be the wrong choice.

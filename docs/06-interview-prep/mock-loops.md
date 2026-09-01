@@ -160,12 +160,28 @@ the 90-second version of your project until it is automatic:
 > point of it is the measurement rather than the retrieval. Everything runs in memory with no
 > API keys, so anyone can reproduce a number in about ten seconds.
 >
-> The interesting part is that three results came out against the received wisdom. Equal-weight
-> RRF loses to BM25 alone on this corpus, and there's a mechanism for why. That's the thing I'd
-> most want to talk about, because the mechanism generalises even though the specific result
-> doesn't."
+> The interesting part is that four results came out against the received wisdom. The one I'd
+> most want to talk about is that no retrieval configuration we tried moves answer correctness —
+> evidence recall moves nine percent relative and the answers don't move at all, so the system
+> was generation-limited the whole time and the retrieval work was measuring itself. The
+> mechanism generalises even though the specific number doesn't."
 
 That last sentence is doing the work: it hands the interviewer the thread to pull.
+
+**If you have the nerve, there is a better version of this answer**, and it is the one that
+separates a senior candidate from a strong mid one:
+
+> "One of those four findings was wrong. We published *'equal-weight RRF loses to BM25 alone'*
+> and it doesn't reproduce — RRF wins, and the leg we called weak was the strong one. It stood
+> for months and it was quoted in about twenty places. What let it survive is that the eval gate
+> compares one configuration against its own history and never against alternatives, so nothing
+> in the system was structurally capable of noticing. The fix was a one-command comparison and a
+> retraction ADR."
+
+Volunteering a mistake unprompted is a risk and it is usually the right one, because the
+interviewer is already trying to find out whether you can. What makes it land is that the story
+ends on the **structural** reason rather than on the mistake — you are describing a gap in a
+system, not confessing.
 
 ---
 

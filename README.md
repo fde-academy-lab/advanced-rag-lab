@@ -147,6 +147,49 @@ panel actually asks, and a checkpoint that re-derives its own answers.
 
 ---
 
+## The L.A.B. Simulator
+
+The notebooks show you. [`lab-simulator/`](lab-simulator/) makes you do it, and grades the
+result.
+
+```bash
+cd lab-simulator
+python -m labsim next          # what to do now
+python -m labsim brief F1      # read it
+python -m labsim start F1      # scaffold an attempt
+python -m labsim check F1      # grade it
+```
+
+Practice material for this subject has converged on one shape — a starter function with a `TODO`
+and hidden tests. It teaches syntax and not judgement, for three reasons that drove every design
+decision here: **you cannot be wrong interestingly**, **nothing produces a number**, and **a list
+of problems whose order does not matter is not a pathway**.
+
+So a unit has three gates instead of one: a **decision**, committed before any code and rejected
+if its falsifier names the conclusion rather than an observation; the **checks**; and a **metric
+bar**, measured on the real corpus by the same code that produces the numbers in this README.
+
+| | Unit | Mode | Difficulty | What it is really about |
+|---|---|---|---|---|
+| **F1** | Chunk so the answer survives the cut | `implement` | easy | Overlap is a length budget, not a tuning knob |
+| **R1** | Make a citation resolve | `implement` | easy | A citation a human cannot follow is decoration |
+| **E1** | Build the two recalls that disagree by thirty points | `implement` | medium | Why a metric normalised against its own output cannot go down |
+| **R2** | Decide whether to fuse at all | `decide` | medium | No code. The deck says fuse; the measurement says otherwise |
+| **C1** | Find the five characters that cost two thirds of the bill | `diagnose` | hard | A correct feature, a passing test, a bill three times the estimate |
+| **R3** | Build the rule you rejected, and the measurement that rejected it | `measure` | hard | The real corpus, the real reranker, and the diagnostic nobody ran |
+| **P1** | Write the measurement note that survives you leaving | `ship` | medium | The grader re-runs your measurement and checks your numbers match |
+
+Every unit ships a worked answer the grader must **accept** and decoys it must **reject**, with
+`expect.yaml` naming which check has to catch each one — because a check that has never rejected
+anything is a function that returns `True`, and you cannot tell those apart by reading it. CI runs
+both directions on every change.
+
+Open a pull request touching `lab-simulator/attempts/` and
+[the Action](.github/workflows/lab-simulator.yml) grades it and comments the result. A failed
+attempt does not fail the build.
+
+---
+
 ## Architecture
 
 ### Context — who touches this, and what it touches
@@ -455,16 +498,27 @@ measurement discipline transfers; the values do not.
 
 ---
 
-## Three results that contradict the expected answer
+## Four results that contradict the expected answer
 
 These are the parts worth your attention, and they are reported rather than tuned away.
+
+The first one is also a correction: it previously read *"equal-weight RRF does not beat BM25
+alone"*, which was quoted in about twenty places here and **does not reproduce**. It was
+re-measured, retracted and replaced — [ADR-0015](docs/01-architecture/adr/0015-correct-the-fusion-finding.md)
+records what was claimed, what was measured, and why nothing was structured to notice. Every row
+below is now re-runnable in one command: `python scripts/run_eval.py --compare`.
 
 <table>
 <tr><th>Finding</th><th>Why it happens</th><th>When the expected result returns</th></tr>
 <tr>
-<td><b>Equal-weight RRF does not beat BM25 alone</b> here; weighted fusion at α=0.2 does.</td>
-<td>RRF gives both legs the same vote, and the offline dense leg is a fifty-year-old method that is genuinely weaker on this corpus. Fusing strong with weak at equal weight moves you toward the weak one.</td>
-<td>With a modern encoder the balance shifts and α moves up. The <i>procedure</i> — default to RRF, then measure once you have a labelled set — does not change.</td>
+<td><b>Fusion does not separate from its better single leg.</b> Dense alone 0.7733, equal-weight RRF 0.7742 — a gap of +0.0008 with a 95% interval of (−0.0101, +0.0109). On nDCG the <i>unfused</i> dense leg wins outright, by 0.075.</td>
+<td>Fusion pays when the legs fail on <i>different</i> queries. Here they do not: BM25 is the weak leg on this corpus (paraphrase and inference over prose, where term overlap has little to score) and it adds almost nothing the dense leg missed. The second index, second pipeline and per-corpus α buy a difference that cannot be measured.</td>
+<td>When the legs are complementary. The diagnostic is the per-query overlap of failures, not the aggregate table — and running it is the point. <code>EX-15</code> repeats this with a real sentence encoder.</td>
+</tr>
+<tr>
+<td><b>No retrieval configuration moves answer correctness.</b> Evidence recall spans 0.7118 → 0.7790 across five configurations — real, 9.4% relative — while <code>answer_correct</code> stays inside the noise band on <i>every</i> pairwise comparison. The best answers come from the worst retriever.</td>
+<td>The system is generation-limited, not retrieval-limited. It was already visible in the 0.4686 → 0.4115 gap between full-chain recall and answer correctness, and nobody joined it up.</td>
+<td>When retrieval is the binding constraint. Here it is not, which makes <code>evidence_recall</code> the right metric for catching regressions and the wrong one for justifying a roadmap.</td>
 </tr>
 <tr>
 <td><b>Comparison-question starvation does not reproduce.</b></td>
@@ -559,6 +613,7 @@ flowchart LR
 | If you are… | Start here |
 |---|---|
 | Working through the course | [notebooks/00_start_here.ipynb](notebooks/00_start_here.ipynb), then [docs/03-exercises/catalogue.md](docs/03-exercises/catalogue.md) |
+| Wanting to be graded rather than to read | [lab-simulator/](lab-simulator/) — seven units, five modes, `python -m labsim next` |
 | Preparing for an AI-engineer interview | [docs/06-interview-prep/legacy-bank.md](docs/06-interview-prep/legacy-bank.md) — 18 questions with full answers |
 | Deciding what to build next | [docs/09-research/extension-points.md](docs/09-research/extension-points.md) — 20 techniques with hypotheses and seams |
 | Wanting to understand the code | [docs/01-architecture/overview.md](docs/01-architecture/overview.md) — HLD, LLD, every seam |

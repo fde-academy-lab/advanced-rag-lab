@@ -38,11 +38,20 @@ NOTEBOOK_BLURBS = {
 }
 
 FINDINGS = [
-    ("Equal-weight RRF loses to BM25 alone.",
-     "Weighted fusion at &alpha;&nbsp;=&nbsp;0.2 wins instead: evidence recall 0.7645 &rarr; 0.7891, "
-     "[+0.008,&nbsp;+0.041], holding on the frozen slice. Fusing a strong retrieval leg with a weak "
-     "one at equal weight moves the result toward the weak one.",
-     "Returns to the expected result when both legs are comparably strong."),
+    ("Fusion does not separate from its better single leg.",
+     "Dense alone <b>0.7733</b> against equal-weight RRF <b>0.7742</b> &mdash; a gap of +0.0008 with a "
+     "95% interval of (&minus;0.0101,&nbsp;+0.0109). On nDCG the <i>unfused</i> dense leg wins "
+     "outright, by 0.075. The second index, second pipeline and per-corpus &alpha; buy a difference "
+     "that cannot be measured.",
+     "Returns when the legs are complementary &mdash; when they fail on <i>different</i> queries. The "
+     "diagnostic is the per-query overlap of failures, not the aggregate table."),
+    ("No retrieval configuration moves answer correctness.",
+     "Evidence recall spans 0.7118 &rarr; 0.7790 across five configurations &mdash; real, 9.4% "
+     "relative &mdash; while <code>answer_correct</code> stays inside the noise band on every "
+     "pairwise comparison, and the best answers come from the worst retriever. The system is "
+     "generation-limited, not retrieval-limited.",
+     "Returns when retrieval is the binding constraint &mdash; an assumption almost nobody checks "
+     "before spending a quarter on it."),
     ("Comparison starvation does not reproduce.",
      "The corpus is generated from a fact graph that emits organisations on a balanced schedule, so "
      "the prevalence ratio is &asymp;&nbsp;1 and the precondition is absent by construction.",
@@ -193,10 +202,33 @@ the evaluation that judges it. Ten runnable notebooks, no vector database, no AP
   the first two numbers is the entire multi-hop problem, stated numerically.</p>
   <div class="metrics">{metrics}</div>
 
-  <h2>Three results that contradict the expected answer</h2>
-  <p class="sub">Each is measured, reproducible from a notebook cell, and names the condition under
-  which the expected result returns. A negative finding without that condition is an anecdote.</p>
+  <h2>Four results that contradict the expected answer</h2>
+  <p class="sub">Each is measured, reproducible in one command, and names the condition under which
+  the expected result returns. A negative finding without that condition is an anecdote.</p>
+  <p class="sub">The first one is also a correction. It previously read <i>&ldquo;equal-weight RRF
+  does not beat BM25 alone&rdquo;</i>, was quoted in about twenty places here, and does not
+  reproduce &mdash; so it was re-measured, retracted and replaced. <a
+  href="{gh}/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md">ADR-0015</a>
+  records what was claimed, what was measured, and why nothing was structured to notice.</p>
   {findings}
+
+  <h2>The L.A.B. Simulator</h2>
+  <p class="sub">The notebooks show you. The simulator makes you do it, and grades the result
+  &mdash; seven units, five modes, a pathway derived from prerequisites rather than declared.</p>
+  <div class="lab">
+    <div><h3>Three gates, not one</h3><p>A <b>decision</b> committed before any code, whose
+    falsifier is rejected if it names the conclusion instead of an observation. The <b>checks</b>.
+    And a <b>metric bar</b>, measured on the real corpus.</p></div>
+    <div><h3>Five modes</h3><p><code>implement</code>, <code>diagnose</code>, <code>decide</code>,
+    <code>measure</code>, <code>ship</code>. The last two are what make it a lab rather than a
+    problem set. <a href="{gh}/tree/main/lab-simulator">Start at F1</a>.</p></div>
+    <div><h3>Graders that are graded</h3><p>Every unit ships a worked answer the grader must accept
+    and decoys it must reject. A check that has never rejected anything is a function that returns
+    true, and you cannot tell those apart by reading it.</p></div>
+    <div><h3>Graded on a pull request</h3><p>Push an attempt and the Action comments the result.
+    A failed attempt does not fail the build &mdash; a red tick on a third try at a hard unit is
+    information, not a gate.</p></div>
+  </div>
 
   <h2>Concepts and case studies</h2>
   <p class="sub">The taught material, four studies of retrieval systems meeting reality, a full

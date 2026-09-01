@@ -1,0 +1,5 @@
+# The checks that must catch this. Naming them matters: a decoy rejected for some other
+# reason is a passing test hiding a broken check.
+fails:
+  - markers map to the input chunk_ids
+  - every marker resolves to a real chunk_id

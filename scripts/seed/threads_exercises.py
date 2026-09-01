@@ -59,56 +59,106 @@ for fusion in ("bm25", "dense", "rrf"):
 ```
 
 Otherwise you are measuring the embedder's seed as well as the retriever."""},
-  {"by": "dan", "body": """That was exactly it — thank you. Rebuilt with one index. Results:
+  {"by": "dan", "body": """That was exactly it — thank you. Rebuilt with one index. Results,
+all at rerank=cross:
 
 | fusion | k | evidence_recall | full_chain | ctx_precision |
 |---|---|---|---|---|
-| bm25 | 5 | 0.7301 | 0.4074 | 0.3512 |
-| bm25 | 8 | **0.7645** | 0.4686 | 0.2433 |
-| bm25 | 10 | 0.7802 | 0.4938 | 0.2031 |
-| rrf | 8 | lower than bm25 at every k | | |
+| bm25 | 5 | 0.6329 | 0.3188 | 0.3029 |
+| bm25 | 8 | 0.7118 | 0.4348 | 0.2309 |
+| bm25 | 10 | 0.7279 | 0.4589 | 0.1948 |
+| rrf | 8 | **0.7742** | 0.4638 | 0.2469 |
 
-**RRF lost.** To BM25 alone. At every k. I re-ran it twice because I assumed I had wired the
-fusion backwards.
+`bm25 -> rrf` at k=8 is **+0.0624**, ci (+0.0407, +0.0857) — real.
 
-Baseline stands as declared: BM25, k=8, evidence recall 0.7645.
+Baseline stands as declared: **BM25, k=8, evidence recall 0.7118.** RRF beats it, which is what
+I expected, and I am recording the baseline as the untuned one rather than the winner.
 
-**What surprised me.** All of it. I expected the hybrid to win and it is not close."""},
-  {"by": "wei", "body": """You have the fusion wired backwards. In production hybrid always
-beats either leg — that is the entire reason people run two retrievers. Check that your dense
-leg is actually returning results and not silently falling back to an empty list; a fusion of
-[good, empty] scores like a degraded version of good, which is exactly your symptom."""},
-  {"by": "marcus", "body": """Wei — I checked Dan's numbers against my own run and the dense leg
-is returning results. It is just weak: on its own it scores materially below BM25 on this
-corpus.
+**What surprised me.** Nothing yet, which is making me suspicious."""},
+  {"by": "wei", "body": """Nothing surprising because nothing was tested. You have confirmed
+what every hybrid-search post says, which is the least informative outcome available — if the
+experiment can only come back one way, it is not an experiment.
 
-This is not a bug, it is arithmetic. Equal-weight RRF is a **voting rule that treats both
-voters as equally credible**. Fuse a strong leg with a weak one at equal weight and the result
-moves toward the weak one. RRF's scale-invariance is a virtue when the legs are comparable and
-a liability when they are not, because it discards the one signal — the score distribution —
-that would have told you to down-weight the weak leg.
+Also: the brief asked for **dense alone** and you have not reported it. Three of your nine rows
+are missing and they are the three that matter."""},
+  {"by": "marcus", "body": """Wei is right about the missing rows but I think the mechanism is
+already clear. RRF is a **voting rule that treats both voters as equally credible**, and our
+dense leg is LSA — a truncated SVD over TF-IDF, fifty years old. It is obviously the weak leg
+here. What Dan has measured is fusion succeeding *despite* a weak second voter, because k=60
+dampens how much any single top hit counts.
 
-Dan, run it with `fusion="weighted", alpha=0.2` and you should see the expected result return.
-α = 0.2 means "20% dense", which is roughly the credibility that leg has earned here.
+Dan, I would predict dense alone lands well below BM25, somewhere around 0.55–0.62. Worth
+running to close it out but I do not think it changes the conclusion."""},
+  {"by": "dan", "body": """Ran it. Marcus, this is not what either of us expected:
 
-"Hybrid always wins" is true when both legs are strong. It is a statement about a condition,
-not a law.""", "accepted": True},
-  {"by": "dan", "body": """`weighted, alpha=0.2` → evidence recall **0.7891**, up from 0.7645,
-interval [+0.008, +0.041] so it clears the noise band. Holds on the frozen slice.
+| fusion | k | evidence_recall | ndcg |
+|---|---|---|---|
+| bm25 | 8 | 0.7118 | 0.3639 |
+| **dense** | 8 | **0.7733** | **0.6055** |
+| rrf | 8 | 0.7742 | 0.5302 |
 
-So the hybrid does win — just not at equal weight. Adding to my notes: *the fusion rule and the
-fusion weight are two different decisions, and the blog posts only ever discuss the first.*"""},
-  {"by": "maintainer", "body": """Marked Marcus's reply as the answer.
+The dense leg **beats BM25** — +0.0616 evidence recall, ci (+0.0382, +0.0870) — and it beats
+everything on nDCG including the fused system.
 
-Three things this thread did right, for anyone reading it later. Dan declared the baseline
-**before** seeing the numbers, which is the only way a baseline means anything. Priya caught a
-methodology bug at the approach stage rather than after a week of work. And Wei was confidently
-wrong in a completely reasonable way — "hybrid always wins" is what the literature says, and
-the useful move was Marcus naming the *condition* under which it is true rather than just
-saying "no".
+`dense -> rrf` is **+0.0008**, ci (−0.0101, +0.0109). Inside the noise band.
 
-This is the first of the three findings in this repository that contradict the received
-wisdom. You will meet the other two in EX-09 and EX-14."""},
+So the sentence in my last reply — "RRF beats it, which is what I expected" — was true and
+useless. RRF beats the leg I happened to compare it against. It does not beat the *better* leg,
+and on ranking quality it is worse than that leg on its own."""},
+  {"by": "priya", "body": """This is the answer to the brief's third acceptance criterion, and
+it is worth stating precisely because it is easy to say loosely.
+
+**The comparison you cannot draw a conclusion from is `dense` vs `rrf`.** +0.0008 with an
+interval of (−0.0101, +0.0109) is not a small difference. It is *not a difference*. Reporting it
+as "RRF is slightly ahead" would be reporting the sign of noise.
+
+And the consequence is a decision, not a footnote. Shipping RRF over dense-alone means a second
+index, a second retrieval path and a fusion rule in the query hot path, bought with a number
+whose interval contains zero. The dense leg alone is a simpler system that measures the same.
+
+Marcus's mechanism is the standard one and it is not what happened here. The condition for
+fusion to pay is not "comparable leg strength" — it is **complementarity**: the legs have to
+fail on *different* queries. Two retrievers that fail together carry one signal between them.
+Cormack's RRF paper fuses TREC runs, which are mature systems that are good in *different ways*;
+that property is doing more work in the paper than the equal-weighting is.
+
+Nobody in this thread ran the check that would have settled it in advance: the per-query overlap
+of the two legs' failures. Disjoint failures, fusion is worth a lot. Nested failures, worth
+nothing. It is one line of pandas and it is the measurement the aggregate table cannot
+substitute for.""", "accepted": True},
+  {"by": "marcus", "body": """Yes — I had the mechanism from the literature and applied it
+without checking the premise it rests on. "LSA is old, therefore LSA is the weak leg" is not an
+argument, it is a vibe with a date on it.
+
+The reason it is the *stronger* leg here is the corpus: Client Zero's questions are paraphrase
+and inference over incident prose, where the question and the passage share meaning and almost
+no vocabulary. BM25 scores term overlap; there is very little for it to score. Where BM25 does
+win is exact identifiers — `PagerDuty-4471`, `ap-southeast-2` — which are out-of-vocabulary for
+a latent model. That slice is real and small, and the aggregate hides it in both directions."""},
+  {"by": "maintainer", "body": """Marked Priya's reply as the answer.
+
+Four things this thread did right, for anyone reading it later. Dan declared the baseline
+**before** seeing the numbers. Priya caught a methodology bug at the approach stage rather than
+after a week of work. Wei was blunt and correct about the missing rows — three of nine, and the
+three that decide the question. And Marcus was wrong in the most useful way available: he
+brought the textbook mechanism, predicted a number, and the prediction was refutable.
+
+The general lesson is the one Dan wrote himself: **"RRF beats it" is true and useless if "it" is
+not the strongest alternative.** A comparison against a weak baseline confirms nothing, and it
+is the most common shape of a result that survives review and should not have.
+
+One piece of history, because you will find the old version in course material that predates
+this thread. This repository previously published the *opposite* finding — "equal-weight RRF
+loses to BM25 alone", with a mechanism about fusing strong legs with weak ones. It was wrong, it
+was quoted in about twenty places, and it stood for months. What let it survive is structural:
+the eval gate compares one configuration against its own history and never against alternatives,
+so nothing in the system was capable of noticing. The retraction is
+[ADR-0015](https://github.com/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md)
+and the fix is `python scripts/run_eval.py --compare`, which is one command precisely because a
+claim you cannot re-run is a claim nobody will re-run.
+
+This is the first of the findings in this repository that contradict the received wisdom. You
+will meet the others in EX-09 and EX-14."""},
  ],
 },
 {

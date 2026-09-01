@@ -30,18 +30,36 @@ default because it needs no score normalisation and no training.
 
 **What we measured.**
 
-| Configuration | Evidence recall@8 |
-|---|---|
-| BM25 alone | 0.7645 |
-| Equal-weight RRF (BM25 + dense) | below BM25, at every k |
-| Weighted fusion, α = 0.2 | **0.7891**, [+0.008, +0.041], holds on frozen |
+| Configuration | Evidence recall@8 | nDCG@8 |
+|---|---|---|
+| BM25 alone | 0.7118 | 0.3639 |
+| Dense (LSA) alone | 0.7733 | **0.6055** |
+| Equal-weight RRF | **0.7742** | 0.5302 |
+| Weighted fusion, α = 0.2 | 0.7645 | 0.4767 |
+| Weighted fusion, α = 0.5 | **0.7790** | 0.5967 |
 
-**The mechanism.** RRF is a **voting rule that treats every voter as equally credible.** Fuse a
-strong leg with a weak one at equal weight and the result moves toward the weak one.
+Paired bootstrap over questions: `bm25 → rrf` is **+0.0624** evidence recall, ci (+0.0407,
++0.0857) — real. `dense → rrf` is **+0.0008**, ci (−0.0101, +0.0109) — *inside the noise band*.
+On nDCG, `dense → rrf` is **−0.0753**, ci (−0.1061, −0.0462) — the unfused leg wins.
 
-Scale-invariance is the property that lets RRF work without normalisation — and it is exactly the
-property that discards the score distribution that would have told you to down-weight the weak
-leg. The virtue and the failure are the same mechanism.
+**The mechanism.** Fusion combines two signals into a better one only when the legs fail on
+**different** queries. Two retrievers that fail together carry one signal between them, and
+combining a signal with itself returns the signal.
+
+On this corpus they fail together. The questions are paraphrase and inference over incident
+prose; the dense leg handles nearly all of it and BM25 contributes on the exact-identifier slice
+— real, and small. RRF finds what the dense leg found, plus a little, minus some ranking quality,
+because giving an equal ballot to a leg that is right less often costs precision at the top even
+when it does not cost recall.
+
+**This case study is itself a correction.** It previously reported the opposite — that
+equal-weight RRF *loses* to BM25 alone, with BM25 at 0.7645 and a mechanism about fusing strong
+with weak. Neither reproduces: RRF beats BM25, the dense leg is the stronger of the two, and
+0.7645 is the *tuned configuration's* number that had been mis-attributed to BM25 alone. See
+[ADR-0015](../../docs/01-architecture/adr/0015-correct-the-fusion-finding.md). The failure that
+let it stand for months is worth more than the finding: an eval gate that compares a
+configuration against its own history never compares configurations against each other, so
+nothing was structured to notice.
 
 Note that `k = 60` does not save you. `k` controls how much a single voter's *first preference*
 counts. It does not control how much a *voter* counts.
