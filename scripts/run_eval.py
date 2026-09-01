@@ -50,12 +50,16 @@ def main() -> int:
                     help="every fusion rule against every other, with a paired bootstrap")
     ap.add_argument("--sweep", action="store_true",
                     help="the weighted rule across the alpha grid, all four metrics")
+    ap.add_argument("--ksweep", action="store_true",
+                    help="three fusion arms across the k grid, with and without the reranker")
     args = ap.parse_args()
 
     if args.compare:
         return compare(args.slice)
     if args.sweep:
         return sweep(args.slice)
+    if args.ksweep:
+        return ksweep(args.slice)
 
     cfg = dict(raglab.TUNED)
     overridden = {k: v for k, v in
@@ -141,6 +145,45 @@ KEYS = ("evidence_recall", "full_chain_recall", "ndcg", "answer_correct")
 
 
 ALPHAS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.7)
+KS = (3, 5, 8, 10, 20)
+KSWEEP_ARMS = (("bm25", {"fusion": "lexical", "alpha": 0.0}),
+               ("rrf", {"fusion": "rrf", "alpha": 0.5}),
+               ("w0.2", {"fusion": "weighted", "alpha": 0.2}))
+
+
+def ksweep(which_slice: str) -> int:
+    """Evidence recall and context precision across k, with and without the reranker.
+
+    Quoted in six seeded threads and in three exercise briefs and published nowhere, which is
+    the condition both retracted findings were in. `context_precision` is on the same table
+    deliberately: it moves the opposite way, monotonically, and the pair is the argument
+    against gating on precision alone.
+    """
+    print(f"slice {which_slice}, rerank on the left, none on the right\n")
+    head = (f"{'k':<5}" + "".join(f"{a:>12}" for a, _ in KSWEEP_ARMS)
+            + f"{'ctx_prec':>12}" + "".join(f"{a + ' (raw)':>14}" for a, _ in KSWEEP_ARMS))
+    print(head)
+    print("-" * len(head))
+    for k in KS:
+        cells, raw = [], []
+        prec = None
+        for name, cfg in KSWEEP_ARMS:
+            for rerank, sink in (("cross", cells), ("none", raw)):
+                bundle, _, pipe = raglab.quickstart(
+                    **{**raglab.TUNED, **cfg, "k": k, "rerank": rerank}, verbose=False)
+                qs = [q for q in bundle.questions
+                      if which_slice == "all" or q.slice == which_slice]
+                s = metrics.summarize(pipeline.evaluate(pipe, qs, pipe.chunks,
+                                                        personas=bundle.personas))
+                sink.append(s["evidence_recall"])
+                if rerank == "cross" and name == "bm25":
+                    prec = s["context_precision"]
+        print(f"{k:<5}" + "".join(f"{v:>12.4f}" for v in cells)
+              + f"{prec:>12.4f}" + "".join(f"{v:>14.4f}" for v in raw))
+    print("\nRecall rises with k and context precision falls, monotonically, because the")
+    print("denominator is k and the gold set for a question is fixed. A target on precision")
+    print("alone is therefore cleared by lowering k, which makes the system worse.")
+    return 0
 
 
 def sweep(which_slice: str) -> int:

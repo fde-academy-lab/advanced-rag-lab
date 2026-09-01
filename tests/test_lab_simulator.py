@@ -795,3 +795,35 @@ def test_a_malformed_unit_is_reported_rather_than_fatal(tmp_path, monkeypatch):
         registry.all_units.cache_clear()
     assert "Z9" in problems, problems
     assert any("title" in p for p in problems["Z9"]), problems["Z9"]
+
+
+def test_every_brief_states_the_bars_its_unit_actually_enforces():
+    """A brief that documents a looser bar than the grader applies is worse than none.
+
+    C1's brief said `cache_hit_rate ≥ 0.6500` and `prefix_tokens_billed ≤ 260` while unit.yaml
+    enforced 0.7500 and 45.0. At the documented pair the unit's *own decoy* clears — the
+    "move the stable blocks too" configuration scores 0.6969 and 63.23 — so the brief described
+    a bar under which the wrong answer passes.
+    """
+    import re
+
+    import yaml
+
+    for directory in sorted((ROOT / "lab-simulator" / "units").iterdir()):
+        meta_path = directory / "unit.yaml"
+        brief_path = directory / "BRIEF.md"
+        if not (meta_path.exists() and brief_path.exists()):
+            continue
+        bars = yaml.safe_load(meta_path.read_text(encoding="utf-8")).get("bars") or []
+        line = re.search(r"^\*\*Bars\*\*(.+)$", brief_path.read_text(encoding="utf-8"), re.M)
+        if not bars:
+            assert line is None, f"{directory.name}: brief states bars, unit.yaml has none"
+            continue
+        assert line, f"{directory.name}: unit.yaml sets bars and the brief states none"
+        for bar in bars:
+            metric, threshold = bar["metric"], float(bar["threshold"])
+            stated = re.search(rf"`{re.escape(metric)}\s*[≥≤]\s*([\d.]+)`", line.group(1))
+            assert stated, f"{directory.name}: brief does not state a bar for {metric}"
+            assert float(stated.group(1)) == threshold, (
+                f"{directory.name}: brief says {metric} {stated.group(1)}, "
+                f"unit.yaml enforces {threshold}")

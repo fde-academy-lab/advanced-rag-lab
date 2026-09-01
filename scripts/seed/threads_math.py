@@ -134,8 +134,9 @@ is to stop using a full-list measure rather than steepen one. Report success@1 o
 
 **And the real answer to the reviewer.** nDCG cannot see *sufficiency*: a question needing four
 pieces scores well from one piece at rank 1 with near-duplicates behind it. That is why full-chain
-recall sits beside it, 0.7645 against 0.4686. The discomfort is real and the discount is not where
-it lives.
+recall sits beside it on the scorecard — evidence recall 0.7645 against full-chain 0.4686, with
+nDCG at 0.4767 a third number about a third thing. The discomfort is real and the discount is not
+where it lives.
 
 Pooling bias is in [mathematics.md M3](/fde-academy-lab/advanced-rag-lab/blob/main/docs/06-interview-prep/mathematics.md).""",
    "accepted": True},
@@ -149,8 +150,11 @@ climbs 0.5047 → 0.5461 → 0.5967 → 0.6102 over the same range, and answer c
 0.4033 → 0.3992 → 0.3992 → 0.3951.
 
 So the metric that moves most across the sweep is the one nobody was tuning, and the one the user
-sees moves the wrong way. I went in wanting to make nDCG stricter and came out understanding that
-I had been reading it as though it were a proxy for the answer, which it is not."""},
+sees does not move at all — 0.4033 down to 0.3951 *looks* like a decline, but every pairwise
+delta on answer correctness across these arms is inside the noise band, which is a stronger
+version of the same lesson than the drift I thought I was seeing. I went in wanting to make nDCG
+stricter and came out understanding that I had been reading it as though it were a proxy for the
+answer, which it is not."""},
  ],
 },
 {
@@ -265,8 +269,7 @@ changing the default, since the code is the version that has been running."""},
 change has a cost and no observable benefit: a new default to remember, a new number in the
 runbook, and a config value that differs from every notebook screenshot in the repo.
 
-I would leave α at 0.2 and write down why. Not because the statistics are wrong, but because a
-change nobody can see is a change nobody can validate at 3am when they are trying to work out
+I would leave α at 0.2 and write down why. The statistics are fine. A change nobody can see is a change nobody can validate at 3am when they are trying to work out
 whether retrieval is behaving."""},
   {"by": "dan", "body": """Kept the default at 0.2 and wrote the note.
 
@@ -494,11 +497,13 @@ interpretable rather than a knob:
   the ceiling.
 
 So $k_1$ is *the occurrence count at which a term has spent half the evidence it will ever be
-allowed to spend*. At the default 1.2, against a ceiling of 2.2:
+allowed to spend*. At this repository's default of $k_1 = 1.5$
+([`raglab/retrieve.py`](/fde-academy-lab/advanced-rag-lab/blob/main/raglab/retrieve.py)), against
+a ceiling of 2.5:
 
 | $tf$ | 1 | 2 | 3 | 5 | 10 | 100 |
 |---|---|---|---|---|---|---|
-| weight | 1.0000 | 1.3750 | 1.5714 | 1.7742 | 1.9643 | 2.1739 |
+| weight | 1.0000 | 1.4286 | 1.6667 | 1.9231 | 2.1739 | 2.4631 |
 
 **$b$ is an interpolation.** The denominator carries $1 - b + b\\frac{|d|}{\\mathrm{avgdl}}$, a
 convex combination of 1 (ignore length) and $|d|/\\mathrm{avgdl}$ (correct fully for it). $b$ is
@@ -542,8 +547,27 @@ length distribution and the real answer is to stop treating it as one corpus.
 **And the question Tomás actually asked.** BM25's nDCG of 0.3639 is not primarily a $k_1$ or $b$
 problem. The questions here are paraphrase and inference over prose, and the lexical leg
 contributes on the exact-identifier slice, which is real and small. Saturation tuning will not
-convert a leg answering a narrower question into the stronger one. Freeze both with the two
-sentences above as the reason, and give the lexical leg its own eval slice.
+convert a leg answering a narrower question into the stronger one.
+
+**And there is nothing to freeze, which is the part worth knowing before you plan the work.**
+`bm25_scores(query, docs, k1=1.5, b=0.75)` in
+[`raglab/retrieve.py`](/fde-academy-lab/advanced-rag-lab/blob/main/raglab/retrieve.py) is the
+reference implementation the notebooks teach from. The *serving* leg is `store.lexical()`, which
+is SQLite FTS5:
+
+```sql
+SELECT c.*, bm25(chunks_fts, 4.0, 2.0, 1.0) AS bm ...
+```
+
+FTS5 fixes $k_1$ and $b$ internally and does not expose them. `RetrievalConfig` has no BM25
+parameters either — its knobs are `n_candidates`, `k`, `fusion`, `rrf_k`, `alpha`, `rerank`,
+`ann`, `dedup` and the ACL fields. The tunable surface you actually have is the three numbers in
+that call: **column weights**, text 4.0 against title 2.0 against heading 1.0. That is a
+different question from saturation and a more promising one, because it is about which field a
+match landed in rather than how often it repeated.
+
+So: give the lexical leg its own eval slice, and if you want to tune something, tune the column
+weights against it.
 
 Dan — "it raised recall in production, so it is settled" is the move to unlearn. Recall alone
 cannot tell a better ranking from a wider net.""",
@@ -557,8 +581,11 @@ cross-encoder and 0.3269 without it. The reranker is worth more than any argumen
 about the scoring function underneath it, and I had been treating it as the optional stage because
 it is the expensive one.
 
-Also filed a check that asserts the configured $k_1$ and $b$ match the values in the runbook, so
-the freeze is a test rather than a note somebody has to read."""},
+The other correction I needed was that there is no configured $k_1$ or $b$ to freeze — the
+serving leg is FTS5 and it does not expose them. So the runbook entry is about the column
+weights instead, and the check I filed asserts those three numbers rather than two that do not
+exist. Writing a test is a good way to find out whether the thing you meant to protect is
+reachable."""},
  ],
 },
 ]

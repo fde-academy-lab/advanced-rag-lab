@@ -242,3 +242,106 @@ def test_cross_links_between_seeded_threads_are_reciprocal():
                     f"{title!r} points at {other!r} and gets nothing back")
                 continue
             assert title in links[other], f"{other!r} does not point back at {title!r}"
+
+
+# ────────────────────────────────────────── the second wave of seeded threads ──
+def test_every_thread_is_labelled():
+    """An unlabelled thread is invisible to every filter the guide teaches."""
+    import seed_content
+    have = set(seed_content.THREAD_LABELS)
+    missing = sorted(t["title"] for t in seed_content.DISCUSSIONS if t["title"] not in have)
+    assert not missing, missing
+
+
+def test_no_two_threads_share_a_title():
+    """Seeding is keyed by title, so a collision silently seeds one and skips the other."""
+    import collections
+
+    import seed_content
+    counts = collections.Counter(t["title"] for t in seed_content.DISCUSSIONS)
+    assert not [t for t, n in counts.items() if n > 1], \
+        [t for t, n in counts.items() if n > 1]
+
+
+def test_every_answerable_thread_has_an_accepted_reply():
+    """A Q&A thread with no answer reads as unanswered and gets asked again next cohort."""
+    import seed_content
+    answerable = {n for n, _e, _d, fmt in seed_content.CATEGORIES if fmt == "ANSWER"} | {"Q&A"}
+    naked = [t["title"] for t in seed_content.DISCUSSIONS
+             if t["category"] in answerable
+             and not any(r.get("accepted") for r in t.get("replies", []))]
+    assert not naked, naked
+
+
+def test_every_category_the_repository_creates_has_at_least_one_thread():
+    """A category created by hand and then never used is a worse default than not creating it."""
+    import seed_content
+    seeded = {t["category"] for t in seed_content.DISCUSSIONS}
+    empty = sorted({n for n, *_ in seed_content.CATEGORIES} - seeded)
+    assert not empty, f"these categories exist in CATEGORIES and hold no seeded thread: {empty}"
+
+
+def test_no_seeded_thread_quotes_a_figure_the_repository_cannot_justify():
+    """Every multi-decimal figure has to be traceable to a file somebody can open.
+
+    Not a spelling check — the two retracted claims were both fabricated decimals that read as
+    measurements. Arithmetic worked in the open (a discount table, a DCG sum) is exempt only
+    because it is checkable in the thread itself, so those live in ALLOWED with a reason.
+    """
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    haystack = []
+    for pattern in ("docs/**/*.md", "lab-simulator/**/*.md", "lab-simulator/**/*.yaml",
+                    "lab-simulator/**/*.py", "raglab/*.py", "concepts-and-case-studies/**/*.md",
+                    ".github/eval-baseline.json"):
+        for f in root.glob(pattern):
+            if "__pycache__" in f.parts:
+                continue
+            haystack.append(f.read_text(encoding="utf-8", errors="ignore"))
+    corpus = "\n".join(haystack)
+
+    # A figure is attested if it appears, or if a longer figure in the corpus rounds to it:
+    # the baseline stores `884.0494` and the prose sensibly quotes `884.05`.
+    attested = set(re.findall(r"\b\d+\.\d+\b", corpus))
+    for value in list(attested):
+        for places in (2, 3, 4):
+            try:
+                attested.add(f"{float(value):.{places}f}")
+            except ValueError:                              # pragma: no cover
+                pass
+
+    # Arithmetic the thread shows its working for, checkable by the reader on the spot.
+    ALLOWED = {
+        # nDCG discount table and the worked DCG/IDCG sums in threads_math
+        "0.1250", "0.2500", "0.3155", "0.3333", "0.4307", "0.5000", "0.6309", "1.0000",
+        "1.8250", "2.0833", "2.3332", "2.5616", "0.8760", "0.9109",
+        # BM25 saturation at k1=1.5, ceiling 2.5
+        "1.4286", "1.6667", "1.9231", "2.1739", "2.4631",
+        # the retracted p^hops arithmetic, quoted as history
+        "0.6514", "97.856", "35.652", "8.043",
+        # bar thresholds and quoted grader output
+        "42.1600", "45.0000", "63.2250", "0.667",
+        # the Week 3 standup's fusion figures, quoted verbatim in Week 6 in order to withdraw
+        # them. They do not reproduce, which is the point of quoting them.
+        "0.7891", "0.041",
+    }
+    # Scoped to the modules written against a verified-figures sheet. The earlier modules
+    # carry figures nobody can now re-derive, which is a real debt and a separate piece of
+    # work — failing this build on them would only teach people to delete the test.
+    CHECKED = ("threads_general.py", "threads_reading.py", "threads_ideas.py",
+               "threads_showandtell.py", "threads_labsim_more.py", "threads_clinic_more.py",
+               "threads_qa_more.py", "threads_design_more.py", "threads_math.py",
+               "threads_standup_more.py")
+    dec = re.compile(r"\b\d+\.\d{2,4}\b")
+    offenders = {}
+    for name in CHECKED:
+        text = (root / "scripts" / "seed" / name).read_text(encoding="utf-8")
+        bad = sorted({d for d in dec.findall(text)
+                      if d not in ALLOWED and d not in corpus and d not in attested})
+        if bad:
+            offenders[name] = bad
+    assert not offenders, (
+        "figures with nothing in the repository behind them:\n"
+        + "\n".join(f"  {k}: {v}" for k, v in offenders.items()))

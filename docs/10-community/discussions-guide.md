@@ -58,7 +58,8 @@ diff.
 
 GitHub creates six when Discussions is enabled; this repository adds eight in `CATEGORIES` in
 [`scripts/seed_content.py`](../../scripts/seed_content.py) — fourteen, assuming none of the
-defaults were removed. Twelve carry threads today; **General** and **Polls** carry none.
+defaults were removed. Thirteen of them carry seeded threads. **Polls** is the exception, and
+not by oversight: no API creates a poll, so there is nothing to seed.
 
 The emoji below are the ones the API actually reports rather than the ones the code asks for,
 so the table matches what you see in the sidebar. They differ because a category's emoji and
@@ -170,7 +171,7 @@ four discussion-specific ones.
 |---|---|---|
 | **Area** | `area: retrieval` · `area: evaluation` · `area: notebooks` · `area: toolkit` · `area: cost` · `area: agent` · `area: ci` · `area: docs` · `area: bedrock` | Anyone. Add the one that would help someone browsing |
 | **Status** | `status: needs-review` · `status: blocked` · `status: stale` · `status: triage` | Maintainers. The stale bot applies `status: stale` to issues only |
-| **Type** | `type: exercise` · `type: reading` · `type: discussion-followup` · `negative-result` | Anyone |
+| **Type** | `type: exercise` · `type: reading` · `type: discussion-followup` · `negative-result` · `cohort` | Anyone |
 | **Discussion-only** | `worked example` · `mechanism` · `retracted` · `first-week` | Maintainers, via `THREAD_LABELS` in `seed_content.py` |
 
 The four discussion-specific ones carry meaning worth stating exactly:
@@ -185,6 +186,10 @@ The four discussion-specific ones carry meaning worth stating exactly:
   the evidence that it was believed, which is the part with teaching value.
 - **`first-week`** — safe to read on day one. No prerequisites, nothing that assumes you have run
   the eval.
+
+**`cohort`** sits in the type family and means *about running the programme* rather than about
+the system: a standup, a retro, a scheduling question, a thread about how to talk to a client.
+Filter it out when you want the technical forum and nothing else.
 
 **`negative-result` is not a failure label.** It marks a change that was measured and rejected,
 and it earns full credit. Four of this repository's most-cited findings carry it.

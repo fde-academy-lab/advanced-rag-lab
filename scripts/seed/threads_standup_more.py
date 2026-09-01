@@ -41,18 +41,17 @@ THREADS = [
 
 ### Wrong about
 
-We wrote the P3 exit criterion as *"context_precision above 0.30"*. Look at BM25 alone across k
-on the same 243 questions:
+We wrote the P3 exit criterion as *"context_precision above 0.30"*.
 
-| k | evidence_recall | context_precision |
-|---|---|---|
-| 5 | 0.6329 | 0.3029 |
-| 8 | 0.7118 | 0.2309 |
-| 10 | 0.7279 | 0.1948 |
+Priya's table in the Q&A thread *context_precision is 0.2433 — is three quarters of my context
+window wasted?* already plots what that means: across k on BM25 alone, precision falls as recall
+rises, monotonically, because the denominator is k and the gold set for a question is fixed. At
+k=5 it clears 0.30; at k=8 it does not.
 
-Precision falls as k rises because the denominator is k and the gold set for a question is
-fixed. So the criterion is cleared by setting `k=5` and giving evidence recall back from 0.7118 to
-0.6329. We wrote a target that no packing change can move and that one config flag can.
+What that thread does not say, and what we got wrong here, is that **the criterion is therefore
+clearable by a config flag.** Set `k=5`, hand back evidence recall from 0.7118 to 0.6329, and the
+exit gate goes green on a system that got worse. We wrote a target no packing change can move and
+one flag can.
 
 Cost of being wrong: a week of packing work aimed at a number that was never about packing.
 
@@ -206,8 +205,8 @@ refusals of any kind.
 And the fix is prompting. Add "if the context does not contain the answer, say you do not know"
 to the instruction block and this goes to near-perfect. We did exactly that at my last place and
 the null slice stopped being a problem in an afternoon."""},
-  {"by": "dan", "body": """That clears it up, thanks. So f1 of 0.0 is not the classifier being
-broken in both directions, it is one side of the confusion matrix being empty, and the number I
+  {"by": "dan", "body": """That clears it up, thanks. So f1 of 0.0 describes one side of the confusion matrix being empty, rather than a classifier
+broken in both directions, and the number I
 should have been reading all along was the count of 36.
 
 I will take the prompt change then. It sounds like an afternoon and it is the sort of thing I can
@@ -223,8 +222,8 @@ context and the answer is wrong anyway. That is a generator not using what it wa
 proposed fix is an instruction whose execution depends on the generator using what it was given.
 
 Wei's fix is the right one when abstention fails because **nobody asked for it**. Try it, by all
-means, it is an afternoon. But the result to watch is not the null slice going green, it is
-`over_refusals` on the 207 answerable, because the cheap way for a model to satisfy that
+means, it is an afternoon. But the result to watch is `over_refusals` on the 207 answerable, rather than the null slice going
+green, because the cheap way for a model to satisfy that
 instruction is to decline more often everywhere."""},
   {"by": "sofia", "body": """The version of this that worries me is downstream of the ACL
 prefilter. A system that never abstains does not abstain when the filter has removed every
@@ -240,10 +239,15 @@ persona asking? Same measurement, and it exercises the path that actually pages 
   {"by": "dan", "body": """Went and read the abstention code after Marcus's reply rather than
 before it, which is the lesson.
 
-There is a test. It passes. What it asserts is that the metric **computes** — feed it labels, get
-a float. It has never asserted that anything abstains, and it would pass identically against a
-system that abstains perfectly and one that never abstains at all. Which is the same shape as
-the R1 thing in the simulator: ten checks on the rendering and none on the promise."""},
+There is a test. It passes. What it asserts is that the metric **scores hand-made rows
+correctly** — `test_abstention_scores_reward_refusing_only_the_nulls` feeds three rows, abstains
+on one null, and checks precision 1.0, recall 0.5, one false answer. All true, all about the
+arithmetic. Nothing in it ever runs the pipeline, so it passes identically against a system that
+abstains perfectly and one that never abstains at all.
+
+Which is the shape R1 in the simulator taught me to look for, except R1 *has* the check —
+`every marker resolves to a real chunk_id, over random inputs`, ten on the rendering and one on
+the promise, and only the last one failed. Here there is no last one."""},
   {"by": "maintainer", "body": """Sofia's suggestion is in as an issue for P7, tied to ADR-0011.
 It is the right instinct and I want to be careful about the framing: filtered-to-empty and
 unanswerable-by-construction produce the same context and want the same behaviour, so measuring
@@ -266,8 +270,11 @@ is decoration.""",
  "title": "Week 6 · P5 Cost — the cache win, and a finding we have to retract",
  "body": """### Moved
 
-- **Cost split into four categories.** At the committed default: `tokens_in` 884.05 (p95 1123),
-  `tokens_out` 82.21, `cost_usd` 0.0039 (p95 0.0046), `latency_ms` 34.62.
+- **Cost split into four token categories** — input, output, cache-write and cache-read,
+  tracked separately rather than summed, which is the point of
+  [`raglab/costs.py`](/fde-academy-lab/advanced-rag-lab/blob/main/raglab/costs.py). At the
+  committed default: `tokens_in` 884.05 (p95 1123), `tokens_out` 82.21, `cost_usd` 0.0039
+  (p95 0.0046), `latency_ms` 34.62.
 - **Prompt block ordering shipped**
   ([ADR-0012](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0012-prompt-block-ordering.md)).
   Over 200 simulator requests the assembler as given hits 0.2612 and bills 154.04 tokens at the

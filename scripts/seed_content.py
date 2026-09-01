@@ -1676,14 +1676,22 @@ decision record — which is the artefact almost nobody else in the pile will ha
 # literal holding sixty threads and three hundred replies is not reviewable in a diff.
 from seed import (  # noqa: E402
     threads_clinic,
+    threads_clinic_more,
     threads_design,
+    threads_design_more,
     threads_exercises,
     threads_extra,
+    threads_general,
+    threads_ideas,
     threads_interview,
     threads_labsim,
+    threads_labsim_more,
     threads_math,
     threads_more,
     threads_prep,
+    threads_qa_more,
+    threads_reading,
+    threads_showandtell,
     threads_standup,
     threads_standup_more,
     threads_usecases,
@@ -1743,6 +1751,15 @@ SEE_ALSO = {
         "The same question exists as a worked example, written by faculty to model the shape "
         "rather than to ask.",
         ["Recall@N climbs and full-chain recall does not. Where does the difference go?"]),
+
+    "Week 3 · P2 Retrieval — the reranker week, and it did not go how we planned": (
+        "The fusion figures in this thread do not reproduce. They are quoted and withdrawn in "
+        "the Week 6 standup, which is linked below rather than replacing this one.",
+        ["Week 6 · P5 Cost — the cache win, and a finding we have to retract"]),
+    "Week 6 · P5 Cost — the cache win, and a finding we have to retract": (
+        "This thread withdraws a claim made in Week 3. The original is left standing so the "
+        "retraction has something to point at.",
+        ["Week 3 · P2 Retrieval — the reranker week, and it did not go how we planned"]),
 
     "Talking about a synthetic-corpus project without it sounding like a toy": (
         "A worked example. The real thread below is longer and has the better answer.",
@@ -1912,8 +1929,12 @@ THREAD_LABELS = {
 
     "Lost in the Middle (Liu et al., 2023) — does the U-curve survive on our corpus?":
         ["type: reading", "negative-result"],
+    # `retracted` because its "what moved" section still carries the α=0.2 fusion claim, with
+    # figures (0.7891, [+0.008, +0.041]) that do not reproduce. It is left standing on purpose —
+    # the Week 6 standup quotes it verbatim in order to withdraw it, and a retraction that
+    # quotes a thread nobody can find is not a retraction.
     "Week 3 · P2 Retrieval — the reranker week, and it did not go how we planned":
-        ["cohort", "negative-result"],
+        ["cohort", "negative-result", "retracted"],
 
     # The twelve that shipped before THREAD_LABELS existed. An unlabelled thread is invisible
     # to `-label:"worked example"`, which is the filter a real cohort member wants first, and
@@ -1942,6 +1963,93 @@ THREAD_LABELS = {
         ["type: exercise", "area: evaluation", "area: cost"],
     "EX-09 · Try to reproduce comparison starvation, and fail":
         ["type: exercise", "area: evaluation", "negative-result"],
+
+    # ── the second wave: one thread per thin or empty category ──────────────────
+    "Hyphenated identifiers return zero rows since we picked up the tokenizer change. Underscored ones are fine.":
+        ["area: retrieval", "mechanism"],
+    "Dense leg is now worse than BM25 and mixed_version_check says the index is clean":
+        ["area: retrieval", "mechanism"],
+    "full_chain_recall dropped 0.0385 and nothing under raglab/ has changed":
+        ["area: evaluation", "mechanism"],
+    "The analyst persona's result count changes when legal ingests documents it cannot see":
+        ["area: retrieval", "mechanism"],
+
+    "Design review: two quarters of retrieval work before anything ships, and I want to be argued out of it":
+        ["area: evaluation", "cohort", "mechanism"],
+    "Design review: 40 tenants, one assistant, and I think the cache key is the whole design":
+        ["area: cost", "cohort"],
+    "Design review: the eval set for a policy assistant, before I spend three weeks labelling it":
+        ["area: evaluation", "cohort"],
+
+    "Week 4 · P3 Context — the exit criterion that was only measuring k":
+        ["cohort", "area: evaluation", "mechanism"],
+    "Week 5 · P4 Evaluation — a metric read 0.0 for three weeks and all of us filed it as 'not built yet'":
+        ["cohort", "area: evaluation"],
+    "Week 6 · P5 Cost — the cache win, and a finding we have to retract":
+        ["cohort", "area: cost", "retracted"],
+    "Week 7 · P6 Agentic — the audit found the second one, and it is the number that scoped this phase":
+        ["cohort", "area: agent", "negative-result"],
+
+    "F1 · my chunker tiles perfectly and drops the end of every document":
+        ["worked example", "area: retrieval", "mechanism"],
+    "E1 · my nDCG is 1.0 and I do not believe it":
+        ["worked example", "area: evaluation", "mechanism"],
+    "C1 · every named check passed and both bars are red":
+        ["worked example", "area: cost", "mechanism"],
+    "R3 · 0.8762 and 0.9684 tell the same story, so why does the bar sit between them":
+        ["worked example", "area: retrieval", "mechanism"],
+
+    "Why 1/log2(i+1) and not 1/i for the nDCG discount, and is the log base load-bearing?":
+        ["area: evaluation", "mechanism"],
+    "The paired bootstrap gives a much tighter interval if I resample documents. Which one is lying?":
+        ["area: evaluation", "mechanism"],
+    "I cannot reproduce the retracted multi-hop shortfall. Where did the 21 points come from?":
+        ["area: evaluation", "mechanism", "retracted"],
+    "What do BM25's k1 and b actually model? Deciding whether to freeze them or open them for tuning":
+        ["area: retrieval", "mechanism"],
+
+    "context_precision is 0.2433. Is three quarters of my context window wasted?":
+        ["area: evaluation", "mechanism", "first-week"],
+    "The system answers all 36 unanswerable questions. Why is that not the top priority?":
+        ["area: evaluation", "mechanism"],
+    "What is the difference between the macro and micro evidence recall, and which one is 0.7645?":
+        ["area: evaluation", "mechanism", "first-week"],
+    "Why does the repo ship alpha=0.2 when alpha=0.5 measures better?":
+        ["area: retrieval", "mechanism"],
+
+    "Cormack et al. 2009 (RRF) — our note said it did not transfer, and the note was wrong":
+        ["type: reading", "area: retrieval", "retracted", "mechanism"],
+    "MultiHop-RAG (Tang & Yang, COLM 2024) — we borrowed the schema, so where are the hard questions?":
+        ["type: reading", "area: evaluation"],
+    "Anthropic's Contextual Retrieval post — the client has read it and wants the 5.7% to 1.9%":
+        ["type: reading", "negative-result", "cohort"],
+    "CRAG's retrieval evaluator as a component we could actually grade before wiring it in":
+        ["type: reading", "area: agent"],
+
+    "Negative result: I swept alpha from 0.1 to 0.7 and answer_correct never moved":
+        ["negative-result", "area: retrieval", "mechanism"],
+    "I moved our release gate off the aggregate and onto the question_type slice":
+        ["area: evaluation", "mechanism"],
+    "Negative result: I tried to build the abstention gate and all I have is a control that passes":
+        ["negative-result", "area: evaluation", "mechanism"],
+    "Cut the prompt cache bill on C1 and nearly sent a client the wrong number":
+        ["area: cost", "mechanism"],
+
+    "Idea: RAPTOR over the temporal slice — a proposal, not another diagnosis":
+        ["area: retrieval"],
+    "Idea: teach the thing to say it does not know, and the embarrassing question underneath":
+        ["area: evaluation", "mechanism"],
+    "Idea: a semantic answer cache in front of the assembler":
+        ["area: cost"],
+    "Idea: learn alpha per query class instead of shipping one global compromise":
+        ["area: retrieval", "retracted"],
+
+    "Where does this go? The column the category table does not have":
+        ["area: docs", "first-week"],
+    "I have thirty minutes a week. What order do I do this in?":
+        ["cohort", "first-week"],
+    "How to read a number here, because I quoted one and could not defend it":
+        ["area: evaluation", "first-week", "mechanism"],
 }
 
 
@@ -2004,14 +2112,22 @@ def _answer_as_reply(thread):
 DISCUSSIONS = (DISCUSSIONS
                + threads_exercises.THREADS
                + threads_clinic.THREADS
+               + threads_clinic_more.THREADS
                + threads_design.THREADS
+               + threads_design_more.THREADS
                + threads_interview.THREADS
                + threads_standup.THREADS
                + threads_standup_more.THREADS
                + threads_more.THREADS
                + threads_prep.THREADS
                + threads_labsim.THREADS
+               + threads_labsim_more.THREADS
                + threads_math.THREADS
+               + threads_qa_more.THREADS
+               + threads_reading.THREADS
+               + threads_showandtell.THREADS
+               + threads_ideas.THREADS
+               + threads_general.THREADS
                + threads_usecases.THREADS)
 
 ANSWERABLE = {name for name, _emoji, _desc, fmt in CATEGORIES if fmt == "ANSWER"} | {"Q&A"}

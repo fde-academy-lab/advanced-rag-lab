@@ -55,6 +55,9 @@ question requires the last piece too:
 | hop-1 recall | 0.88 | 0.94 |
 | hop-2 recall | 0.54 | 0.55 |
 
+No command regenerates those four figures — see the note in
+[metrics.md](../../04-evaluation/metrics.md#the-two-recalls-and-why-both-are-reported).
+
 ## `paired_bootstrap`
 
 ```python

@@ -63,9 +63,52 @@ Measured directly across an N sweep from 20 to 200 candidates:
 
 The average was being carried entirely by the hop the retriever was already good at.
 
+> **No command regenerates this table**, and that is the condition both retracted findings were
+> in when they were believed. It is left standing because the shape of the claim is corroborated
+> by the piece-count arithmetic above, and flagged because the four figures in it are not.
+> Re-deriving them — a hop-sliced sweep over `n_candidates` — is tracked and is the next thing
+> anybody auditing this page should do.
+
 **Consequence for gating:** gate on full-chain, keep evidence recall as a diagnostic. Gating on
 a metric that can improve while the product degrades is how a regression ships with a green
 dashboard.
+
+## Recall against k, and the metric that moves the other way
+
+Quoted in a dozen threads and briefs and, until now, published nowhere — which is the condition
+both retracted findings were in when they were believed.
+
+```
+python scripts/run_eval.py --ksweep
+
+k            bm25         rrf        w0.2    ctx_prec    bm25 (raw)     rrf (raw)    w0.2 (raw)
+-----------------------------------------------------------------------------------------------
+3          0.4972      0.5048      0.5024      0.3813        0.3269        0.4517        0.3998
+5          0.6329      0.6550      0.6490      0.3029        0.4497        0.5318        0.5358
+8          0.7118      0.7742      0.7645      0.2309        0.6184        0.6486        0.6832
+10         0.7279      0.7935      0.7874      0.1948        0.7174        0.7105        0.7267
+20         0.7866      0.8700      0.8567      0.1195        0.7810        0.8659        0.8366
+```
+
+The left three columns are evidence recall through the cross-encoder; `(raw)` is the same arm
+with the reranker off. `ctx_prec` is context precision on the BM25 arm.
+
+Three things to read off it.
+
+**Recall rises with k and context precision falls, monotonically.** The denominator of precision
+is k and the gold set for a question is fixed, so the two cannot move the same way. A target on
+precision alone — *"context_precision above 0.30"* — is therefore cleared by setting `k=5` and
+handing back 0.0789 of evidence recall. That is a gate a config flag can pass and a system change
+cannot.
+
+**The reranker is worth more than the fusion rule, and by a lot.** At k=3, BM25 goes 0.3269 →
+0.4972 when the cross-encoder is switched on: +0.1703, larger than any gap between arms anywhere
+on this table. The stage most people treat as optional because it is the expensive one is the
+stage doing the work.
+
+**Its value collapses as k grows.** By k=20 the reranked and unreranked columns are within a
+point of each other, because reranking a list you were going to return anyway changes only the
+order. The reranker buys recall when the window is tight, and buys ranking quality when it is not.
 
 ## How each metric lies
 
