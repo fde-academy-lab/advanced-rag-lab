@@ -54,7 +54,7 @@ flowchart LR
 | **Learn** | [notebooks/](notebooks/) — ten sections, ~10 min of compute for all of them | A number you ran yourself |
 | **Apply** | [Discussions → Exercises &amp; Submissions](../../discussions/categories/exercises-submissions) | A submission with an interval, and one peer review |
 | **Build** | [The capstone](docs/03-exercises/) | A change to Client Zero's system, measured and defended |
-| **Defend** | [Interview prep](docs/06-interview-prep/) · [drill it](interview-bank/) | The story, the three findings, and ninety seconds to tell it in |
+| **Defend** | [Interview prep](docs/06-interview-prep/), [portfolio](docs/07-career/portfolio.md) | The story, and the three findings that make it worth hearing |
 
 ## What this is
 
