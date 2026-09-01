@@ -1,0 +1,20 @@
+# Decoy · names a family instead of a rule.
+#
+# "We will use hybrid search" is the sentence that gets nodded at in a design review and cannot
+# be implemented, because it does not say which rule or with what weight. The reasoning
+# underneath is fine. The decision is not a decision.
+
+decision: >-
+  We will adopt a hybrid retrieval approach that combines both signals sensibly.
+
+why: >-
+  Treating the two retrievers as equally credible voters is what fails here, because scale
+  invariance discards exactly the evidence that one leg is weaker than the other.
+
+rejected: >-
+  Using a single retriever, which would have been right if the second leg added nothing above
+  the noise band.
+
+would_change_if: >-
+  The per-query win rate between the legs moves toward even, which would say they have become
+  comparable and there is no longer a reason to treat them differently.

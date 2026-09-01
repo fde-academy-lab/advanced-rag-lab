@@ -1,0 +1,21 @@
+# Decoy · reaches the defensible answer without the mechanism.
+#
+# Correct conclusion, and worth nothing on the next corpus. The brief says this explicitly and
+# people do it anyway, because the table makes the answer obvious and reading a table feels
+# like reasoning. The gate has to be able to tell "I know why" from "I know which one won".
+
+decision: >-
+  Weighted score fusion with alpha around 0.2, because the measurements support it.
+
+why: >-
+  The evidence table shows equal-weight RRF scoring below BM25 alone at every value of k, while
+  the weighted configuration scored 0.7891 against the 0.7645 baseline with a confidence
+  interval that does not cross zero. The measured result is what should decide this.
+
+rejected: >-
+  RRF, which the numbers rule out. It would have been the right choice if it had scored above
+  the BM25 baseline instead of below it.
+
+would_change_if: >-
+  I re-run the evaluation on a refreshed corpus snapshot next quarter and the weighted
+  configuration no longer clears the BM25 baseline outside the bootstrap interval.

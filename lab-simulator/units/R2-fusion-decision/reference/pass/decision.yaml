@@ -1,0 +1,25 @@
+# R2 · the worked answer. Graded in CI: if this stops being accepted, the gate has drifted
+# away from what the brief asks for.
+
+decision: >-
+  Ship weighted score fusion with alpha near 0.2 on the dense leg, min-max normalised per
+  query, and keep BM25 alone as the fallback if normalisation ever has to be dropped.
+
+why: >-
+  Equal-weight RRF loses here because it is a voting rule and a voting rule assumes its voters
+  are comparably credible. Scale-invariance is what lets RRF skip normalisation, and it is the
+  same mechanism that throws away the only signal saying the LSA leg is the weaker voter. So
+  the weak leg gets a full ballot on every query and drags the strong leg's top hit down the
+  fused list. A weight is the smallest thing that can express "one of these is worse".
+
+rejected: >-
+  RRF, which would have been the right call if the two legs were close in strength, or if
+  scores were unstable enough per query that any normalisation I picked would be noise. On a
+  corpus where the dense leg is a real sentence embedder rather than a truncated SVD, I would
+  expect that condition to hold and I would revisit this.
+
+would_change_if: >-
+  I see the per-query win rate between the two legs move toward even — say each leg is best on
+  40 to 60 percent of queries instead of the current lopsided split — or the tuned alpha
+  starts landing near 0.5 with a confidence interval that crosses it. Either says the legs
+  became comparable, and the reason to weight them differently has gone.

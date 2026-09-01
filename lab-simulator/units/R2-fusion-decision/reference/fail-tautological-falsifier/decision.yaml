@@ -1,0 +1,22 @@
+# Decoy · every field is thoughtful except the one that matters.
+#
+# This is the commonest first attempt and it is not lazy: the reasoning above the last field is
+# genuinely good. The falsifier is the field people write last, at the end of the thinking,
+# when the answer already feels settled — and what comes out is a restatement of the conclusion
+# wearing a conditional. It has to stay rejected, or the decide mode teaches nothing that the
+# implement mode does not.
+
+decision: >-
+  Weighted score fusion with alpha around 0.2 on the dense leg, min-max normalised per query.
+
+why: >-
+  Equal-weight RRF treats both retrievers as equally credible voters, and here they are not.
+  The scale-invariance that lets it skip normalisation is the same property that discards the
+  evidence that one leg is weaker, so the weak leg keeps a full vote.
+
+rejected: >-
+  RRF, which would have been right if the two legs were of comparable strength or if per-query
+  score distributions were too unstable to normalise.
+
+would_change_if: >-
+  I would revisit this if the weighted approach turned out to be the wrong choice.

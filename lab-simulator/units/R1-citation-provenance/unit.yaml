@@ -1,0 +1,15 @@
+id: R1
+slug: citation-provenance
+title: Make a citation resolve
+track: retrieval
+difficulty: easy
+minutes: 25
+mode: implement
+teaches: [provenance, context assembly, citation]
+prereqs: []
+bars: []
+artefact: null
+summary: >-
+  Assemble retrieved chunks into a context block whose citations can be resolved back to a
+  source. Most versions of this exercise stop at string formatting; a citation that a human
+  cannot follow is decoration, and this one checks that it can be followed.

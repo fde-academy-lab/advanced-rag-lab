@@ -1,0 +1,14 @@
+id: R2
+slug: fusion-decision
+title: Choose a fusion rule, and say what would make you wrong
+track: retrieval
+difficulty: medium
+minutes: 30
+mode: decide
+teaches: [hybrid fusion, decision records, falsifiability]
+prereqs: [R1]
+bars: []
+artefact: adr-lite
+summary: >-
+  No code. You have two retrievers and evidence about both. Commit a fusion decision with the
+  observation that would make it wrong — before R3 lets you implement anything.
