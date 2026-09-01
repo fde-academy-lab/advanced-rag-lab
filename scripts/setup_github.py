@@ -432,8 +432,8 @@ REPO_Q = """
 query($owner:String!,$name:String!){
   repository(owner:$owner,name:$name){
     id hasDiscussionsEnabled
-    discussionCategories(first:50){ nodes { id name slug } }
-    discussions(first:100){ nodes { title } }
+    discussionCategories(first:50){ nodes { id name slug isAnswerable } }
+    discussions(first:100){ nodes { title number } }
   }
 }"""
 
@@ -456,6 +456,74 @@ query($owner:String!,$name:String!,$number:Int!){
   repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
 }"""
 
+# Enough to repair a thread that already exists: is it answered, and which comment should be
+# the answer. Seeding is create-only otherwise, so a thread created before a bug was fixed
+# stays broken forever unless somebody deletes it by hand.
+DISCUSSION_STATE_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){
+    discussion(number:$number){
+      id isAnswered
+      comments(first:100){ nodes { id body } }
+    }
+  }
+}"""
+
+
+def answer_fingerprint(reply) -> str:
+    """A stretch of the reply's own prose, long enough to identify it among its siblings.
+
+    Matching on the rendered body would be brittle — the attribution header and the disclosure
+    footer are generated and can change wording. The first line of what the persona actually
+    wrote does not.
+    """
+    first = next((ln.strip() for ln in reply["body"].splitlines() if ln.strip()), "")
+    return first[:70]
+
+
+def _repair_answer(owner, repo, spec, number, answerable, dry) -> int:
+    """Mark the intended answer on a thread that already exists. Returns 1 if it repaired one.
+
+    Seeding skips a thread whose title is present, which is what makes it safe to re-run — and
+    also what made it useless for fixing anything. Twenty-four threads were created while the
+    repository query forgot to select `isAnswerable`, so `answerable` was empty, so no answer was
+    ever marked; re-running could not fix them because they already existed.
+
+    A seeder that can only create is a seeder that can only be right the first time.
+    """
+    title = spec["title"]
+    wanted = next((r for r in spec.get("replies", []) if r.get("accepted")), None)
+    if not wanted or spec["category"] not in answerable:
+        skip(f"“{title[:56]}”", "exists")
+        return 0
+    if dry:
+        skip(f"“{title[:46]}”", "exists — would check its accepted answer")
+        return 0
+
+    try:
+        disc = graphql(DISCUSSION_STATE_Q,
+                       {"owner": owner, "name": repo, "number": number})["repository"]["discussion"]
+    except GitHubError as exc:
+        warn(f"“{title[:46]}”", f"could not read state — {exc.message[:60]}")
+        return 0
+    if disc.get("isAnswered"):
+        skip(f"“{title[:56]}”", "exists, answered")
+        return 0
+
+    mark = answer_fingerprint(wanted)
+    match = next((c for c in disc["comments"]["nodes"] if mark and mark in (c["body"] or "")), None)
+    if not match:
+        warn(f"“{title[:46]}”", "exists, but its accepted reply was not found to mark")
+        return 0
+    try:
+        mutate(MARK_ANSWER_M, {"id": match["id"]})
+    except GitHubError as exc:
+        warn(f"“{title[:46]}”", f"could not mark the answer — {exc.message[:60]}")
+        return 0
+    ok(f"#{number}", f"{'answer marked (repair)':<24} {title[:44]}")
+    time.sleep(1.1)
+    return 1
+
 
 def create_discussions(owner, repo, dry):
     """Seed threads, each with its full reply chain and an accepted answer.
@@ -476,7 +544,7 @@ def create_discussions(owner, repo, dry):
     categories = {c["name"]: c["id"] for c in data["discussionCategories"]["nodes"]}
     answerable = {c["name"] for c in data["discussionCategories"]["nodes"]
                   if c.get("isAnswerable")}
-    existing = {d["title"] for d in data["discussions"]["nodes"]}
+    existing = {d["title"]: d["number"] for d in data["discussions"]["nodes"]}
 
     missing = {name for name, *_ in content.CATEGORIES} - set(categories)
     if missing:
@@ -484,12 +552,12 @@ def create_discussions(owner, repo, dry):
         print("      No API creates a discussion category. Settings → Discussions → New "
               "category.\n      Threads for a missing category are skipped, not misfiled.")
 
-    created, posts, answers = [], 0, 0
+    created, posts, answers, repaired = [], 0, 0, 0
     broken: list[str] = []          # failed for a reason that is not "category missing"
     for spec in content.DISCUSSIONS:
         title = spec["title"]
         if title in existing:
-            skip(f"“{title[:56]}”", "exists")
+            repaired += _repair_answer(owner, repo, spec, existing[title], answerable, dry)
             continue
         cat = spec["category"]
         cat_id = categories.get(cat)
@@ -542,7 +610,8 @@ def create_discussions(owner, repo, dry):
                                  f"{title[:44]}")
         time.sleep(1.1)
 
-    ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked")
+    ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked"
+                      + (f" · {repaired} repaired" if repaired else ""))
     if broken:
         # A missing category is expected and skipped quietly. Anything else is a real failure,
         # and a step that stays green through one is a step nobody will look at again.
