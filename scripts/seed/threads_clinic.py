@@ -205,7 +205,7 @@ The statistic was fine; the rubric was ambiguous, and κ was the thing that told
 silent.
 
 The interview version of this question is in
-[docs/06-interview-prep/mathematics.md](../blob/main/docs/06-interview-prep/mathematics.md)
+[docs/06-interview-prep/mathematics.md](/fde-academy-lab/advanced-rag-lab/blob/main/docs/06-interview-prep/mathematics.md)
 (M5), including the follow-up that catches most candidates — whether κ = 0.62 is good enough to
 gate a release, where the answer depends entirely on whether the disagreement is noise or
 bias."""},

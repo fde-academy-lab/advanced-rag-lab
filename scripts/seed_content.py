@@ -267,7 +267,7 @@ frozen slice: FCR 0.419 → 0.548
 It made the toolkit more honest about something the deck only implies: **a reranker is a
 model.** It has training data, it can overfit, and its gain has to survive on a slice it never
 saw. That is now notebook 04 §4.10 rather than an assumption. See
-[ADR-0005](../blob/main/docs/adr/0005-learned-reranker.md).""",
+[ADR-0005](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0005-learned-reranker.md).""",
     },
     {
         "title": "[bug] Every chunking strategy scores the same — documents are too short for the comparison to mean anything",
@@ -315,7 +315,7 @@ parent_document  1,258 chunks   median 490 tok
 
 This is the second time the corpus had to be scaled. The first was because N=100 candidates
 over 230 chunks is a full scan wearing a costume — the "first stage" was not narrowing
-anything. Both are recorded in [ADR-0002](../blob/main/docs/adr/0002-synthetic-corpus.md).""",
+anything. Both are recorded in [ADR-0002](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0002-synthetic-corpus.md).""",
     },
     {
         "title": "[bug] decision_tree() crashes when a case falls through to the default branch",
@@ -830,7 +830,7 @@ under which the expected result would return.
 That sequence — measure, contradict, explain, bound — is most of what separates a senior
 engineer from a competent one in this field.
 
-Full write-up: [ADR-0007](../blob/main/docs/adr/0007-report-negative-results.md).""",
+Full write-up: [ADR-0007](/fde-academy-lab/advanced-rag-lab/blob/main/docs/01-architecture/adr/0007-report-negative-results.md).""",
     },
 
     # ── Q&A ──────────────────────────────────────────────────────────────────
@@ -1624,6 +1624,79 @@ decision record — which is the artefact almost nobody else in the pile will ha
 # ─────────────────────────────────────────────────── modular thread collections ──
 # Threads live in scripts/seed/ by category once they carry full reply chains — a single
 # literal holding sixty threads and three hundred replies is not reviewable in a diff.
-from seed import threads_clinic, threads_exercises  # noqa: E402
+from seed import (  # noqa: E402
+    threads_clinic,
+    threads_design,
+    threads_exercises,
+    threads_extra,
+    threads_interview,
+    threads_more,
+    threads_standup,
+)
 
-DISCUSSIONS = DISCUSSIONS + threads_exercises.THREADS + threads_clinic.THREADS
+# Five early threads were single posts with no conversation. Each has been superseded by a
+# fully-arced version in scripts/seed/, so they are filtered rather than deleted in place —
+# keeping the filter visible documents that the replacement was deliberate.
+SUPERSEDED = (
+    "Design review: retrieval for a regulated insurance client",
+    "Capstone: two of my four improvements were inside the noise",
+    "Lost in the Middle (Liu et al., 2023) — is the U-curve",
+    "Idea: a 'measurement smell' linter for PRs",
+    "Critique my answer: 'How would you separate a retrieval",
+)
+DISCUSSIONS = [d for d in DISCUSSIONS if not d["title"].startswith(SUPERSEDED)]
+
+
+def _answer_as_reply(thread):
+    """Promote a thread's single `answer` into a one-reply chain marked as accepted.
+
+    The original schema allowed a body and one answer. Threads written under it are still
+    good content; they just need to be expressed in the shape the engine now speaks.
+    """
+    if thread.get("replies") or not thread.get("answer"):
+        return thread
+    out = dict(thread)
+    out["replies"] = [{"by": "maintainer", "body": thread["answer"], "accepted": True}]
+    out.pop("answer", None)
+    return out
+
+
+DISCUSSIONS = (DISCUSSIONS
+               + threads_exercises.THREADS
+               + threads_clinic.THREADS
+               + threads_design.THREADS
+               + threads_interview.THREADS
+               + threads_standup.THREADS
+               + threads_more.THREADS)
+
+ANSWERABLE = {name for name, _emoji, _desc, fmt in CATEGORIES if fmt == "ANSWER"} | {"Q&A"}
+
+
+def _drop_unmarkable_answers(thread):
+    """Strip `accepted` where the category cannot carry an answer.
+
+    A resolution reply in an open-discussion category is still the resolution — it just
+    cannot be *marked* as one, and asking GitHub to mark it is an error rather than a no-op.
+    The flag stays in the source so the intent is visible, and so it starts working by itself
+    if the category is later converted to Q&A format.
+    """
+    if thread["category"] in ANSWERABLE:
+        return thread
+    out = dict(thread)
+    out["replies"] = [{k: v for k, v in r.items() if k != "accepted"}
+                      for r in thread.get("replies", [])]
+    return out
+
+
+def _attach_extra_replies(thread):
+    """Give a thread its conversation, where one was written separately in threads_extra."""
+    for prefix, replies in threads_extra.REPLIES.items():
+        if thread["title"].startswith(prefix):
+            out = dict(thread)
+            out["replies"] = list(thread.get("replies", [])) + replies
+            return out
+    return thread
+
+
+DISCUSSIONS = [_drop_unmarkable_answers(_attach_extra_replies(_answer_as_reply(d)))
+               for d in DISCUSSIONS]

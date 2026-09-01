@@ -67,6 +67,9 @@ ignore = [
 # Seeded GitHub content is prose in string literals; wrapping it to 100 columns would
 # reflow markdown that is meant to be read on GitHub.
 "scripts/seed_content.py" = ["E501"]
+# Seed modules are prose held in Python. Reflowing a discussion post to satisfy a
+# line-length rule makes the diff unreadable and the content worse.
+"scripts/seed/*.py" = ["E501"]
 # Tests name things for legibility, not brevity.
 "tests/*" = ["E501"]
 

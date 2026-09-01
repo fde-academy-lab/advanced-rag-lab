@@ -11,6 +11,9 @@ teaches nothing about how engineering conversations actually go wrong.
 """
 from __future__ import annotations
 
+import json
+import pathlib
+
 PERSONAS: dict[str, dict[str, str]] = {
     "priya": {
         "name": "Priya",
@@ -71,7 +74,7 @@ PERSONAS: dict[str, dict[str, str]] = {
 FOOTER = (
     "\n\n---\n<sub>📎 **Worked example.** Written by the maintainers to model what a good "
     "question, a good wrong turn and a good correction look like. Not a real cohort member — "
-    "see [docs/10-community/personas.md](../blob/main/docs/10-community/personas.md). "
+    "see the personas register in docs/10-community/. "
     "Start your own thread rather than replying here unless you have something to add.</sub>"
 )
 
@@ -87,3 +90,24 @@ def header(key: str) -> str:
 def render(key: str, body: str) -> str:
     """One post: attribution, body, disclosure."""
     return header(key) + body.strip() + FOOTER
+
+def _identity() -> tuple[str, str]:
+    """Owner and repo, read from .identity.json so retarget.py keeps these links correct."""
+    try:
+        data = json.loads((pathlib.Path(__file__).parents[2] / ".identity.json").read_text())
+        return data["owner"], data["repo"]
+    except (OSError, KeyError, ValueError):
+        return "fde-academy-lab", "advanced-rag-lab"
+
+
+OWNER, REPO = _identity()
+
+
+def doc(path: str, label: str | None = None) -> str:
+    """A markdown link to a repository file that works from inside a Discussion.
+
+    Relative links resolve against the discussion's own URL, not the repository root, so
+    ../blob/main/x lands on /owner/repo/discussions/blob/main/x. Root-relative avoids that
+    and stays correct when the repository is renamed, because retarget.py rewrites the pair.
+    """
+    return f"[{label or path}](/{OWNER}/{REPO}/blob/main/{path})"
