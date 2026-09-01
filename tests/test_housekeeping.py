@@ -281,3 +281,45 @@ def test_the_guide_does_not_claim_the_stale_bot_touches_discussions():
         "stale.yml now touches discussions, so the guide's statement that nothing ages a "
         "discussion out is stale itself")
     assert "Nothing ages a discussion out" in _guide()
+
+
+# ────────────────────────────────────────── a refused rename must not duplicate ──
+def test_a_refused_rename_blocks_the_create_that_would_duplicate_it():
+    """This is the bug that put nine duplicate pairs on the live forum.
+
+    `rename_threads` reported each refusal and returned only a count. The create loop then saw
+    nine canonical titles that were not live, created them, and left every renamed thread
+    sitting beside a fresh copy of itself — arrived at through the error path of the function
+    whose whole purpose is to prevent exactly that.
+
+    The contract now: whatever could not be renamed is returned, and the create loop skips it.
+    """
+    import inspect
+
+    import setup_github as sg
+
+    src = inspect.getsource(sg.rename_threads)
+    assert "refused.add(new)" in src, (
+        "rename_threads no longer records the renames it could not apply")
+    assert src.rstrip().endswith("return renamed, refused"), (
+        "rename_threads must return the refused set, not just a count")
+
+    create = inspect.getsource(sg.create_discussions)
+    assert "renamed, rename_refused = rename_threads(" in create
+    guard = create.index("for spec in content.DISCUSSIONS:")
+    body = create[guard:]
+    assert body.index("if title in rename_refused:") < body.index("if title in existing:"), (
+        "the refused-rename guard must run before the exists check, or a thread whose rename "
+        "was refused is created a second time")
+
+
+def test_no_two_canonical_titles_could_collide_after_a_rename():
+    """A rename whose target is already a distinct seeded title creates a title collision."""
+    import seed_content
+    titles = {t["title"] for t in seed_content.DISCUSSIONS}
+    for old, new in seed_content.RENAMED.items():
+        assert old not in titles, (
+            f"{old!r} is both a rename source and a seeded title, so seeding recreates the "
+            "thread the rename was meant to retitle")
+        assert new in titles or new in seed_content.RETIRED, (
+            f"{new!r} is a rename target that nothing seeds")
