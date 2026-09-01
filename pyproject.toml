@@ -70,6 +70,9 @@ ignore = [
 # Seed modules are prose held in Python. Reflowing a discussion post to satisfy a
 # line-length rule makes the diff unreadable and the content worse.
 "scripts/seed/*.py" = ["E501"]
+# CSS and HTML held in Python. Reflowing a stylesheet to satisfy a line-length
+# rule makes it unreadable and changes nothing about the output.
+"scripts/build_site.py" = ["E501"]
 # Tests name things for legibility, not brevity.
 "tests/*" = ["E501"]
 
