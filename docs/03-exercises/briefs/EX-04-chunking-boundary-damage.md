@@ -17,14 +17,15 @@ across two chunks by a given strategy. Then check whether it predicts anything.
 
 1. For each strategy, compute boundary damage over the eval set's gold spans.
 2. Compute evidence recall and full-chain recall for the same strategies.
-3. Test whether boundary damage correlates with either.
+3. Expand to ~30 configurations by varying chunk size **within** each strategy, then test
+   whether boundary damage correlates with either metric.
 
 ## Acceptance
 
 - Boundary damage per strategy, with the definition you used written out. There is more than
   one reasonable definition and yours must be stated.
-- A correlation, with an interval, or an honest statement that n = 7 is too small to establish
-  one.
+- A correlation over the expanded configuration set, with an interval. Seven strategies is not
+  enough points and the exercise will not accept a correlation computed over them.
 - One sentence on which strategy you would choose and what you are trading away.
 
 ## The trap
@@ -35,8 +36,10 @@ want a correlation you need more configurations — vary chunk size within a str
 you thirty points instead of seven.
 
 The other trap: **fit the embedder on documents, not chunks.** If you fit on chunks, the
-chunking strategy changes the embedding space, and your comparison is measuring two things and
-attributing the result to one.
+chunking strategy changes the embedding space itself, so a comparison between strategies is
+measuring two things and attributing the result to one. That is a correctness failure that
+invalidates the whole submission, not a style preference — the numbers will look reasonable and
+mean nothing.
 
 ## What good looks like
 

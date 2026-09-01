@@ -34,7 +34,7 @@ You will not beat **F1 0.38** with a retrieval-score threshold, and the reason i
 yourself before you read it.
 
 <details>
-<summary>The mechanism, if you have already measured it and want to check</summary>
+<summary>Open only after you have measured it — the mechanism, to check against</summary>
 
 The null questions name real entities using the corpus's own vocabulary. The genuine questions
 paraphrase — the generator that built them was told to avoid the source's wording. So the
