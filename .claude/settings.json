@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/merge_pr.py:*)",
+      "Bash(python3 scripts/merge_pr.py:*)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Merging a pull request via `python scripts/merge_pr.py <number>`. The script pins the repository to .identity.json, requires the PR to be open and not a draft, and refuses to merge unless every check run has completed successfully, with no override flag."
+    ]
+  }
+}
