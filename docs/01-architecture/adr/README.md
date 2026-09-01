@@ -17,6 +17,12 @@ the answer is a link rather than an argument.
 | [0006](0006-matplotlib-diagrams.md) | Draw notebook diagrams with matplotlib, not Mermaid | Accepted |
 | [0007](0007-report-negative-results.md) | Report findings that contradict the deck rather than tuning them away | Accepted |
 | [0008](0008-eval-gate-in-ci.md) | Block merges on metric regressions with a CI gate | Accepted |
+| [0009](0009-frozen-slice-lifecycle.md) | What happens to the frozen slice when the corpus grows | Accepted |
+| [0010](0010-ann-long-range-links.md) | Long-range links in the ANN graph | Accepted |
+| [0011](0011-prefilter-acl.md) | Pre-filter permissions, evaluate at query time | Accepted |
+| [0012](0012-prompt-block-ordering.md) | Order prompt blocks by volatility | Accepted |
+| [0013](0013-analyzer-in-index-identity.md) | The analyzer is part of the index identity | Accepted |
+| [0014](0014-docs-code-is-tested.md) | Code published in documentation is executed by tests | Accepted |
 
 ## Writing a new one
 
