@@ -432,7 +432,7 @@ REPO_Q = """
 query($owner:String!,$name:String!){
   repository(owner:$owner,name:$name){
     id hasDiscussionsEnabled
-    discussionCategories(first:50){ nodes { id name slug isAnswerable } }
+    discussionCategories(first:50){ nodes { id name slug isAnswerable description } }
     discussions(first:100){ nodes { title number } }
   }
 }"""
@@ -467,6 +467,28 @@ mutation($id:ID!,$body:String!){
   updateDiscussion(input:{discussionId:$id,body:$body}){ discussion { number url } }
 }"""
 
+LABELS_Q = """
+query($owner:String!,$name:String!){
+  repository(owner:$owner,name:$name){ labels(first:100){ nodes { id name } } }
+}"""
+
+DISCUSSION_LABELS_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){
+    discussion(number:$number){ id labels(first:30){ nodes { name } } }
+  }
+}"""
+
+ADD_LABELS_M = """
+mutation($id:ID!,$labels:[ID!]!){
+  addLabelsToLabelable(input:{labelableId:$id,labelIds:$labels}){ clientMutationId }
+}"""
+
+RETITLE_M = """
+mutation($id:ID!,$title:String!){
+  updateDiscussion(input:{discussionId:$id,title:$title}){ discussion { number title } }
+}"""
+
 DISCUSSION_STATE_Q = """
 query($owner:String!,$name:String!,$number:Int!){
   repository(owner:$owner,name:$name){
@@ -481,6 +503,226 @@ DISCUSSION_BODY_Q = """
 query($owner:String!,$name:String!,$number:Int!){
   repository(owner:$owner,name:$name){ discussion(number:$number){ id body } }
 }"""
+
+
+def label_discussions(owner, repo, existing, dry) -> int:
+    """Give threads a second axis.
+
+    A category answers "what kind of post is this" and never "what is it about". With only
+    categories, somebody looking for every thread on cost, or every one where a measurement came
+    back negative, has no way to ask — and thirty-eight threads carried no label at all.
+
+    Topic labels reuse the `area:` set the issues already use, so one query spans both surfaces.
+    """
+    wanted = getattr(content, "THREAD_LABELS", {})
+    if not wanted:
+        return 0
+
+    # Make sure the discussion-specific labels exist. This needs issues:write; where the token
+    # lacks it, the labels that already exist are still usable and the rest are reported.
+    for name, colour, description in getattr(content, "DISCUSSION_LABELS", []):
+        if dry:
+            continue
+        try:
+            request("POST", f"/repos/{owner}/{repo}/labels",
+                    {"name": name, "color": colour, "description": description})
+        except GitHubError as exc:
+            if exc.status != 422:            # 422 is "already exists", which is the happy path
+                warn(f"label {name}", exc.message[:70])
+
+    try:
+        ids = {n["name"]: n["id"]
+               for n in graphql(LABELS_Q, {"owner": owner, "name": repo})
+               ["repository"]["labels"]["nodes"]}
+    except GitHubError as exc:
+        warn("labels", f"could not read the label set — {exc.message[:60]}")
+        return 0
+
+    applied = 0
+    for title, names in wanted.items():
+        number = existing.get(title)
+        if number is None:
+            continue
+        if dry:
+            skip(f"label #{number}", ", ".join(names))
+            continue
+        try:
+            disc = graphql(DISCUSSION_LABELS_Q,
+                           {"owner": owner, "name": repo, "number": number})
+            node = disc["repository"]["discussion"]
+            have = {x["name"] for x in node["labels"]["nodes"]}
+        except GitHubError as exc:
+            warn(f"label #{number}", exc.message[:70])
+            continue
+
+        missing_defs = [n for n in names if n not in ids]
+        if missing_defs:
+            warn(f"label #{number}", f"no such label: {', '.join(missing_defs)}")
+        todo = [ids[n] for n in names if n in ids and n not in have]
+        if not todo:
+            continue
+        try:
+            mutate(ADD_LABELS_M, {"id": node["id"], "labels": todo})
+        except GitHubError as exc:
+            warn(f"label #{number}", f"addLabelsToLabelable refused: {exc.message}")
+            continue
+        ok(f"#{number}", f"{'labelled':<24} {', '.join(n for n in names if n in ids)[:44]}")
+        applied += 1
+        time.sleep(1.1)
+    return applied
+
+
+def rename_threads(owner, repo, existing, dry) -> int:
+    """Retitle threads in place, rather than creating a second copy under the new name.
+
+    Seeding is keyed by title. Change a title in seed_content and the seeder does not rename
+    anything — it creates a new thread and leaves the old one, which is how a retracted finding
+    stayed live in Announcements for a day.
+
+    `updateDiscussion` edits a thread this token may not have authored, so this can be refused
+    for the built-in Actions token and succeed for the PAT the provision workflow uses. It says
+    which happened rather than failing silently.
+    """
+    renamed = 0
+    for old, new in getattr(content, "RENAMED", {}).items():
+        if old not in existing:
+            continue
+        if new in existing:
+            warn(f"rename #{existing[old]}", f"“{new[:44]}” already exists as #{existing[new]}")
+            continue
+        number = existing[old]
+        if dry:
+            skip(f"rename #{number}", f"would retitle to “{new[:44]}”")
+            continue
+        try:
+            disc = graphql(DISCUSSION_BODY_Q,
+                           {"owner": owner, "name": repo, "number": number})
+            mutate(RETITLE_M, {"id": disc["repository"]["discussion"]["id"], "title": new})
+        except GitHubError as exc:
+            warn(f"rename #{number}", f"updateDiscussion refused: {exc.message}")
+            continue
+        ok(f"#{number}", f"{'retitled':<24} {new[:48]}")
+        existing[new] = existing.pop(old)
+        renamed += 1
+        time.sleep(1.1)
+    return renamed
+
+
+def cross_link(owner, repo, existing, dry) -> int:
+    """Point two threads on the same subject at each other, once.
+
+    Neither closing one as a duplicate nor merging them is right here. Both pairs are a worked
+    example and the real question somebody asked anyway, and the real one is the better thread —
+    so the answer is not to hide either, it is to make each findable from the other. The third
+    entry is GitHub's own boilerplate welcome post, which cannot be deleted and outranks the
+    maintained one in the sidebar.
+
+    Fingerprinted by a marker comment, so re-running adds nothing.
+    """
+    linked = 0
+    for title, (reason, others) in getattr(content, "SEE_ALSO", {}).items():
+        number = existing.get(title)
+        if number is None:
+            warn(f"link “{title[:40]}”", "no live thread with that title")
+            continue
+        targets = [(t, existing[t]) for t in others if t in existing]
+        if len(targets) != len(others):
+            missing = [t for t in others if t not in existing]
+            warn(f"link #{number}", f"cannot point at {missing[0][:44]!r} — not live")
+            if not targets:
+                continue
+        if dry:
+            skip(f"link #{number}", f"would point at {', '.join(f'#{n}' for _, n in targets)}")
+            continue
+        try:
+            disc = graphql(DISCUSSION_STATE_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]
+        except GitHubError as exc:
+            warn(f"link #{number}", f"could not read it — {exc.message[:60]}")
+            continue
+        if any(content.SEE_ALSO_MARK in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"link #{number}", "already cross-linked")
+            continue
+        lines = [content.SEE_ALSO_MARK, f"**See also.** {reason}", ""]
+        lines += [f"- [{t}](/{owner}/{repo}/discussions/{n})" for t, n in targets]
+        try:
+            mutate(ADD_COMMENT_M, {"discussionId": disc["id"], "body": "\n".join(lines)})
+        except GitHubError as exc:
+            warn(f"link #{number}", f"could not comment: {exc.message[:60]}")
+            continue
+        linked += 1
+        ok(f"#{number}", f"{'cross-linked':<24} → "
+                         f"{', '.join(f'#{n}' for _, n in targets)}")
+        time.sleep(1.1)
+    return linked
+
+
+def post_corrections(owner, repo, existing, answerable, dry) -> int:
+    """Post a correction on a live thread and promote it to the accepted answer.
+
+    Renaming a thread away from a claim fixes the sidebar and nothing else. The fusion thread
+    kept its body — "the notebook measures RRF losing to BM25 alone" — and, worse, kept an
+    **accepted answer** explaining the result with the leg weighting reversed. An accepted
+    answer carries more authority than a title, so a retraction that leaves one standing has
+    not retracted anything.
+
+    The wrong answer is not deleted. It stays below the correction, which is the point: it is
+    the evidence that a roomful of people found it convincing, and that is the part with
+    teaching value.
+    """
+    posted = 0
+    for title, text in getattr(content, "CORRECTED", {}).items():
+        number = existing.get(title)
+        if number is None:
+            # The rename may have been refused — `updateDiscussion` is the one mutation the
+            # Actions token does not reliably hold. The correction matters more than the
+            # title, so fall back to the pre-rename title rather than skipping.
+            was = next((o for o, n in getattr(content, "RENAMED", {}).items() if n == title), None)
+            number = existing.get(was) if was else None
+            if number is None:
+                warn(f"correct “{title[:40]}”", "no live thread with that title")
+                continue
+            warn(f"correct #{number}", "still under its old title; correcting it anyway")
+        if dry:
+            skip(f"correct #{number}", "would post the correction and re-mark the answer")
+            continue
+        try:
+            disc = graphql(DISCUSSION_STATE_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]
+        except GitHubError as exc:
+            warn(f"correct #{number}", f"could not read it — {exc.message[:60]}")
+            continue
+        mark = content.CORRECTION_MARK
+        if any(mark in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"correct #{number}", "already corrected")
+            continue
+        body = mark + "\n" + text.format(owner=owner, repo=repo)
+        try:
+            res = mutate(ADD_COMMENT_M, {"discussionId": disc["id"], "body": body})
+        except GitHubError as exc:
+            fail(f"correct #{number}", f"could not post the correction: {exc.message}")
+            continue
+        posted += 1
+        comment_id = res["addDiscussionComment"]["comment"]["id"]
+        ok(f"#{number}", f"{'corrected':<24} {title[:44]}")
+        time.sleep(1.1)
+
+        # Re-marking replaces whatever was marked before; GitHub allows exactly one answer.
+        # If the category is not answerable there is nothing to move and the comment alone is
+        # the correction, which is how the non-Q&A categories work anyway.
+        cat = next((d["category"] for d in content.DISCUSSIONS if d["title"] == title), None)
+        if cat is None or cat not in answerable:
+            continue
+        try:
+            mutate(MARK_ANSWER_M, {"id": comment_id})
+            ok(f"#{number}", f"{'correction is the answer':<24} {title[:44]}")
+            time.sleep(1.1)
+        except GitHubError as exc:
+            warn(f"correct #{number}",
+                 f"posted, but could not move the accepted answer: {exc.message[:60]}")
+    return posted
 
 
 def retire_orphans(owner, repo, existing, dry) -> int:
@@ -645,6 +887,24 @@ def create_discussions(owner, repo, dry):
         print("      No API creates a discussion category. Settings → Discussions → New "
               "category.\n      Threads for a missing category are skipped, not misfiled.")
 
+    # A category's description is set by hand at creation time and no API — REST or GraphQL —
+    # can change it afterwards. Every one of the eight this repository adds shipped blank,
+    # because the text lives in CATEGORIES and nothing was ever able to apply it. The seeder
+    # cannot fix that, so it does the next best thing: says exactly which ones are blank and
+    # prints the text to paste, rather than leaving it to be noticed by a reader.
+    live_desc = {c["name"]: (c.get("description") or "").strip()
+                 for c in data["discussionCategories"]["nodes"]}
+    blank = [(name, desc) for name, _emoji, desc, _fmt in content.CATEGORIES
+             if name in categories and not live_desc.get(name)]
+    if blank:
+        warn("category descriptions", f"{len(blank)} of {len(content.CATEGORIES)} are blank on "
+                                      "GitHub — no API can set them")
+        for name, desc in blank:
+            print(f"        Settings → Discussions → {name} → Edit → Description:")
+            print(f"          {desc}")
+
+    renamed = rename_threads(owner, repo, existing, dry)
+
     created, posts, answers, repaired = [], 0, 0, 0
     broken: list[str] = []          # failed for a reason that is not "category missing"
     for spec in content.DISCUSSIONS:
@@ -703,10 +963,19 @@ def create_discussions(owner, repo, dry):
                                  f"{title[:44]}")
         time.sleep(1.1)
 
+    # Renames run BEFORE the create loop reads `existing`, so a retitled thread is recognised
+    # as present and not created a second time under its new name.
     banded = retire_orphans(owner, repo, existing, dry)
+    corrected = post_corrections(owner, repo, existing, answerable, dry)
+    linked = cross_link(owner, repo, existing, dry)
+    labelled = label_discussions(owner, repo, existing, dry)
     ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked"
                       + (f" · {repaired} repaired" if repaired else "")
-                      + (f" · {banded} retracted" if banded else ""))
+                      + (f" · {renamed} retitled" if renamed else "")
+                      + (f" · {banded} retracted" if banded else "")
+                      + (f" · {corrected} corrected" if corrected else "")
+                      + (f" · {linked} cross-linked" if linked else "")
+                      + (f" · {labelled} labelled" if labelled else ""))
     if broken:
         # A missing category is expected and skipped quietly. Anything else is a real failure,
         # and a step that stays green through one is a step nobody will look at again.

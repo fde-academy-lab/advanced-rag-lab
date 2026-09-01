@@ -886,7 +886,7 @@ The measurement note with every interval is
     # ── Q&A ──────────────────────────────────────────────────────────────────
     {
         "category": "Q&A",
-        "title": "Why does Recall@N go up but full-chain recall stay flat? [worked example]",
+        "title": "Recall@N climbs and full-chain recall does not. Where does the difference go?",
         "body": """### The question in one line
 
 I widened `n_candidates` from 100 to 400 and `Recall@N` improved, but `full_chain_recall` barely
@@ -950,7 +950,7 @@ measurement doing its job.""",
     },
     {
         "category": "Q&A",
-        "title": "My reranker improved evidence recall but full-chain recall is 'inside the noise band'. Do I ship it? [worked example]",
+        "title": "My reranker moved evidence recall and full-chain stayed inside the noise band. Ship it?",
         "body": """### The question in one line
 
 `paired_bootstrap` says my change is "real" on evidence recall and "inside the noise band" on
@@ -1005,7 +1005,7 @@ tell, and it is the fastest way to lose credibility in a review.""",
     },
     {
         "category": "Q&A",
-        "title": "Should I use RRF or weighted fusion? The notebook says RRF is the default but then measures it losing. [worked example]",
+        "title": "RRF or weighted fusion — and what actually decided it on this corpus",
         "body": """### The question in one line
 
 Notebook 04 says "default to RRF" and then measures RRF losing to BM25 alone. Which is the
@@ -1052,7 +1052,7 @@ buy you.""",
     },
     {
         "category": "Q&A",
-        "title": "Why is `answer_correct` so low on temporal questions when retrieval looks fine? [worked example]",
+        "title": "Retrieval looks fine on temporal questions and answer_correct is 0.091. Why?",
         "body": """### The question in one line
 
 Temporal questions show evidence recall 0.807 but answer correctness 0.061. Is retrieval
@@ -1097,7 +1097,7 @@ retriever, which is already doing its job.""",
     },
     {
         "category": "Q&A",
-        "title": "Can I use these numbers in a client conversation? [worked example]",
+        "title": "Can I put these numbers in front of a client, and with what caveats?",
         "body": """### The question in one line
 
 Can I quote the cost-per-query and recall figures from these notebooks to a client?
@@ -1143,7 +1143,7 @@ follow-up question.""",
     },
     {
         "category": "Q&A",
-        "title": "The notebook gives different numbers than the README. Which is right? [worked example]",
+        "title": "The notebook and the README disagree on a number. Which one do I trust?",
         "body": """### The question in one line
 
 I ran notebook 01 and got different evidence recall than the README quotes.
@@ -1269,7 +1269,7 @@ date", this is a freshness engagement and the retrieval architecture above is ov
     },
     {
         "category": "Design Reviews",
-        "title": "Design review: should the sufficiency check be a model call or a classifier? [worked example]",
+        "title": "Design review: sufficiency check as a model call or a classifier?",
         "body": """### The problem
 
 The abstention issue in the tracker establishes that no retrieval-score threshold works. The
@@ -1393,7 +1393,7 @@ decisions *decidable* costs less than either implementation did.""",
     },
     {
         "category": "Show and tell",
-        "title": "Negative result: contextual chunking cost 2.4× storage and did not clear the band [worked example]",
+        "title": "Negative result: contextual chunking cost 2.4x storage and did not clear the band",
         "body": """### What I tried
 
 Contextual chunking — the Anthropic recipe. Prepend a generated sentence situating each chunk
@@ -1621,7 +1621,7 @@ Your rewrite instinct is right. Post it and we will go again.""",
     },
     {
         "category": "Interview Prep",
-        "title": "How do I talk about a synthetic-corpus project without it sounding like a toy? [worked example]",
+        "title": "Talking about a synthetic-corpus project without it sounding like a toy",
         "body": """I want to put this project on my CV but I am worried the first question will be "isn't the
 data fake?" and that I will not have a good answer.
 
@@ -1681,9 +1681,11 @@ from seed import (  # noqa: E402
     threads_extra,
     threads_interview,
     threads_labsim,
+    threads_math,
     threads_more,
     threads_prep,
     threads_standup,
+    threads_standup_more,
     threads_usecases,
 )
 
@@ -1713,6 +1715,267 @@ RETIREMENT_BANNER = """> [!WARNING]
 > [ADR-0015](/{owner}/{repo}/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md).
 
 """
+
+# ───────────────────────────────────────────────────────────────── cross-links ──
+# Three pairs of threads cover the same ground and none of them says so.
+#
+# Two are a worked example and the real question a cohort member later asked anyway, which is
+# not a mistake — the real one is longer, better and worth more, and the worked one is the
+# shape it was written against. Leaving them unlinked means a reader finds whichever GitHub
+# sorts higher and never learns the other exists. The third is GitHub's own boilerplate welcome
+# post, which cannot be deleted and outranks the maintained one.
+#
+# Deliberately *not* handled by closing one as a duplicate: the duplicate's wording is how the
+# next person will search, and both of these pairs are genuinely worth reading.
+SEE_ALSO_MARK = "<!-- labsim:see-also:v1 -->"
+
+SEE_ALSO = {
+    "Welcome to advanced-rag-lab Discussions!": (
+        "GitHub opened this thread automatically when Discussions was enabled. It is not "
+        "maintained and nothing links to it.",
+        ["Welcome — start here, and how this place works"]),
+
+    "Recall@N climbs and full-chain recall does not. Where does the difference go?": (
+        "A worked example. The version below was asked for real, runs six replies deep and "
+        "gets further into the arithmetic — read that one if you only read one.",
+        ["Recall@N keeps climbing but full-chain recall is flat. What am I not understanding?"]),
+    "Recall@N keeps climbing but full-chain recall is flat. What am I not understanding?": (
+        "The same question exists as a worked example, written by faculty to model the shape "
+        "rather than to ask.",
+        ["Recall@N climbs and full-chain recall does not. Where does the difference go?"]),
+
+    "Talking about a synthetic-corpus project without it sounding like a toy": (
+        "A worked example. The real thread below is longer and has the better answer.",
+        ["How do I talk about a synthetic-corpus project without it sounding like a toy?"]),
+    "How do I talk about a synthetic-corpus project without it sounding like a toy?": (
+        "There is a worked example of this question too, written before anybody asked it.",
+        ["Talking about a synthetic-corpus project without it sounding like a toy"]),
+}
+
+# ─────────────────────────────────────────────────────────── live corrections ──
+# A retraction that only renames the title is not a retraction.
+#
+# The fusion thread was renamed away from the claim it was asserting, and that fixed what a
+# reader sees in the sidebar. It did not touch the body, which still says "measures RRF losing
+# to BM25 alone", and it did not touch the **accepted answer**, which explained the result with
+# a mechanism pointing the wrong way — "our dense leg is materially weaker than the lexical
+# one". Both are false, and an accepted answer carries more authority than a title.
+#
+# So: post the correction as a comment, and mark *that* as the answer. The wrong answer stays
+# visible below it, which is the point — deleting it would delete the evidence that a room full
+# of people found it convincing.
+CORRECTION_MARK = "<!-- labsim:correction:v1 -->"
+
+CORRECTED = {
+    "RRF or weighted fusion — and what actually decided it on this corpus": """> [!IMPORTANT]
+> **Correction, 2026-09-01.** The answer below this one is wrong about the mechanism, and it was
+> the accepted answer for months. It is left in place deliberately. The procedure it gives —
+> *default to RRF, then measure* — survives; the explanation of why does not.
+
+**What the question assumed, and what the notebook actually said.**
+
+The premise was that §4.9 "measures RRF losing to BM25 alone". It does not, and never did once
+the comparison was run properly. Re-measured with `python scripts/run_eval.py --compare`
+(`structural`, n=100, cross-encoder, k=8, 243 questions, paired bootstrap over questions):
+
+```
+configuration       evidence_recall  full_chain_recall               ndcg
+-----------------------------------------------------------------------
+bm25                         0.7118             0.4348             0.3639
+dense                        0.7733             0.4638             0.6055
+rrf                          0.7742             0.4638             0.5302
+w0.2  (the default)          0.7645             0.4686             0.4767
+w0.5                         0.7790             0.4686             0.5967
+```
+
+**RRF beats BM25 alone by +0.0624 evidence recall, ci (+0.0407, +0.0857).** That is not close
+to the noise band. The earlier claim had the sign backwards.
+
+**And the leg weighting was backwards too.** The old answer said the dense (LSA) leg is
+"materially weaker than the lexical one". It is the stronger one: +0.0616 evidence recall over
+BM25, ci (+0.0382, +0.0870), and +0.2416 nDCG. An α of 0.2 puts four fifths of the weight on
+the *worse* leg, which is why `w0.2` gives up 0.0535 nDCG against plain RRF, ci (−0.0776,
+−0.0295).
+
+**The finding that is actually here, and it is a more interesting one.**
+
+Fusion does not separate from its better single leg. `dense → rrf` is +0.0008 evidence recall,
+ci (−0.0101, +0.0109) — squarely inside the band — and on nDCG fusion is a *real regression*
+against the unfused dense leg, −0.0753, ci (−0.1061, −0.0462).
+
+The mechanism is measurable rather than arguable. Fusion pays when the legs fail on **different**
+queries. Here they fail on the same ones: of the 207 answerable questions the dense leg misses
+95 and the lexical leg misses 102, and 92 of those are the same questions. P(lexical also misses
+| dense misses) = **0.9684**; Jaccard of the two failure sets = 0.8762. There is almost nothing
+for a merge to recover.
+
+**So the revised procedure.**
+
+1. Start with RRF. It needs no labelled data, cannot be overfitted, and survives score drift.
+2. Build the eval set. This is still the real work.
+3. Before tuning α, **measure the per-query failure overlap of your legs.** If P(B misses | A
+   misses) is near 1, fusion has nothing to offer and tuning α is spending a week to move a
+   number inside its own interval. Fix the weaker leg instead.
+4. Compare any candidate against **each single leg**, not only against the previous fused
+   configuration. Comparing a configuration against its own history is exactly the blind spot
+   that let the original claim stand — nothing in CI was capable of noticing it.
+
+**What you must still not do** is copy α=0.2 to another corpus. It is fitted to this corpus and
+this encoder, and on this corpus it is not even the best α — `w0.5` is better on evidence recall
+(+0.0145, ci +0.0048/+0.0254) and on nDCG, and identical on the gated metric, which is the only
+reason the default has not moved.
+
+Full write-up: [the fusion measurement note](/{owner}/{repo}/blob/main/docs/09-research/measurements/fusion-rules.md)
+and [ADR-0015](/{owner}/{repo}/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md),
+which is about why it survived rather than about fusion.
+""",
+}
+
+# ─────────────────────────────────────────────────────── discussion labels ──
+# Thirty-eight threads carried none. A forum without labels has exactly one axis — the category
+# — and the category answers "what kind of post is this", never "what is it about". Somebody
+# looking for everything on cost, or every thread where a measurement came back negative, had
+# no way to ask.
+#
+# Deliberately few. A taxonomy nobody can hold in their head gets applied inconsistently and
+# then means nothing, so this is four topic labels, four kinds, and one level.
+DISCUSSION_LABELS = [
+    ("worked example", "0e8a16",
+     "Written by the maintainers to model a good question, a good wrong turn and a good "
+     "correction. Not a real cohort member."),
+    ("retracted", "b60205",
+     "Contains a claim this repository has since withdrawn. Kept for the record, banded at "
+     "the top."),
+    ("mechanism", "1d76db",
+     "Explains why something behaves as it does, in terms that transfer to a corpus you have "
+     "not measured."),
+    ("first-week", "c2e0c6",
+     "Answers a question somebody has in their first week and is embarrassed to ask."),
+]
+
+# Which labels a thread carries, keyed by an exact title. Topic labels reuse the `area:` set the
+# issues already use, so one query spans both surfaces.
+THREAD_LABELS = {
+    "Welcome — start here, and how this place works": ["first-week"],
+    "The findings in this repo that contradict the deck — and the one of them that was wrong":
+        ["negative-result", "mechanism", "retracted"],
+    "The three findings in this repo that contradict the deck — and why we kept them":
+        ["retracted"],
+
+    "Recall@N climbs and full-chain recall does not. Where does the difference go?":
+        ["worked example", "area: evaluation", "mechanism", "first-week"],
+    "My reranker moved evidence recall and full-chain stayed inside the noise band. Ship it?":
+        ["worked example", "area: evaluation", "negative-result"],
+    "RRF or weighted fusion — and what actually decided it on this corpus":
+        ["worked example", "area: retrieval", "mechanism", "retracted"],
+    "Retrieval looks fine on temporal questions and answer_correct is 0.091. Why?":
+        ["worked example", "area: evaluation", "mechanism"],
+    "Can I put these numbers in front of a client, and with what caveats?":
+        ["worked example", "cohort"],
+    "The notebook and the README disagree on a number. Which one do I trust?":
+        ["worked example", "first-week"],
+    "Recall@N keeps climbing but full-chain recall is flat. What am I not understanding?":
+        ["area: evaluation", "mechanism", "first-week"],
+
+    "ANN recall is 0.00 at ef=64. Not degraded — zero. Where do I even start?":
+        ["area: retrieval", "mechanism"],
+    "Prompt cache hit rate is 4%. The prefix looks identical to me.":
+        ["area: cost", "mechanism"],
+
+    "Design review: sufficiency check as a model call or a classifier?":
+        ["worked example", "area: agent"],
+    "Design review: retrieval for a regulated insurer, 14 ACL groups, 40-day audit trail":
+        ["area: retrieval", "cohort"],
+    "Architecture breakdown: what actually changes when you move from 500 docs to 5 million":
+        ["area: retrieval", "mechanism"],
+    "Use case: internal policy search for 4,000 employees — where a RAG system is the wrong answer":
+        ["cohort", "mechanism"],
+
+    "Negative result: contextual chunking cost 2.4x storage and did not clear the band":
+        ["worked example", "negative-result", "area: retrieval"],
+    "Capstone: two of my four improvements were inside the noise band, and I nearly reported all four":
+        ["negative-result", "area: evaluation"],
+
+    "Talking about a synthetic-corpus project without it sounding like a toy":
+        ["worked example", "cohort"],
+
+    "Why is Cohen's κ so brutal on our abstention labels when agreement is 85%?":
+        ["area: evaluation", "mechanism"],
+    "Why is there a +0.5 in the BM25 IDF? Someone told me it is 'just smoothing'":
+        ["area: retrieval", "mechanism"],
+
+    "Start here — the simulator, and how to use it without cloning anything": ["first-week"],
+    "R1 · my attempt — every shape check passes and the last one does not":
+        ["worked example", "area: retrieval"],
+    "R2 · rejected before it ran a single test, and I think the gate is wrong":
+        ["worked example", "area: retrieval", "mechanism"],
+
+    "Lost in the Middle (Liu et al., 2023) — does the U-curve survive on our corpus?":
+        ["type: reading", "negative-result"],
+    "Week 3 · P2 Retrieval — the reranker week, and it did not go how we planned":
+        ["cohort", "negative-result"],
+
+    # The twelve that shipped before THREAD_LABELS existed. An unlabelled thread is invisible
+    # to `-label:"worked example"`, which is the filter a real cohort member wants first, and
+    # invisible to `label:"type: exercise"`, which is how a facilitator finds the submissions.
+    "Idea: replay a real cohort's questions as an eval slice":
+        ["area: evaluation", "cohort"],
+    "Idea: a 'measurement smell' linter that fails a PR describing a delta dishonestly":
+        ["area: evaluation", "area: ci"],
+
+    "Critique my answer: 'how would you separate a retrieval failure from a generation failure?'":
+        ["area: evaluation", "mechanism"],
+    "Asked 'why is your recall number trustworthy?' and I froze. What was he actually after?":
+        ["area: evaluation", "mechanism"],
+    "'How would you cut our RAG bill by 60%?' — I said quantisation and he looked disappointed":
+        ["area: cost", "mechanism"],
+    "The question I was not ready for: 'what would you have to see to abandon this design?'":
+        ["cohort", "mechanism"],
+    "How do I talk about a synthetic-corpus project without it sounding like a toy?":
+        ["cohort"],
+
+    "EX-01 · Establish the baseline you are allowed to argue with":
+        ["type: exercise", "area: evaluation", "first-week"],
+    "EX-02 · Break the tokenizer on purpose":
+        ["type: exercise", "area: retrieval"],
+    "EX-07 · Find the k where more context starts making answers worse":
+        ["type: exercise", "area: evaluation", "area: cost"],
+    "EX-09 · Try to reproduce comparison starvation, and fail":
+        ["type: exercise", "area: evaluation", "negative-result"],
+}
+
+
+# Titles that should change on threads that already exist.
+#
+# Seeding is keyed by title, so editing a title in this file does not rename anything — it
+# creates a second thread and orphans the first. That is how #32 ended up sitting in
+# Announcements for a day still teaching a retracted finding. RENAMED is the in-place path.
+#
+# `[worked example]` is stripped from eight titles because it is a tag wearing a title's
+# clothes. It says nothing about the question, it pushes the actual subject past the point where
+# GitHub truncates in a list, and it is duplicated on every one of them. It is a label now.
+RENAMED = {
+    # The retracted fusion finding, asserted in a title.
+    "Should I use RRF or weighted fusion? The notebook says RRF is the default but then measures it losing. [worked example]":
+        "RRF or weighted fusion — and what actually decided it on this corpus",
+
+    "Why does Recall@N go up but full-chain recall stay flat? [worked example]":
+        "Recall@N climbs and full-chain recall does not. Where does the difference go?",
+    "My reranker improved evidence recall but full-chain recall is 'inside the noise band'. Do I ship it? [worked example]":
+        "My reranker moved evidence recall and full-chain stayed inside the noise band. Ship it?",
+    "Why is `answer_correct` so low on temporal questions when retrieval looks fine? [worked example]":
+        "Retrieval looks fine on temporal questions and answer_correct is 0.091. Why?",
+    "Can I use these numbers in a client conversation? [worked example]":
+        "Can I put these numbers in front of a client, and with what caveats?",
+    "The notebook gives different numbers than the README. Which is right? [worked example]":
+        "The notebook and the README disagree on a number. Which one do I trust?",
+    "Design review: should the sufficiency check be a model call or a classifier? [worked example]":
+        "Design review: sufficiency check as a model call or a classifier?",
+    "Negative result: contextual chunking cost 2.4× storage and did not clear the band [worked example]":
+        "Negative result: contextual chunking cost 2.4x storage and did not clear the band",
+    "How do I talk about a synthetic-corpus project without it sounding like a toy? [worked example]":
+        "Talking about a synthetic-corpus project without it sounding like a toy",
+}
 
 SUPERSEDED = (
     "Design review: retrieval for a regulated insurance client",
@@ -1744,9 +2007,11 @@ DISCUSSIONS = (DISCUSSIONS
                + threads_design.THREADS
                + threads_interview.THREADS
                + threads_standup.THREADS
+               + threads_standup_more.THREADS
                + threads_more.THREADS
                + threads_prep.THREADS
                + threads_labsim.THREADS
+               + threads_math.THREADS
                + threads_usecases.THREADS)
 
 ANSWERABLE = {name for name, _emoji, _desc, fmt in CATEGORIES if fmt == "ANSWER"} | {"Q&A"}

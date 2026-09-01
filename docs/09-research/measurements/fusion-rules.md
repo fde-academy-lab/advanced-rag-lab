@@ -1,7 +1,8 @@
 # Measurement · Which fusion rule, and does fusion pay at all
 
 - **Date** 2026-09-01
-- **Command** `python scripts/run_eval.py --compare`
+- **Command** `python scripts/run_eval.py --compare` for the table;
+  `python scripts/failure_overlap.py` for the diagnostic that explains it
 - **Configuration** `structural` chunking, `n=100` candidates, cross-encoder rerank, `k=8`
 - **Set** 243 questions, 207 answerable; paired bootstrap over questions, 2000 resamples
 - **Supersedes** the fusion claims in ADR-0003 and ADR-0007 as originally written. See
@@ -72,6 +73,40 @@ corpora where the legs are complementary. The question a matrix cannot answer is
 legs fail on different queries, and the diagnostic for it is the per-query overlap of failures —
 which nobody ran before choosing. That is a finding about the evaluation rather than about
 fusion, and it is the more valuable half.
+
+#### The diagnostic, measured
+
+The overlap argument above was made in prose for months before anyone computed it. It is one
+command:
+
+```
+python scripts/failure_overlap.py
+
+  207 answerable questions, k=8, n_candidates=100, rerank=cross
+
+    dense leg misses                95
+    lexical leg misses             102
+    both miss                       92
+    only dense misses                3   ← questions fusion could recover from the lexical leg
+    only lexical misses             10   ← and from the dense leg
+
+    P(lexical also misses | dense misses)   0.9684
+    Jaccard of the two failure sets         0.8762
+```
+
+**Thirteen questions in 207 are recoverable by fusion at all**, and only three of them in the
+direction people assume. That is the entire budget the merge is competing for, and it explains
+the +0.0008 above without appealing to anything.
+
+The conditional is the quantity that answers the question; the Jaccard is the plausible wrong
+formula and is printed beside it deliberately, because they are close enough to be mistaken for
+one another. R3 grades against exactly this, with the bar placed between the two values so a
+wrong formula fails on a real number rather than on a style check.
+
+Run with `--with-personas` for the same quantity through the shipped pipeline, ACL filter
+included: 111 / 117 / 110, conditional **0.9910**. The filter removes reachable evidence, so both
+legs miss more and miss it together. The conclusion does not depend on which of the two you take,
+which is the useful part.
 
 ### 3 · No retrieval configuration moves answer correctness
 

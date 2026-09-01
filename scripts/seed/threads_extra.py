@@ -6,7 +6,7 @@ thread needed to be worth reading — a real objection, a measurement, and a res
 from __future__ import annotations
 
 REPLIES = {
-"Design review: should the sufficiency check be a model call or": [
+"Design review: sufficiency check as a model call or": [
   {"by": "tomas", "body": """Operational objection before the design one. A model call in the
 sufficiency check puts a network hop inside your stop condition. When the provider is slow, your
 agent does not merely get slower — it stops being able to decide whether to stop, so it either
@@ -53,7 +53,7 @@ direction, and it is now issue #10.
 
 This thread produced a decision, so it becomes an ADR rather than staying here."""},
 ],
-"Negative result: contextual chunking cost 2.4× storage and did": [
+"Negative result: contextual chunking cost 2.4x storage and did": [
   {"by": "dan", "body": """Genuinely useful to see this written up. Question — 2.4× storage is
 the headline, but did the *index build time* change much? That is the number that would stop us
 adopting it, more than disk."""},

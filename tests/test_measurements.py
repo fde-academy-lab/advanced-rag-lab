@@ -108,3 +108,63 @@ def test_the_measurement_note_names_its_command():
     text = NOTE.read_text()
     assert "scripts/independence.py" in text
     assert "supersedes" in text.lower()
+
+
+# ────────────────────────────────────────────────── the failure-overlap figure ──
+FUSION_NOTE = ROOT / "docs" / "09-research" / "measurements" / "fusion-rules.md"
+R3 = ROOT / "lab-simulator" / "units" / "R3-fusion-measured"
+
+
+@pytest.fixture(scope="module")
+def overlap():
+    """Recomputed from the corpus. Slower than the independence fixture — it retrieves."""
+    from failure_overlap import summary
+    return summary()
+
+
+def test_the_overlap_is_read_off_the_corpus(overlap):
+    assert overlap["answerable"] == 207
+    assert (overlap["dense_misses"], overlap["lexical_misses"], overlap["both_miss"]) \
+        == (95, 102, 92)
+    assert overlap["conditional"] == pytest.approx(0.9684, abs=5e-5)
+    assert overlap["jaccard"] == pytest.approx(0.8762, abs=5e-5)
+
+
+def test_the_conditional_and_the_jaccard_stay_far_enough_apart_to_grade_between(overlap):
+    """R3 places a bar between them so a wrong formula fails on a number, not on style.
+
+    If the two ever converge, that bar stops discriminating and the unit silently starts
+    accepting the answer it was built to reject.
+    """
+    bar = 0.9000
+    assert overlap["jaccard"] < bar < overlap["conditional"], (
+        f"R3's bar of {bar} no longer separates the conditional ({overlap['conditional']}) "
+        f"from the Jaccard ({overlap['jaccard']}), so the decoy formula now passes")
+    assert f"{bar:.4f}" in (R3 / "unit.yaml").read_text()
+
+
+@pytest.mark.parametrize("path", [FUSION_NOTE, R3 / "BRIEF.md", R3 / "unit.yaml"],
+                         ids=lambda p: p.name)
+def test_the_prose_quotes_the_computed_overlap(path, overlap):
+    text = path.read_text()
+    for value in (f"{overlap['conditional']:.4f}", f"{overlap['jaccard']:.4f}"):
+        assert value in text, f"{path.name} does not quote {value}"
+
+
+def test_the_correction_quotes_the_computed_overlap(overlap):
+    """The correction posted to the live thread is prose too, and it drifts the same way."""
+    import seed_content
+    text = seed_content.CORRECTED[
+        "RRF or weighted fusion — and what actually decided it on this corpus"]
+    for value in (str(overlap["dense_misses"]), str(overlap["lexical_misses"]),
+                  str(overlap["both_miss"]), f"{overlap['conditional']:.4f}",
+                  f"{overlap['jaccard']:.4f}"):
+        assert value in text, f"the correction does not quote {value}"
+
+
+def test_the_fusion_note_names_its_commands():
+    text = FUSION_NOTE.read_text()
+    assert "scripts/failure_overlap.py" in text, (
+        "the overlap figures are quoted without the command that regenerates them — which is "
+        "the exact shape of the two claims this file exists to prevent")
+    assert "run_eval.py --compare" in text

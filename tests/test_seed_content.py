@@ -81,3 +81,164 @@ def test_the_corpus_is_substantial_enough_to_set_a_standard():
     assert len(THREADS) >= 25, len(THREADS)
     assert replies >= 60, replies
     assert answers >= 10, answers
+
+
+# ------------------------------------------------- renames, labels, retirements
+
+def test_every_rename_target_is_what_the_seed_now_asks_for():
+    """RENAMED is a migration, not a second source of truth.
+
+    Seeding is keyed by title. If the seed still asks for the OLD title, renaming the live
+    thread makes the seeder create a second copy under the old name — the exact failure RENAMED
+    exists to prevent.
+    """
+    import seed_content
+    defined = {t["title"] for t in seed_content.DISCUSSIONS}
+    for old, new in seed_content.RENAMED.items():
+        assert new in defined, f"renamed to {new!r}, which the seed does not define"
+        assert old not in defined, (
+            f"{old!r} is renamed and still seeded — it would be recreated on the next run")
+
+
+def test_no_rename_collides_with_another_rename():
+    import seed_content
+    targets = list(seed_content.RENAMED.values())
+    assert len(set(targets)) == len(targets), "two threads renamed to the same title"
+
+
+def test_worked_example_is_a_label_not_a_title_suffix():
+    """It said nothing about the question and pushed the subject past where GitHub truncates."""
+    import seed_content
+    offenders = [t["title"] for t in seed_content.DISCUSSIONS
+                 if "[worked example]" in t["title"]]
+    assert not offenders, offenders
+    assert any(name == "worked example" for name, *_ in seed_content.DISCUSSION_LABELS)
+
+
+def test_every_labelled_title_exists_somewhere():
+    """A label mapping keyed on a title nobody seeds is a silent no-op."""
+    import seed_content
+    known = ({t["title"] for t in seed_content.DISCUSSIONS}
+             | set(seed_content.RENAMED) | set(seed_content.RETIRED))
+    unknown = sorted(t for t in seed_content.THREAD_LABELS if t not in known)
+    assert not unknown, unknown
+
+
+def test_every_label_used_is_one_the_repository_defines():
+    import seed_content
+    defined = ({name for name, *_ in seed_content.DISCUSSION_LABELS}
+               | {name for name, *_ in seed_content.LABELS})
+    used = {l for labels in seed_content.THREAD_LABELS.values() for l in labels}
+    assert used <= defined, sorted(used - defined)
+
+
+def test_the_retracted_thread_is_labelled_as_such():
+    """Whatever else it carries, a thread holding a withdrawn claim says so in its labels."""
+    import seed_content
+    for old in seed_content.RETIRED:
+        assert "retracted" in seed_content.THREAD_LABELS.get(old, []), \
+            f"{old!r} is retired but not labelled `retracted`"
+
+
+def test_every_extra_reply_chain_finds_exactly_one_thread():
+    """`threads_extra.REPLIES` is keyed by title PREFIX, so a rename silently orphans it.
+
+    That is not hypothetical: renaming two titles to drop a `[worked example]` suffix left two
+    threads with an empty reply list, and the only symptom was a thread that had gone quiet.
+    """
+    import seed_content
+    from seed import threads_extra
+    titles = [t["title"] for t in seed_content.DISCUSSIONS]
+    for prefix in threads_extra.REPLIES:
+        hits = [t for t in titles if t.startswith(prefix)]
+        assert len(hits) == 1, (
+            f"prefix {prefix!r} matches {len(hits)} threads. A prefix keyed on a title is broken "
+            "by any rename, and the failure is silent — the thread simply has no conversation.")
+
+
+# ──────────────────────────────────────────────────────── live corrections ──
+def test_every_corrected_title_is_one_the_repository_seeds():
+    """A correction keyed on a title nobody seeds posts nowhere and says nothing."""
+    import seed_content
+    known = {t["title"] for t in seed_content.DISCUSSIONS}
+    unknown = sorted(t for t in seed_content.CORRECTED if t not in known)
+    assert not unknown, unknown
+
+
+def test_a_corrected_thread_is_labelled_retracted():
+    """The correction and the label have to agree, or a filter on one misses the other."""
+    import seed_content
+    for title in seed_content.CORRECTED:
+        assert "retracted" in seed_content.THREAD_LABELS.get(title, []), \
+            f"{title!r} carries a correction but is not labelled `retracted`"
+
+
+def test_correction_bodies_only_use_the_placeholders_that_are_supplied():
+    """`.format(owner=…, repo=…)` on a body with a stray brace raises at seed time."""
+    import string
+
+    import seed_content
+    for title, text in seed_content.CORRECTED.items():
+        fields = {f for _, f, _, _ in string.Formatter().parse(text) if f}
+        assert fields <= {"owner", "repo"}, f"{title!r} wants {sorted(fields - {'owner', 'repo'})}"
+        text.format(owner="o", repo="r")          # raises on an unbalanced brace
+
+
+def test_the_fusion_correction_quotes_the_measurement_note_verbatim():
+    """The numbers in a correction must come from the note that regenerates them.
+
+    This is the guard the retracted claim did not have. The original finding survived for
+    months because the number lived only in prose — nothing tied it to a command, so nothing
+    could notice when re-running the command disagreed. A correction that repeats the same
+    mistake is worse than the mistake.
+    """
+    import pathlib
+    import re
+
+    import seed_content
+
+    note = (pathlib.Path(__file__).resolve().parents[1]
+            / "docs/09-research/measurements/fusion-rules.md").read_text(encoding="utf-8")
+    rows = dict(re.findall(r"^(bm25|dense|rrf|w0\.2|w0\.5)\s+([\d.\s]+)$", note, re.M))
+    assert len(rows) == 5, f"the note's table changed shape: {sorted(rows)}"
+
+    text = seed_content.CORRECTED[
+        "RRF or weighted fusion — and what actually decided it on this corpus"]
+    quoted = dict(re.findall(r"^(bm25|dense|rrf|w0\.2|w0\.5)\b[^\n]*?((?:\s+\d\.\d{4}){3})$",
+                             text, re.M))
+    assert len(quoted) == 5, f"the correction's table changed shape: {sorted(quoted)}"
+
+    for arm, figures in quoted.items():
+        want = rows[arm].split()[:3]            # recall, full-chain, ndcg
+        assert figures.split() == want, (
+            f"{arm}: the correction says {figures.split()} and the measurement note that "
+            f"regenerates it says {want}")
+
+
+# ───────────────────────────────────────────────────────────── cross-links ──
+def test_cross_links_point_at_threads_that_exist():
+    """A see-also pointing at a title nobody seeds renders a link to nothing."""
+    import seed_content
+    known = ({t["title"] for t in seed_content.DISCUSSIONS}
+             | set(seed_content.RENAMED) | set(seed_content.RETIRED)
+             | {"Welcome to advanced-rag-lab Discussions!"})   # GitHub's own, never seeded
+    for title, (_reason, others) in seed_content.SEE_ALSO.items():
+        assert title in known, f"see-also is keyed on {title!r}, which nothing seeds"
+        for other in others:
+            assert other in known, f"{title!r} points at {other!r}, which nothing seeds"
+        assert title not in others, f"{title!r} points at itself"
+
+
+def test_cross_links_between_seeded_threads_are_reciprocal():
+    """A one-way link is found from one side only, which is the half that already knew."""
+    import seed_content
+    links = {t: set(o) for t, (_r, o) in seed_content.SEE_ALSO.items()}
+    for title, others in links.items():
+        for other in others:
+            if other not in links:
+                # GitHub's boilerplate welcome post is deliberately one-way: the maintained
+                # thread should not carry a pointer back to the one nobody maintains.
+                assert title == "Welcome to advanced-rag-lab Discussions!", (
+                    f"{title!r} points at {other!r} and gets nothing back")
+                continue
+            assert title in links[other], f"{other!r} does not point back at {title!r}"

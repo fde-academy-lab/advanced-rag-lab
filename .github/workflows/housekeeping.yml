@@ -60,6 +60,7 @@ jobs:
     permissions:
       contents: read
       discussions: write
+      issues: write          # labels live on the issues API even when applied to a discussion
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
@@ -84,9 +85,13 @@ jobs:
           # Running every time is safe and nearly free: the seeder skips any thread whose title
           # already exists, and skips any thread whose category does not exist rather than
           # misfiling it. The steady-state cost is one listing query.
+          # `labels` rides along with `discussions` because thread labelling needs the
+          # label set to exist and to say what it currently means. Two label descriptions
+          # went on saying "the nanorag package" for weeks after the package was renamed,
+          # because nothing re-ran the labels step. It is a PATCH per label, idempotent.
           args=(--owner "${GITHUB_REPOSITORY%%/*}"
                 --repo  "${GITHUB_REPOSITORY##*/}"
-                --only  discussions)
+                --only  labels,discussions)
           # An `if`, not `[ … ] && …`: under `set -e` a false test is a non-zero exit and
           # would abort the step on every non-dry run, which is every real run.
           if [ "$DRY" = "true" ]; then args+=(--dry-run); fi
