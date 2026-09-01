@@ -1,5 +1,5 @@
 """End-to-end contracts: the things a release gate would block on."""
-from nanorag import metrics, pipeline
+from raglab import metrics, pipeline
 
 
 def test_a_trace_can_replay_its_own_answer(system):

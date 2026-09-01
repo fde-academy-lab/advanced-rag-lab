@@ -2,20 +2,20 @@
 "area: notebooks":
   - changed-files: [{ any-glob-to-any-file: "notebooks/**" }]
 "area: toolkit":
-  - changed-files: [{ any-glob-to-any-file: "nanorag/**" }]
+  - changed-files: [{ any-glob-to-any-file: "raglab/**" }]
 "area: retrieval":
-  - changed-files: [{ any-glob-to-any-file: ["nanorag/retrieve.py", "nanorag/store.py", "nanorag/embed.py", "nanorag/chunking.py"] }]
+  - changed-files: [{ any-glob-to-any-file: ["raglab/retrieve.py", "raglab/store.py", "raglab/embed.py", "raglab/chunking.py"] }]
 "area: evaluation":
-  - changed-files: [{ any-glob-to-any-file: ["nanorag/metrics.py", "nanorag/judge.py", "nanorag/pipeline.py", ".github/eval-baseline.json"] }]
+  - changed-files: [{ any-glob-to-any-file: ["raglab/metrics.py", "raglab/judge.py", "raglab/pipeline.py", ".github/eval-baseline.json"] }]
 "area: agent":
-  - changed-files: [{ any-glob-to-any-file: "nanorag/agent.py" }]
+  - changed-files: [{ any-glob-to-any-file: "raglab/agent.py" }]
 "area: cost":
-  - changed-files: [{ any-glob-to-any-file: "nanorag/costs.py" }]
+  - changed-files: [{ any-glob-to-any-file: "raglab/costs.py" }]
 "area: docs":
   - changed-files: [{ any-glob-to-any-file: ["docs/**", "*.md"] }]
 "area: ci":
   - changed-files: [{ any-glob-to-any-file: [".github/**", "Makefile", "pyproject.toml"] }]
 "area: bedrock":
-  - changed-files: [{ any-glob-to-any-file: "nanorag/bedrock.py" }]
+  - changed-files: [{ any-glob-to-any-file: "raglab/bedrock.py" }]
 "needs: eval-numbers":
-  - changed-files: [{ any-glob-to-any-file: ["nanorag/retrieve.py", "nanorag/metrics.py", "nanorag/corpus.py", "nanorag/chunking.py", "nanorag/embed.py"] }]
+  - changed-files: [{ any-glob-to-any-file: ["raglab/retrieve.py", "raglab/metrics.py", "raglab/corpus.py", "raglab/chunking.py", "raglab/embed.py"] }]

@@ -28,7 +28,7 @@ notebook just computed.
 
 ## Decision
 
-Option C for notebooks (`nanorag/viz.py`), **and Mermaid for the markdown docs** — where
+Option C for notebooks (`raglab/viz.py`), **and Mermaid for the markdown docs** — where
 GitHub is the only rendering target and it renders reliably.
 
 ## Consequences

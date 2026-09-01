@@ -1,8 +1,12 @@
 <div align="center">
 
-# nanorag
+# Advanced RAG &amp; Evals Lab
 
-**The whole retrieval stack — BM25, dense, ANN, fusion, reranking, evaluation — with no vector database, no framework, and no API key. It runs in memory, in about ten seconds.**
+**FDE LAB · Client Zero engagement**
+
+*The whole retrieval stack — BM25, dense, ANN, fusion, reranking — and the evaluation that
+decides whether any of it worked. No vector database, no framework, no API key. It runs in
+memory, in about ten seconds.*
 
 [![CI](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml)
 [![Notebooks](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml)
@@ -11,46 +15,84 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Discussions](https://img.shields.io/badge/ask-Discussions-8A63D2)](../../discussions)
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Curriculum](docs/02-curriculum/syllabus.md) · [Exercises](docs/03-exercises/catalogue.md) · [Interview prep](docs/06-interview-prep/legacy-bank.md) · [Put it on your CV](docs/07-career/portfolio.md)
+[Client Zero](docs/00-orientation/client-zero.md) · [Quick start](#quick-start) · [Architecture](#architecture) · [Exercises](docs/03-exercises/) · [Interview prep](docs/06-interview-prep/) · [Put it on your CV](docs/07-career/portfolio.md)
 
 </div>
 
 ---
 
+## The brief
+
+> "We have all this documentation and our people can't find answers in it. Can you put an AI
+> search thing on it? How long would that take?"
+
+That is the entire brief, and it is how briefs actually arrive.
+
+**Client Zero** is Meridian Group — a mid-market holding company, twenty-four operating
+subsidiaries, six quarters of accumulated documentation. 484 documents. 2,430 chunks. Nobody has
+ever been able to find anything in them.
+
+You have been deployed. Everything in this repository is the work of turning that sentence into
+something you can build, measure and defend.
+
+Client Zero is synthetic on purpose, and the reasons are the point rather than an apology: gold
+evidence is **true by construction** so there is no annotation-error floor under any number,
+nothing is under NDA so every result can be published, and every failure mode is in the corpus
+because the curriculum needs it. [The full engagement brief →](docs/00-orientation/client-zero.md)
+
+## LAB — Learn, Apply, Build
+
+```mermaid
+flowchart LR
+    L["LEARN<br/>ten notebooks<br/>run it, watch the number move"] --> A["APPLY<br/>exercises in Discussions<br/>approach before code"]
+    A --> B["BUILD<br/>capstone on Client Zero<br/>propose, measure, defend"]
+    B --> D["DEFEND<br/>interview prep<br/>portfolio"]
+```
+
+| Mode | Where it lives | What you produce |
+|---|---|---|
+| **Learn** | [notebooks/](notebooks/) — ten sections, ~10 min of compute for all of them | A number you ran yourself |
+| **Apply** | [Discussions → Exercises &amp; Submissions](../../discussions/categories/exercises-submissions) | A submission with an interval, and one peer review |
+| **Build** | [The capstone](docs/03-exercises/) | A change to Client Zero's system, measured and defended |
+| **Defend** | [Interview prep](docs/06-interview-prep/), [portfolio](docs/07-career/portfolio.md) | The story, and the three findings that make it worth hearing |
+
 ## What this is
 
 Ten Jupyter notebooks and a ~6,800-line toolkit that implement the whole retrieval stack —
-BM25 over a real inverted index, dense retrieval, an approximate-nearest-neighbour graph you
-can watch lose recall, hybrid fusion, a reranker you *fit and then verify*, context packing
-under a hard token budget, an LLM judge you calibrate with Cohen's κ, prompt-cache economics,
-and an agentic search loop scored on its trace rather than its answer.
+BM25 over a real inverted index, dense retrieval, an approximate-nearest-neighbour graph you can
+watch lose recall, hybrid fusion, a reranker you *fit and then verify*, context packing under a
+hard token budget, an LLM judge you calibrate with Cohen's κ, prompt-cache economics, and an
+agentic search loop scored on its trace rather than its answer.
 
 There is **no dataset to download, no API key to set, and no service to start.** The entire
 retrieval stack lives inside `sqlite3.connect(":memory:")` and disappears when you stop the
 kernel. Press **Run All**; that is the whole procedure.
 
-The *nano* is the **stack**, not the scope: numpy, matplotlib and the standard library, and
-nothing else is required to run any of it. Every component you would normally import — the
-inverted index, the embedder, the ANN graph, the fusion, the reranker, the judge, the cost
-model — is implemented here, in readable Python, because the point is to see the mechanism
-rather than configure it.
+Everything you would normally pip-install — the inverted index, the embedder, the ANN graph, the
+fusion, the reranker, the judge, the cost model — is implemented here, in readable Python,
+because the point is to see the mechanism rather than configure it. numpy, matplotlib and the
+standard library are the whole dependency set.
 
-Everything has a documented upgrade path to a real stack — Amazon Bedrock Knowledge Bases,
-Titan embeddings, Bedrock rerank, a model judge — and swapping any of them changes the
-retriever, **not** the harness, the metrics, or the eval set. That property is the lesson.
+Everything has a documented upgrade path to a real stack — Amazon Bedrock Knowledge Bases, Titan
+embeddings, Bedrock rerank, a model judge — and swapping any of them changes the retriever,
+**not** the harness, the metrics, or the eval set. That property is the lesson.
 
 > **This repository is also a working example of how a delivery team operates.** Issues with
-> acceptance criteria, a board that moves itself, a PR template that demands a measurement,
-> an evaluation gate that blocks a merge on a metric regression, ADRs for the decisions that
-> were hard, and Discussions used the way a good internal Stack Overflow gets used.
+> acceptance criteria, a board that moves itself, a PR template that demands a measurement, an
+> evaluation gate that blocks a merge on a metric regression, ADRs for the decisions that were
+> hard, and Discussions used the way a good internal Stack Overflow gets used.
 
 ---
 
 ## Quick start
 
+> **Upgrading from an earlier clone?** The package was renamed `nanorag` → `raglab`. After
+> pulling, run `pip install -e ".[dev]"` again — otherwise the first import fails with
+> `ModuleNotFoundError: No module named 'nanorag'`, which does not say what to do about it.
+
 ```bash
 git clone https://github.com/fde-academy-lab/advanced-rag-lab.git
-cd nanorag
+cd raglab
 make setup          # or: pip install -e ".[dev]"
 make lab            # opens JupyterLab → start with 00_start_here.ipynb
 ```
@@ -58,8 +100,8 @@ make lab            # opens JupyterLab → start with 00_start_here.ipynb
 Prefer to see it work in one line first?
 
 ```python
-import nanorag
-bundle, index, pipe = nanorag.quickstart(**nanorag.TUNED)
+import raglab
+bundle, index, pipe = raglab.quickstart(**raglab.TUNED)
 trace = pipe.run("Which organization acquired Tessera Analytics?")
 
 print(trace.answer)                 # a cited answer
@@ -121,7 +163,7 @@ graph TB
         R["🔍 Recruiter / interviewer<br/>reads the decision records"]
     end
 
-    P["Advanced RAG — Hands On<br/>10 notebooks + nanorag toolkit<br/>runs offline, deterministic"]
+    P["Advanced RAG — Hands On<br/>10 notebooks + raglab toolkit<br/>runs offline, deterministic"]
 
     subgraph optional["Optional — nothing fails without these"]
         BR["Amazon Bedrock<br/>Knowledge Base · Titan · rerank · Converse"]
@@ -458,7 +500,7 @@ export BEDROCK_RERANK_MODEL_ARN=arn:aws:bedrock:...:rerank-model/amazon.rerank-v
 ```
 
 ```python
-from nanorag.bedrock import BedrockConfig, preflight, BedrockKnowledgeBaseRetriever
+from raglab.bedrock import BedrockConfig, preflight, BedrockKnowledgeBaseRetriever
 
 preflight()                              # read-only: reports config, makes NO AWS calls
 kb = BedrockKnowledgeBaseRetriever()     # returns the same Hit records as the local index
@@ -466,7 +508,7 @@ hits = kb.search("Which organization acquired Tessera Analytics?", n=25)
 ```
 
 Credentials come from the ordinary boto3 chain. **Nothing in this repository reads or stores a
-key.** `nanorag.bedrock.LOCAL_TO_AWS` maps every local component to its managed equivalent and
+key.** `raglab.bedrock.LOCAL_TO_AWS` maps every local component to its managed equivalent and
 names what changes when you move — see [docs/01-architecture/overview.md](docs/01-architecture/overview.md#local--aws).
 
 ---

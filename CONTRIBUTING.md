@@ -16,7 +16,7 @@ asked for it before review, not after.
 
 ```bash
 git clone https://github.com/fde-academy-lab/advanced-rag-lab.git
-cd nanorag
+cd raglab
 make setup
 make test          # ~30 s
 make notebooks     # ~10 min, executes all ten

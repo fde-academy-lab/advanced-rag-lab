@@ -38,7 +38,7 @@ trace — the baseline diff is in the commit history, so "when did full-chain re
 is answerable by `git log`. Students experience a real release gate rather than reading about
 one.
 
-**Bad.** The gate is slower than the rest of CI (~2 minutes) and runs on every `nanorag/`
+**Bad.** The gate is slower than the rest of CI (~2 minutes) and runs on every `raglab/`
 change. Tolerances (2–3 points) are judgement calls that will occasionally block a legitimate
 change and occasionally let a small real regression through — they are a compromise between
 false blocks and false passes, and we picked them by looking at the noise band rather than by

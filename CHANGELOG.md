@@ -28,9 +28,12 @@ inside the noise band.
   from the Actions tab, for environments that cannot reach GitHub's GraphQL API.
 
 ### Changed
+- **Breaking:** package renamed `nanorag` → `raglab`. Re-run `pip install -e ".[dev]"` after
+  pulling; the import error otherwise raised does not indicate the fix.
+- Reframed as the **Client Zero** engagement — Meridian Group, 24 subsidiaries, 484 documents.
 - `docs/` restructured into ten numbered domains, each with an index. All 153 relative links
   rewritten and verified.
-- Package renamed `fde_rag` → `nanorag`.
+- Package renamed `fde_rag` → `raglab`.
 - Every seeded thread now carries a conversation. Nine previously had none.
 
 ### Fixed

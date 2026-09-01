@@ -14,7 +14,7 @@ THREADS = [
  "body": """**Difficulty** ★☆☆☆☆ · **Seam** ① retriever · **Time** 45 min · **Notebook** `01`
 
 ### Setup
-`nanorag.quickstart()` gives you a corpus of 484 documents, 2,430 chunks and a 243-question
+`raglab.quickstart()` gives you a corpus of 484 documents, 2,430 chunks and a 243-question
 eval set with a frozen 15% slice. Nothing is tuned.
 
 ### Task
@@ -51,7 +51,7 @@ reasons that have nothing to do with k.
 Build the index once and vary only the retrieval config:
 
 ```python
-bundle, idx, pipe = nanorag.quickstart(verbose=False)
+bundle, idx, pipe = raglab.quickstart(verbose=False)
 for fusion in ("bm25", "dense", "rrf"):
     for k in (5, 8, 10):
         pipe.cfg = retrieve.RetrievalConfig(n_candidates=100, k=k, fusion=fusion)

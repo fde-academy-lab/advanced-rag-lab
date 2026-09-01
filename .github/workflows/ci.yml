@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
       - run: pip install ruff
-      - run: ruff check nanorag tests scripts
+      - run: ruff check raglab tests scripts
       - name: Notebook outputs must be stripped
         run: |
           python - <<'PY'
@@ -52,7 +52,7 @@ jobs:
         with: { python-version: "${{ matrix.python }}", cache: pip }
       - run: pip install -e ".[dev]"
       - name: Unit tests
-        run: pytest -m "not notebooks" --cov=nanorag --cov-report=term-missing
+        run: pytest -m "not notebooks" --cov=raglab --cov-report=term-missing
       - name: Upload coverage
         if: matrix.python == '3.11'
         uses: actions/upload-artifact@v4
@@ -70,11 +70,11 @@ jobs:
           # The README promises a learner can hit Run All on a clean machine and the
           # bootstrap installs what it needs. This job is that promise, tested.
           python -c "
-          from nanorag.bootstrap import bootstrap
+          from raglab.bootstrap import bootstrap
           env = bootstrap()
           assert not env.missing, env.missing
-          import nanorag
-          bundle, index, pipe = nanorag.quickstart(**nanorag.TUNED)
+          import raglab
+          bundle, index, pipe = raglab.quickstart(**raglab.TUNED)
           trace = pipe.run('Which organization acquired Tessera Analytics?')
           assert trace.packed, 'nothing was packed'
           assert trace.citations, 'no citations emitted'

@@ -1,7 +1,7 @@
 """Metrics have to be right before anything they measure can be believed."""
 import pytest
 
-from nanorag import metrics
+from raglab import metrics
 
 
 @pytest.fixture

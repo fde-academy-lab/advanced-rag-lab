@@ -35,7 +35,7 @@ Notice that none of those is a technology. Do not lead with "Python, FAISS, Lang
 Use **three to five** bullets, each with a number and a mechanism. Pick from these based on
 what you actually did:
 
-> **Advanced RAG — Retrieval, Evaluation & Cost Engineering** · [github.com/…/nanorag](../../)
+> **Advanced RAG — Retrieval, Evaluation & Cost Engineering** · [github.com/…/raglab](../../)
 >
 > - Built a retrieval stack (BM25 over FTS5, LSA dense retrieval, weighted hybrid fusion, a
 >   learned cross-encoder reranker) with an evaluation harness that reports **evidence recall,

@@ -1,5 +1,5 @@
 """
-One-click environment bootstrap for the nanorag notebooks.
+One-click environment bootstrap for the raglab notebooks.
 
 Design goals
 ------------
@@ -143,11 +143,11 @@ def bootstrap(verbose: bool = True, allow_install: bool = True) -> Environment:
 
 
 def repo_root(start=None):
-    """Locate the directory that holds the nanorag package, from anywhere."""
+    """Locate the directory that holds the raglab package, from anywhere."""
     import pathlib
 
     here = pathlib.Path(start or os.getcwd()).resolve()
     for candidate in [here, *here.parents]:
-        if (candidate / "nanorag" / "__init__.py").exists():
+        if (candidate / "raglab" / "__init__.py").exists():
             return candidate
     return here

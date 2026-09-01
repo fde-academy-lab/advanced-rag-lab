@@ -1,5 +1,5 @@
 """
-A tiny diagram language for the nanorag notebooks.
+A tiny diagram language for the raglab notebooks.
 
 Why not Mermaid? Because "one click and it runs" has to mean *everywhere* --
 JupyterLab, VS Code, Colab, nbviewer, a PDF export, a GitHub preview. Mermaid
@@ -391,7 +391,7 @@ def hld(lanes, title="", kicker="", caption="", source=None, width=12.0, show=Tr
 
 def decision_tree(tree, title=None, kicker="Decision tree", caption=None, source=None,
                   width=12.0, path=None, show=True):
-    """Render a DecisionTree (see nanorag.trees).
+    """Render a DecisionTree (see raglab.trees).
 
     `path` optionally highlights the branch a real case actually took, which is
     what turns a poster into a debugger.

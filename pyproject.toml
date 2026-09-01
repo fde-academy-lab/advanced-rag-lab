@@ -3,13 +3,13 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nanorag"
+name = "raglab"
 version = "1.0.0"
-description = "A runnable retrieval / RAG / evaluation teaching toolkit that runs entirely in memory"
+description = "Advanced RAG & Evals Lab — a from-scratch retrieval stack and the evaluation that judges it, running entirely in memory"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "the maintainers" }]
+authors = [{ name = "FDE LAB" }]
 keywords = ["rag", "retrieval", "evaluation", "bm25", "reranking", "bedrock", "teaching"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -37,7 +37,7 @@ Discussions   = "https://github.com/fde-academy-lab/advanced-rag-lab/discussions
 Issues        = "https://github.com/fde-academy-lab/advanced-rag-lab/issues"
 
 [tool.setuptools.packages.find]
-include = ["nanorag*"]
+include = ["raglab*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -74,5 +74,5 @@ ignore = [
 "tests/*" = ["E501"]
 
 [tool.coverage.run]
-source = ["nanorag"]
-omit = ["nanorag/bedrock.py"]      # network path, exercised only in integration
+source = ["raglab"]
+omit = ["raglab/bedrock.py"]      # network path, exercised only in integration

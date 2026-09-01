@@ -20,10 +20,10 @@ test-all:        ## Everything, including notebook execution
 	$(PY) -m pytest
 
 lint:            ## Ruff check
-	$(PY) -m ruff check nanorag tests scripts
+	$(PY) -m ruff check raglab tests scripts
 
 fmt:             ## Ruff autofix
-	$(PY) -m ruff check --fix nanorag tests scripts
+	$(PY) -m ruff check --fix raglab tests scripts
 
 notebooks:       ## Execute every notebook headlessly and report timings
 	$(PY) scripts/verify_notebooks.py
@@ -35,6 +35,6 @@ eval:            ## Run the release-gate evaluation and print the scorecard
 	$(PY) scripts/run_eval.py
 
 board:           ## One-time GitHub setup: labels, discussions, issues, project board
-	$(PY) scripts/setup_github.py --owner $${OWNER:?set OWNER=your-github-handle} --repo $${REPO:-nanorag}
+	$(PY) scripts/setup_github.py --owner $${OWNER:?set OWNER=your-github-handle} --repo $${REPO:-raglab}
 
 .PHONY: help setup lab test test-all lint fmt notebooks strip eval board
