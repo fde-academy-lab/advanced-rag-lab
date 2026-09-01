@@ -1,4 +1,5 @@
-labels: ["design-review"]
+# A design review is a request for a reviewer, so it opens in the state that says so.
+labels: ["status: needs-review"]
 body:
   - type: markdown
     attributes:

@@ -5,8 +5,12 @@ paired-bootstrap intervals, and the date it was measured.
 
 | Note | Question | Command |
 |---|---|---|
-| [fusion-rules.md](fusion-rules.md) | Which fusion rule, and does fusion pay at all? | `python scripts/run_eval.py --compare` |
+| [fusion-rules.md](fusion-rules.md) | Which fusion rule, and does fusion pay at all? | `python scripts/run_eval.py --compare` · `python scripts/failure_overlap.py` |
 | [multi-hop-independence.md](multi-hop-independence.md) | Are multi-hop failures correlated, or just multiplied? | `python scripts/independence.py` |
+
+The k grid lives in [metrics.md](../../04-evaluation/metrics.md) rather than here,
+because it describes one configuration across a parameter rather than configurations
+against each other: `python scripts/run_eval.py --ksweep`.
 
 ## What belongs here
 

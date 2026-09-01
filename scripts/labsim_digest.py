@@ -37,7 +37,7 @@ query($owner:String!,$name:String!,$cursor:String){
       nodes{
         number title url updatedAt
         category{ name }
-        comments(last:50){ nodes{ body createdAt author{ login } } }
+        comments(last:50){ nodes{ body createdAt updatedAt author{ login } } }
       }
     }
   }
@@ -58,12 +58,17 @@ def harvest(owner: str, repo: str, since: datetime) -> list[dict]:
             if not simulator_category(d["category"]["name"]):
                 continue
             for c in d["comments"]["nodes"]:
-                when = datetime.fromisoformat(c["createdAt"].replace("Z", "+00:00"))
+                # `updatedAt`, because the bot edits its verdict comment in place rather
+                # than appending. Filtering on creation time makes every re-grade on a thread
+                # older than the window invisible — which is exactly the activity a weekly
+                # digest exists to see.
+                stamp = c.get("updatedAt") or c["createdAt"]
+                when = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
                 if when < since:
                     continue
                 for uid, kind, payload in TAG.findall(c["body"] or ""):
                     events.append({"unit": uid, "kind": kind, "when": when,
-                                   "checks": [x for x in payload.split(";") if x.strip()],
+                                   "checks": [x.strip() for x in payload.split(";") if x.strip()],
                                    "thread": d["number"], "title": d["title"], "url": d["url"]})
         if not page["pageInfo"]["hasNextPage"]:
             return events

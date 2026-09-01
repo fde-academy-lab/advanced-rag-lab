@@ -217,8 +217,18 @@ def cmd_discuss(args) -> int:
     if comment:
         cmd = discussion.parse_command(comment)
         if cmd is None:
+            # Write BOTH files before returning. The workflow's collect step runs
+            # `cp "$RUNNER_TEMP/meta.json" out/meta.json` under `set -euo pipefail`, so a
+            # missing meta.json fails the grade job — on every ordinary peer comment, which is
+            # the interaction this whole feature exists to encourage. The respond job already
+            # handles an empty reply.md (`[ -s out/reply.md ] || exit 0`); it has no way to
+            # handle a file that is not there.
             print("no command in the comment; nothing to do")
             Path(args.out).write_text("")
+            Path(args.meta).write_text(json.dumps(
+                {"action": "none", "unit": sub.unit_id, "passed": False,
+                 "discussion_node_id": disc.get("node_id"),
+                 "number": disc.get("number")}, indent=2))
             return 0
         name, n = cmd
         action = name

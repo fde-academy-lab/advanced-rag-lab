@@ -80,6 +80,12 @@ def main() -> int:
 
     by_head: dict[str, list[dict]] = {}
     for pr in prs:
+        # Pull requests are keyed by head *ref*, which a fork shares with this repository as
+        # soon as two people pick the same branch name. A merged `patch-1` from somebody's
+        # fork would then read as authorisation to delete our own `patch-1`. Only pull
+        # requests opened from a branch in this repository can speak for a branch in it.
+        if ((pr["head"].get("repo") or {}).get("full_name") or "") != repo:
+            continue
         by_head.setdefault(pr["head"]["ref"], []).append(pr)
 
     deleted, kept = [], []

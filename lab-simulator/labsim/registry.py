@@ -31,9 +31,14 @@ def _unit_from_dir(d: Path) -> Unit:
             direction=b.get("direction", "at_least"), note=b.get("note", ""))
         for b in meta.get("bars", []) or []
     )
+    # `.get`, not `[...]`. `labsim validate` exists to report a malformed unit.yaml, and it
+    # cannot do that if constructing the Unit raises first — a missing `title` took out the
+    # whole registry, including the six units that were fine. Absent keys become empty and
+    # `Unit.validate()` names them.
     return Unit(
-        uid=meta["id"], slug=meta.get("slug", d.name), title=meta["title"],
-        track=meta["track"], difficulty=meta["difficulty"], minutes=int(meta.get("minutes", 20)),
+        uid=meta.get("id") or "", slug=meta.get("slug", d.name), title=meta.get("title", ""),
+        track=meta.get("track", ""), difficulty=meta.get("difficulty", ""),
+        minutes=int(meta.get("minutes", 20)),
         mode=meta.get("mode", "implement"), teaches=tuple(meta.get("teaches", []) or []),
         prereqs=tuple(meta.get("prereqs", []) or []), bars=bars,
         artefact=meta.get("artefact"), directory=d, summary=meta.get("summary", ""),

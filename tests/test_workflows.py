@@ -130,3 +130,82 @@ def test_workflows_have_no_duplicate_keys():
     Strict.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, no_dupes)
     for path in WORKFLOWS.glob("*.yml"):
         yaml.load(path.read_text(), Strict)
+
+
+# ──────────────────────────────────────────────────────── template label names ──
+TEMPLATE_DIRS = (".github/ISSUE_TEMPLATE", ".github/DISCUSSION_TEMPLATE")
+
+
+def _template_files():
+    for d in TEMPLATE_DIRS:
+        yield from sorted((ROOT / d).glob("*.yml"))
+
+
+@pytest.mark.parametrize("path", list(_template_files()), ids=lambda p: p.name)
+def test_every_template_label_is_one_the_repository_creates(path):
+    """A template naming a label that does not exist applies nothing, silently.
+
+    All four discussion templates did this: `question`, `design-review`, `show-and-tell` and
+    `lab-simulator`. None was ever in `LABELS`, and `question` is one of GitHub's defaults that
+    `create_labels` explicitly deletes — so the one template that named a real label named one
+    the provisioner removes on every run.
+    """
+    import seed_content
+    defined = ({name for name, *_ in seed_content.LABELS}
+               | {name for name, *_ in seed_content.DISCUSSION_LABELS})
+    spec = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for label in spec.get("labels") or []:
+        assert label in defined, (
+            f"{path.name} applies {label!r}, which nothing in seed_content.LABELS creates")
+
+
+def test_no_template_names_a_label_the_provisioner_deletes():
+    """`create_labels` removes GitHub's defaults to keep the list legible. Nothing may use one."""
+    source = (ROOT / "scripts" / "setup_github.py").read_text(encoding="utf-8")
+    junk = re.search(r'for junk in \(([^)]*)\)', source)
+    assert junk, "create_labels no longer deletes GitHub's defaults; this test names that loop"
+    deleted = set(re.findall(r'"([^"]+)"', junk.group(1)))
+    for path in _template_files():
+        spec = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for label in spec.get("labels") or []:
+            assert label not in deleted, f"{path.name} applies {label!r}, which is deleted"
+
+
+def test_every_discussion_template_matches_a_category_slug():
+    """GitHub keys a discussion form on the category slug and silently ignores it otherwise.
+
+    There is no error, no warning and no place the mistake shows up — the category simply
+    opens with an empty box, which looks exactly like a category that has no template.
+    """
+    import seed_content
+
+    def slug(name):
+        return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", name.lower())).strip("-")
+
+    # GitHub's six defaults plus the eight this repository adds.
+    known = {slug(n) for n in ("Announcements", "General", "Ideas", "Polls", "Q&A",
+                               "Show and tell")}
+    known |= {slug(name) for name, *_ in seed_content.CATEGORIES}
+
+    for path in sorted((ROOT / ".github" / "DISCUSSION_TEMPLATE").glob("*.yml")):
+        assert path.stem in known, (
+            f"{path.name} names no category slug — known slugs are {sorted(known)}")
+
+
+def test_the_provision_summary_names_the_right_categories_as_answerable():
+    """The summary is the manual-setup instruction, and it said "the first four".
+
+    The first four in its own list were Design Reviews, Reading Club, Interview Prep and LAB
+    Simulator — two of which `CATEGORIES` declares open-ended. Following it produced two
+    categories that cannot carry an accepted answer and two that carry one nobody wanted.
+    """
+    import seed_content
+    text = (WORKFLOWS / "provision.yml").read_text(encoding="utf-8")
+    for name, _emoji, _desc, fmt in seed_content.CATEGORIES:
+        row = re.search(rf"^\s*echo \"\s*\|\s*{re.escape(name)}\s*\|\s*(.+?)\s*\|\"",
+                        text, re.M)
+        assert row, f"the provision summary does not list {name!r}"
+        says_qa = "Q&A" in row.group(1)
+        assert says_qa == (fmt == "ANSWER"), (
+            f"{name}: CATEGORIES says {fmt}, the summary says {row.group(1)!r}")
+    assert "the first four" not in text, "the positional instruction is back"

@@ -588,3 +588,242 @@ def test_a_prose_measurement_note_still_arrives_without_a_fence():
         measurement="# Measurement\n\n- **Date** 2026-09-01\n- **Command** `x`"))
     assert "measurement.md" in sub.files
     assert sub.files["measurement.md"].startswith("# Measurement")
+
+
+# ─────────────────────────────────────────── a grader that cannot be told nothing ──
+#
+# Every `reference/pass` and `reference/fail-*` directory holds a solution that loads, so
+# `labsim selftest` only ever exercised check.py's normal path. Off it, the grader was
+# reporting a pass for work that does not exist: `run()` turned a SolutionError into
+# `emit({})`, which exits 0, and `grade()` took an exit code of 0 as "the checks passed". Four
+# of the seven units declare `bars: []`, so for those there was nothing else left to fail on.
+#
+# These grade real units through the real entry point, because the bug lived in the seam
+# between two functions that were each individually correct.
+UNBARRED = ("R1", "E1", "F1", "P1")
+
+
+@pytest.mark.parametrize("uid", UNBARRED)
+def test_an_empty_attempt_directory_does_not_pass(uid, tmp_path):
+    from labsim.grader import grade
+    from labsim.registry import by_id
+    result = grade(by_id(uid), tmp_path)
+    assert result.passed is False, (
+        f"{uid} graded an attempt directory with nothing in it as a pass")
+    assert result.checks_ok is False
+    assert result.failures, "the reason has to survive into the reply the learner sees"
+
+
+@pytest.mark.parametrize("uid", UNBARRED[:3])          # P1 grades prose, not a module
+def test_a_solution_that_will_not_import_does_not_pass(uid, tmp_path):
+    from labsim.grader import grade
+    from labsim.registry import by_id
+    (tmp_path / "solution.py").write_text("def broken(:\n")
+    result = grade(by_id(uid), tmp_path)
+    assert result.passed is False, f"{uid} graded a SyntaxError as a pass"
+    assert any("SyntaxError" in f for f in result.failures), result.failures
+
+
+@pytest.mark.parametrize("uid", UNBARRED[:3])
+def test_a_solution_that_kills_the_process_does_not_pass(uid, tmp_path):
+    """`import os; os._exit(0)` skips every check and exits 0. That used to be a pass.
+
+    It matters more than an ordinary bug because the Discussions bot executes code written by
+    strangers and publishes the verdict, so this is the shape of a grader that can be told
+    what to say.
+    """
+    from labsim.grader import grade
+    from labsim.registry import by_id
+    (tmp_path / "solution.py").write_text("import os\nos._exit(0)\n")
+    result = grade(by_id(uid), tmp_path)
+    assert result.passed is False, f"{uid} graded a process that ran no check as a pass"
+    assert any("no LABSIM_RESULT" in m for m in result.messages), result.messages
+
+
+def test_emit_without_failures_still_returns_zero():
+    """The fix must not turn a clean run red. `emit()` with no failures is still a pass."""
+    from labsim.checkkit import emit
+    assert emit({}) == 0
+    assert emit({"x": 1}) == 0
+    assert emit({}, failures=["no solution.py"]) == 1
+
+
+def test_a_result_line_that_is_not_an_object_is_a_failure_not_a_crash(tmp_path, monkeypatch):
+    """Valid JSON that is not a dict reached `payload.get` and raised AttributeError."""
+    import subprocess
+
+    from labsim import grader
+
+    class Proc:
+        stdout = 'LABSIM_RESULT:["not", "an", "object"]\n'
+        stderr = ""
+        returncode = 0
+
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: Proc())
+    out: list[str] = []
+    from labsim.registry import by_id
+    ok, payload = grader._run_checks(by_id("R1"), tmp_path, out)
+    assert ok is False and payload == {}
+    assert any("not an object" in line for line in out), out
+
+
+# ───────────────────────────────────── the contract the workflow depends on ──
+def test_discuss_always_writes_both_files(tmp_path):
+    """`labsim discuss` must write reply.md AND meta.json on every path it can take.
+
+    The workflow's collect step is `cp "$RUNNER_TEMP/meta.json" out/meta.json` under
+    `set -euo pipefail`. A comment with no slash command used to return early having written
+    only reply.md, so `cp` exited 1 and the grade job went red — on every ordinary peer
+    comment, which is the interaction the whole feature exists to encourage. `respond` has an
+    `[ -s out/reply.md ] || exit 0` guard for an empty reply; it has none for an absent file.
+    """
+    import json
+    import subprocess
+    import sys
+
+    body = rendered_form(**{
+        "Which unit": "F1 — Chunk so the answer survives the cut (implement, easy)",
+        "Your approach, before the code": "Slide a window.",
+        "Your solution.py": "```python\ndef chunk(text, size_tokens=512, overlap_tokens=64):\n    return [text]\n```",
+    })
+    cases = {
+        "no comment at all": None,
+        "a comment with no command": "nice — your chunker drops the trailing sentence",
+        "a command inside a fence": "look:\n\n```\n/check\n```\n",
+        "an unknown slash word": "/deploy please",
+        "a real command": "/status",
+    }
+    for label, comment in cases.items():
+        event = {"discussion": {"title": "F1 · my attempt", "body": body,
+                                "node_id": "D_abc", "number": 99}}
+        if comment is not None:
+            event["comment"] = {"body": comment}
+        d = tmp_path / label.replace(" ", "_")
+        d.mkdir()
+        (d / "event.json").write_text(json.dumps(event))
+        proc = subprocess.run(
+            [sys.executable, "-m", "labsim", "discuss",
+             "--event", str(d / "event.json"), "--out", str(d / "reply.md"),
+             "--meta", str(d / "meta.json"), "--repo", "o/r"],
+            cwd=str(ROOT / "lab-simulator"), capture_output=True, text=True, timeout=300)
+        assert proc.returncode == 0, f"{label}: exited {proc.returncode}\n{proc.stderr[-800:]}"
+        assert (d / "reply.md").exists(), f"{label}: no reply.md"
+        assert (d / "meta.json").exists(), (
+            f"{label}: no meta.json — the workflow's `cp` fails the grade job here")
+        meta = json.loads((d / "meta.json").read_text())
+        assert set(meta) >= {"action", "unit", "passed", "discussion_node_id", "number"}, meta
+        assert meta["number"] == 99
+
+
+def test_a_measurement_note_with_its_own_headings_survives_whole():
+    """`###` inside a field's content is not a new field.
+
+    The P1 template a note is graded against opens with `### The table`, so every `###` being
+    treated as a form boundary truncated the note at its first sub-heading and graded the
+    fragment. The unit's own brief tells people to use those headings.
+    """
+    from labsim.discussion import parse_submission
+    body = rendered_form(
+        unit="P1 — Write the measurement note that survives you leaving (ship, medium)",
+        approach="Wrote it against the template.",
+        measurement=(
+            "# Measurement · does the reranker pay\n\n"
+            "- **Command** `python scripts/run_eval.py --rerank cross`\n\n"
+            "### The table\n\n| arm | evidence_recall |\n|---|---|\n| none | 0.6486 |\n\n"
+            "### What this does not say\n\nIt does not say the reranker is free."),
+        surprised="How much of it was the command line.")
+    note = parse_submission("P1 · my note", body).files.get("measurement.md", "")
+    assert "### The table" in note, "the note was cut at its first sub-heading"
+    assert "What this does not say" in note
+    assert "How much of it was the command line" not in note, (
+        "the note swallowed the next form field")
+
+
+def test_r2_documents_what_its_decision_gate_actually_does(tmp_path):
+    """SOLUTION.md said three example falsifiers were "all rejected". One is accepted.
+
+    Documentation about a gate has to be checkable against the gate, or it is a claim about
+    software that nobody runs. This grades all three and compares the verdicts against the
+    table that describes them.
+    """
+    import yaml
+    from labsim.grader import _grade_decision
+    from labsim.registry import by_id
+
+    unit = by_id("R2")
+    base = yaml.safe_load(
+        (ROOT / "lab-simulator/units/R2-fusion-decision/reference/pass/decision.yaml")
+        .read_text(encoding="utf-8"))
+    expected = {
+        "If it turns out to be the wrong choice": False,
+        "If fusion stops beating the single leg": True,      # the gate lets this through
+        "If the numbers change": False,
+    }
+    for falsifier, want in expected.items():
+        d = tmp_path / falsifier[:12].replace(" ", "_")
+        d.mkdir()
+        (d / "decision.yaml").write_text(
+            yaml.safe_dump({**base, "would_change_if": falsifier}))
+        got = _grade_decision(unit, d, [])
+        assert got is want, (
+            f"{falsifier!r}: the gate {'accepts' if got else 'rejects'} it, and the table in "
+            f"SOLUTION.md says it {'accepts' if want else 'rejects'} it")
+
+    text = (ROOT / "lab-simulator/units/R2-fusion-decision/SOLUTION.md").read_text(
+        encoding="utf-8")
+    assert "all rejected" not in text, "the table claims all three are rejected again"
+    assert "**accepts it**" in text
+
+
+def test_a_malformed_unit_is_reported_rather_than_fatal(tmp_path, monkeypatch):
+    """`labsim validate` exists to find a broken unit.yaml. It could not survive one.
+
+    `meta["title"]` raised while the registry was being built, so one malformed unit took out
+    the other six along with the command whose job was to name it.
+    """
+    from labsim import registry
+
+    (tmp_path / "Z9-broken").mkdir()
+    (tmp_path / "Z9-broken" / "unit.yaml").write_text(
+        "id: Z9\ntrack: retrieval\ndifficulty: easy\nmode: implement\n")   # no title
+    (tmp_path / "Z9-broken" / "check.py").write_text("")
+    monkeypatch.setattr(registry, "UNITS_DIR", tmp_path)
+    registry.all_units.cache_clear()
+    try:
+        problems = registry.validate_all()
+    finally:
+        registry.all_units.cache_clear()
+    assert "Z9" in problems, problems
+    assert any("title" in p for p in problems["Z9"]), problems["Z9"]
+
+
+def test_every_brief_states_the_bars_its_unit_actually_enforces():
+    """A brief that documents a looser bar than the grader applies is worse than none.
+
+    C1's brief said `cache_hit_rate ≥ 0.6500` and `prefix_tokens_billed ≤ 260` while unit.yaml
+    enforced 0.7500 and 45.0. At the documented pair the unit's *own decoy* clears — the
+    "move the stable blocks too" configuration scores 0.6969 and 63.23 — so the brief described
+    a bar under which the wrong answer passes.
+    """
+    import re
+
+    import yaml
+
+    for directory in sorted((ROOT / "lab-simulator" / "units").iterdir()):
+        meta_path = directory / "unit.yaml"
+        brief_path = directory / "BRIEF.md"
+        if not (meta_path.exists() and brief_path.exists()):
+            continue
+        bars = yaml.safe_load(meta_path.read_text(encoding="utf-8")).get("bars") or []
+        line = re.search(r"^\*\*Bars\*\*(.+)$", brief_path.read_text(encoding="utf-8"), re.M)
+        if not bars:
+            assert line is None, f"{directory.name}: brief states bars, unit.yaml has none"
+            continue
+        assert line, f"{directory.name}: unit.yaml sets bars and the brief states none"
+        for bar in bars:
+            metric, threshold = bar["metric"], float(bar["threshold"])
+            stated = re.search(rf"`{re.escape(metric)}\s*[≥≤]\s*([\d.]+)`", line.group(1))
+            assert stated, f"{directory.name}: brief does not state a bar for {metric}"
+            assert float(stated.group(1)) == threshold, (
+                f"{directory.name}: brief says {metric} {stated.group(1)}, "
+                f"unit.yaml enforces {threshold}")

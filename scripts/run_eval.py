@@ -48,10 +48,18 @@ def main() -> int:
     ap.add_argument("--k", type=int, help="override the number of chunks packed")
     ap.add_argument("--compare", action="store_true",
                     help="every fusion rule against every other, with a paired bootstrap")
+    ap.add_argument("--sweep", action="store_true",
+                    help="the weighted rule across the alpha grid, all four metrics")
+    ap.add_argument("--ksweep", action="store_true",
+                    help="three fusion arms across the k grid, with and without the reranker")
     args = ap.parse_args()
 
     if args.compare:
         return compare(args.slice)
+    if args.sweep:
+        return sweep(args.slice)
+    if args.ksweep:
+        return ksweep(args.slice)
 
     cfg = dict(raglab.TUNED)
     overridden = {k: v for k, v in
@@ -134,6 +142,79 @@ ARMS = [
 COMPARISONS = [("bm25", "rrf"), ("bm25", "dense"), ("dense", "rrf"), ("rrf", "w0.2"),
                ("rrf", "w0.5"), ("w0.2", "w0.5")]
 KEYS = ("evidence_recall", "full_chain_recall", "ndcg", "answer_correct")
+
+
+ALPHAS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.7)
+KS = (3, 5, 8, 10, 20)
+KSWEEP_ARMS = (("bm25", {"fusion": "lexical", "alpha": 0.0}),
+               ("rrf", {"fusion": "rrf", "alpha": 0.5}),
+               ("w0.2", {"fusion": "weighted", "alpha": 0.2}))
+
+
+def ksweep(which_slice: str) -> int:
+    """Evidence recall and context precision across k, with and without the reranker.
+
+    Quoted in six seeded threads and in three exercise briefs and published nowhere, which is
+    the condition both retracted findings were in. `context_precision` is on the same table
+    deliberately: it moves the opposite way, monotonically, and the pair is the argument
+    against gating on precision alone.
+    """
+    print(f"slice {which_slice}, rerank on the left, none on the right\n")
+    head = (f"{'k':<5}" + "".join(f"{a:>12}" for a, _ in KSWEEP_ARMS)
+            + f"{'ctx_prec':>12}" + "".join(f"{a + ' (raw)':>14}" for a, _ in KSWEEP_ARMS))
+    print(head)
+    print("-" * len(head))
+    for k in KS:
+        cells, raw = [], []
+        prec = None
+        for name, cfg in KSWEEP_ARMS:
+            for rerank, sink in (("cross", cells), ("none", raw)):
+                bundle, _, pipe = raglab.quickstart(
+                    **{**raglab.TUNED, **cfg, "k": k, "rerank": rerank}, verbose=False)
+                qs = [q for q in bundle.questions
+                      if which_slice == "all" or q.slice == which_slice]
+                s = metrics.summarize(pipeline.evaluate(pipe, qs, pipe.chunks,
+                                                        personas=bundle.personas))
+                sink.append(s["evidence_recall"])
+                if rerank == "cross" and name == "bm25":
+                    prec = s["context_precision"]
+        print(f"{k:<5}" + "".join(f"{v:>12.4f}" for v in cells)
+              + f"{prec:>12.4f}" + "".join(f"{v:>14.4f}" for v in raw))
+    print("\nRecall rises with k and context precision falls, monotonically, because the")
+    print("denominator is k and the gold set for a question is fixed. A target on precision")
+    print("alone is therefore cleared by lowering k, which makes the system worse.")
+    return 0
+
+
+def sweep(which_slice: str) -> int:
+    """The weighted rule across the alpha grid.
+
+    `--compare` reports two points on this curve, w0.2 and w0.5, because those are the two the
+    fusion decision was between. The curve itself kept being quoted from memory in threads and
+    briefs with no command behind it, which is the shape of mistake ADR-0015 exists to prevent.
+    It is one line now.
+
+    No intervals here on purpose: adjacent alphas are not a decision anybody makes, and
+    printing an interval per row would invite reading the grid as six comparisons. Use
+    `--compare` for the two that matter.
+    """
+    print(f"slice {which_slice}, k={raglab.TUNED['k']}, rerank={raglab.TUNED['rerank']}, "
+          "fusion=weighted; alpha is the DENSE weight\n")
+    head = f"{'alpha':<8}" + "".join(f"{k:>19}" for k in KEYS)
+    print(head)
+    print("-" * len(head))
+    for alpha in ALPHAS:
+        bundle, _, pipe = raglab.quickstart(**{**raglab.TUNED, "fusion": "weighted",
+                                               "alpha": alpha}, verbose=False)
+        qs = [q for q in bundle.questions if which_slice == "all" or q.slice == which_slice]
+        s = metrics.summarize(pipeline.evaluate(pipe, qs, pipe.chunks,
+                                                personas=bundle.personas))
+        marker = "  ← shipped" if abs(alpha - raglab.TUNED["alpha"]) < 1e-9 else ""
+        print(f"{alpha:<8.1f}" + "".join(f"{s[k]:>19.4f}" for k in KEYS) + marker)
+    print("\nEvidence recall and nDCG rise with the dense weight and answer correctness does")
+    print("not move outside its noise band anywhere on this grid. That is the finding, and it")
+    print("is why the shipped alpha has not been chased upward.")
+    return 0
 
 
 def compare(which_slice: str) -> int:

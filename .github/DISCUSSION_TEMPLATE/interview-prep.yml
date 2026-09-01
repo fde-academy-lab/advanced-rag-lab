@@ -1,0 +1,46 @@
+# The useful thing to post here is the answer you actually gave, not the one you would give
+# now. The form asks for both, because the gap between them is the thread.
+labels: ["status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Practise an answer and get it taken apart.** The scenarios in
+        [docs/06-interview-prep/](../../blob/main/docs/06-interview-prep/) are graded ✗ / ○ / ● / ★
+        so you can see what the next band up sounds like.
+
+        **Nothing under NDA.** Not the company, not the exact question, not the data. Reframe it
+        onto this corpus — the mechanism transfers and the confidentiality problem does not.
+
+  - type: input
+    id: question
+    attributes:
+      label: The question, as you understood it
+      placeholder: "How would you separate a retrieval failure from a generation failure?"
+    validations: { required: true }
+
+  - type: textarea
+    id: answer
+    attributes:
+      label: What you actually said
+      description: >-
+        The real answer, not the improved one. A cleaned-up answer cannot be critiqued, because
+        the thing worth critiquing has already been edited out.
+    validations: { required: true }
+
+  - type: textarea
+    id: reaction
+    attributes:
+      label: How it landed
+      description: "The follow-up you got, the pause, the change of subject. This is the evidence."
+
+  - type: dropdown
+    id: want
+    attributes:
+      label: What you want back
+      options:
+        - "Is this answer right?"
+        - "It is right but it did not land — what was the interviewer actually after?"
+        - "What is the follow-up I should have expected?"
+        - "What would take this from a pass to a hire?"
+    validations: { required: true }

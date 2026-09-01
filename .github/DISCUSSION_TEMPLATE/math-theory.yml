@@ -1,0 +1,50 @@
+# A derivation thread is only worth the space if the algebra changes what somebody does, so the
+# form asks for the decision the derivation is attached to before it asks for the maths.
+labels: ["status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Derivations, proofs, and the question behind the formula.** If you can state it in
+        LaTeX, state it in LaTeX — GitHub renders `$…$` and `$$…$$`.
+
+        If the answer you want is a number or a file path, **Q&A** is the faster category.
+
+  - type: input
+    id: claim
+    attributes:
+      label: The claim you are testing
+      description: "State it as something that could be false."
+      placeholder: "Changing the nDCG discount from 1/log2(i+1) to 1/i would make the metric more severe"
+    validations: { required: true }
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: What decision hangs on it
+      description: >-
+        The thing somebody would do differently on Monday depending on the answer. A derivation
+        with nothing downstream of it is a nice piece of algebra and belongs in a notebook.
+    validations: { required: true }
+
+  - type: textarea
+    id: working
+    attributes:
+      label: Your working so far
+      description: "LaTeX welcome. Show the step you are unsure of rather than only the result."
+    validations: { required: true }
+
+  - type: textarea
+    id: stuck
+    attributes:
+      label: Where it stops
+      description: "The specific line, or the assumption you cannot justify."
+
+  - type: input
+    id: numbers
+    attributes:
+      label: Which figures you are using, and where they come from
+      description: >-
+        Every number in this repository has a command behind it. Naming the command is how the
+        next reader checks your arithmetic against a live figure rather than a remembered one.
+      placeholder: "evidence_recall 0.7645 from .github/eval-baseline.json"

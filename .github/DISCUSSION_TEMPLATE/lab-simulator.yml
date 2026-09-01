@@ -1,5 +1,7 @@
 title: "[UNIT] · "
-labels: ["lab-simulator"]
+# A simulator attempt is an exercise submission, and sharing the label means one query
+# spans both categories.
+labels: ["type: exercise"]
 body:
   - type: markdown
     attributes:

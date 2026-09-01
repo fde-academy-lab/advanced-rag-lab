@@ -6,7 +6,7 @@ there, and the accepted answer is the artefact everyone else reads later.
 
 | File | What it covers |
 |---|---|
-| [discussions-guide.md](discussions-guide.md) | The categories, what belongs in each, and how to ask a question that gets answered |
+| [discussions-guide.md](discussions-guide.md) | Every category, every label, the twenty-two plays, moderation, the bots, search recipes, and what GitHub will not let you automate |
 | [exercise-workflow.md](exercise-workflow.md) | Brief → attempt → submission → peer review → accepted answer, with the rubric at each step |
 | [personas.md](personas.md) | The named participants in seeded threads, and why they are labelled |
 

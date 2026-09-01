@@ -1,4 +1,5 @@
-labels: ["show-and-tell"]
+# No default label. The useful axis here is `area:`, which depends on what was built, and a
+# label that is wrong on half the threads is worse than none — it makes the filter lie.
 body:
   - type: input
     id: what

@@ -72,13 +72,25 @@ class Checker:
         return not self.failures
 
 
-def emit(metrics: dict | None = None, checker: Checker | None = None) -> int:
-    """Print the line the grader parses, and return the process exit code."""
+def emit(metrics: dict | None = None, checker: Checker | None = None,
+         *, failures: list[str] | None = None) -> int:
+    """Print the line the grader parses, and return the process exit code.
+
+    `failures` is for the case where no check ran at all — the solution would not load, so
+    there is nothing to check. That has to exit **non-zero**: a unit with no metric bar has
+    nothing else left to fail on, and `emit({})` used to return 0, so a missing or unparsable
+    solution.py was graded as a pass on four of the seven shipped units.
+    """
     payload = {"metrics": metrics or {}}
     if checker is not None:
         payload["failures"] = checker.failures
         payload["passes"] = len(checker.passes)
+    if failures:
+        payload["failures"] = list(failures) + list(payload.get("failures") or [])
+        payload.setdefault("passes", 0)
     print("LABSIM_RESULT:" + json.dumps(payload))
+    if failures:
+        return 1
     return 0 if (checker is None or checker.ok) else 1
 
 
@@ -88,4 +100,4 @@ def run(main_fn) -> int:
         return main_fn(sys.argv[1] if len(sys.argv) > 1 else ".")
     except SolutionError as exc:
         print(f"  {exc}")
-        return emit({})
+        return emit({}, failures=[str(exc)])

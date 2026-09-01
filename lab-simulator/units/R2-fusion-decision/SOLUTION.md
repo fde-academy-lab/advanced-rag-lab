@@ -93,13 +93,23 @@ This is `reference/fail-summarises-the-table/`, and the checks that reject it ar
 
 ## Falsifiers, and why the gate is strict
 
-The three most common first attempts, all rejected:
+The three most common first attempts, and what the gate does with each:
 
-| What people write | Why it is not a falsifier |
-|---|---|
-| "If it turns out to be the wrong choice" | True of every decision ever made. Names the conclusion |
-| "If fusion stops beating the single leg" | Restates the decision with a negation on it |
-| "If the numbers change" | Which numbers, by how much, measured how? |
+| What people write | Why it is not a falsifier | The gate |
+|---|---|---|
+| "If it turns out to be the wrong choice" | True of every decision ever made. Names the conclusion | rejects it |
+| "If fusion stops beating the single leg" | Restates the decision with a negation on it | **accepts it** |
+| "If the numbers change" | Which numbers, by how much, measured how? | rejects it — too short |
+
+The middle row is the one worth sitting with. The gate is two heuristics: a tautology pattern,
+and a word-overlap test against your own `decision`. A negated restatement shares few enough
+words with the decision to slip past the second and matches none of the first, so it passes.
+It is still not a falsifier.
+
+That is not a bug to file, it is the shape of every automated check on writing: **a gate can
+reject the obviously empty and cannot certify the substantive.** Clearing it is the floor, not
+the bar. If your falsifier passes and you cannot say what you would *observe*, the gate has
+told you nothing and you have written nothing.
 
 A falsifier is a **standing instruction to your future self**, and it has to be specific enough
 that someone who was not in the room can execute it. Ours is: *plot the per-query failure overlap

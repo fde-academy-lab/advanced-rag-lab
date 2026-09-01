@@ -105,7 +105,12 @@ def run_case(case: Case) -> CaseOutcome:
 
     # Both, because the two gates report differently: check.py names its failures, while the
     # decision gate never runs check.py at all and speaks only through messages.
-    caught = list(result.failures) + list(result.messages)
+    # `messages` carries the decision gate's output, which is why it is consulted — but it
+    # also carries check.py's `pass ...` lines, so a decoy whose expectation names a check
+    # that PASSED was scored as "caught by the intended check". Pass lines are evidence of the
+    # opposite. The decision gate never emits one.
+    caught = list(result.failures) + [m for m in result.messages
+                                      if not m.strip().startswith("pass ")]
     missed = [want for want in case.expect_failures
               if not any(want.lower() in got.lower() for got in caught)]
     if missed:

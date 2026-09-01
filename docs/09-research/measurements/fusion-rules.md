@@ -1,7 +1,8 @@
 # Measurement · Which fusion rule, and does fusion pay at all
 
 - **Date** 2026-09-01
-- **Command** `python scripts/run_eval.py --compare`
+- **Command** `python scripts/run_eval.py --compare` for the table;
+  `python scripts/failure_overlap.py` for the diagnostic that explains it
 - **Configuration** `structural` chunking, `n=100` candidates, cross-encoder rerank, `k=8`
 - **Set** 243 questions, 207 answerable; paired bootstrap over questions, 2000 resamples
 - **Supersedes** the fusion claims in ADR-0003 and ADR-0007 as originally written. See
@@ -23,6 +24,34 @@ w0.5                         0.7790             0.4686             0.5967       
 
 `alpha` is the **dense** weight, so `w0.2` is one fifth dense and four fifths lexical.
 `w0.2` is `raglab.TUNED` and the configuration `.github/eval-baseline.json` is cut from.
+
+## The alpha grid
+
+`--compare` reports two points on this curve because those are the two the decision was
+between. The curve itself kept being quoted from memory, so it has a command now:
+
+```
+python scripts/run_eval.py --sweep
+
+alpha       evidence_recall  full_chain_recall               ndcg     answer_correct
+------------------------------------------------------------------------------------
+0.1                  0.7444             0.4493             0.4152             0.4156
+0.2                  0.7645             0.4686             0.4767             0.4115  ← shipped
+0.3                  0.7766             0.4686             0.5047             0.4033
+0.4                  0.7790             0.4686             0.5461             0.3992
+0.5                  0.7790             0.4686             0.5967             0.3992
+0.7                  0.7778             0.4686             0.6102             0.3951
+```
+
+`alpha` is the **dense** weight. Evidence recall and nDCG both climb with it and answer
+correctness does not move outside its noise band anywhere on the grid — which is finding 3
+below, seen from a different direction.
+
+**So why does 0.2 ship?** Not because it is the best row; it is not. `full_chain_recall` — the
+metric the release gate is cut from — is identical from 0.2 upward, so the grid gives no reason
+to move on the number being gated, and every alternative would move the committed baseline for a
+gain in a metric nobody gates on. That is a defensible reason to leave it alone and a bad reason
+to defend it as optimal, and the difference is worth being explicit about.
 
 ## What the intervals say
 
@@ -73,6 +102,40 @@ legs fail on different queries, and the diagnostic for it is the per-query overl
 which nobody ran before choosing. That is a finding about the evaluation rather than about
 fusion, and it is the more valuable half.
 
+#### The diagnostic, measured
+
+The overlap argument above was made in prose for months before anyone computed it. It is one
+command:
+
+```
+python scripts/failure_overlap.py
+
+  207 answerable questions, k=8, n_candidates=100, rerank=cross
+
+    dense leg misses                95
+    lexical leg misses             102
+    both miss                       92
+    only dense misses                3   ← questions fusion could recover from the lexical leg
+    only lexical misses             10   ← and from the dense leg
+
+    P(lexical also misses | dense misses)   0.9684
+    Jaccard of the two failure sets         0.8762
+```
+
+**Thirteen questions in 207 are recoverable by fusion at all**, and only three of them in the
+direction people assume. That is the entire budget the merge is competing for, and it explains
+the +0.0008 above without appealing to anything.
+
+The conditional is the quantity that answers the question; the Jaccard is the plausible wrong
+formula and is printed beside it deliberately, because they are close enough to be mistaken for
+one another. R3 grades against exactly this, with the bar placed between the two values so a
+wrong formula fails on a real number rather than on a style check.
+
+Run with `--with-personas` for the same quantity through the shipped pipeline, ACL filter
+included: 111 / 117 / 110, conditional **0.9910**. The filter removes reachable evidence, so both
+legs miss more and miss it together. The conclusion does not depend on which of the two you take,
+which is the useful part.
+
 ### 3 · No retrieval configuration moves answer correctness
 
 Evidence recall spans 0.7118 → 0.7790 across these arms — a real 9.4% relative improvement, three
@@ -83,7 +146,7 @@ numerically worst retriever.
 The system is **generation-limited, not retrieval-limited**. That was already visible in the
 0.4686 → 0.4115 gap between full-chain recall and answer correctness and nobody joined it up: at
 k=8 the evidence is present for 47% of questions and the answer is right for 41%, so the last
-six points are the generator, and the 67 points below that are the chain.
+six points are the generator, and the 53 points below that are the chain.
 
 Consequences worth stating plainly:
 

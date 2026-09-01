@@ -2,7 +2,7 @@
 
 **Track** cost · **Mode** diagnose · **Difficulty** hard · **~40 min**
 **Prerequisites** R1
-**Bars** `cache_hit_rate ≥ 0.6500` · `prefix_tokens_billed ≤ 260`
+**Bars** `cache_hit_rate ≥ 0.7500` · `prefix_tokens_billed ≤ 45.0`
 
 ---
 

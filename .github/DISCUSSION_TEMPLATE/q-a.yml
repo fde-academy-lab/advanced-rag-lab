@@ -1,4 +1,7 @@
-labels: ["question"]
+# `status: triage` and not `question`: the category already says it is a question, and
+# `question` is one of the GitHub defaults setup_github.py deletes, so a template naming it
+# applies nothing at all. Triage is the axis a maintainer actually filters on.
+labels: ["status: triage"]
 body:
   - type: markdown
     attributes:

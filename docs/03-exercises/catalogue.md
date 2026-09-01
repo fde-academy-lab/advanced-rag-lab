@@ -223,14 +223,22 @@ cross-encoder if you have the dependency.
 ### ⚫ EX-15 · Make the dense leg earn its keep
 **Notebook 04** · open-ended · Seam ② · *Skill: understanding why embeddings work at all*
 
-The offline LSA encoder is genuinely weaker than BM25 here. Close the gap without adding a
-neural model: better vocabulary, n-grams, term weighting, dimension routing, or corpus
-augmentation.
+The offline LSA encoder is the **stronger** leg here — +0.0616 evidence recall and +0.2416 nDCG
+over BM25 — and fusing the two buys nothing, because 96.8% of the questions the dense leg misses
+are missed by BM25 as well. Fusion pays when the legs fail on *different* queries, and these
+fail together.
+
+So the exercise is not "close a gap". It is: **make the two legs fail differently, and measure
+whether fusion starts paying.** Swap in a real sentence encoder, or improve LSA without one —
+better vocabulary, n-grams, term weighting, dimension routing, corpus augmentation — and then
+re-run the diagnostic rather than the aggregate table.
 
 **Acceptance criteria**
 - Dense-only evidence recall, before and after, sliced by query class
-- An explanation of the mechanism — *why* your change helped
-- Whether the hybrid improves once the dense leg does
+- The failure overlap before and after: `python scripts/failure_overlap.py`. This is the number
+  that decides the question, and it starts at 0.9684
+- An explanation of the mechanism — *why* your change moved the overlap, not just the recall
+- Whether fusion separates from the better single leg once it does
 
 ---
 

@@ -6,6 +6,7 @@ repository has actually had.
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -180,10 +181,26 @@ def test_the_repository_query_selects_every_field_the_code_branches_on():
 
     import setup_github as sg
 
-    query = sg.REPO_Q
+    # The listing moved into its own paginated query, so check the pair.
+    query = sg.REPO_Q + sg.DISCUSSIONS_PAGE_Q
     for field in ("isAnswerable", "number", "title", "slug", "id"):
         assert re.search(rf"\b{field}\b", query), \
-            f"code branches on {field!r} but REPO_Q does not select it"
+            f"code branches on {field!r} but neither discussion query selects it"
+
+
+def test_the_discussion_listing_is_paginated():
+    """`first:100` is one page, not a listing, and the seeder decides what exists from it.
+
+    Past a hundred threads an unpaginated read stops recognising the repository's own content
+    and seeds a second copy of everything it cannot see. There are 44 defined.
+    """
+    import setup_github as sg
+    assert "pageInfo" in sg.DISCUSSIONS_PAGE_Q and "endCursor" in sg.DISCUSSIONS_PAGE_Q
+    src = (ROOT / "scripts" / "setup_github.py").read_text(encoding="utf-8")
+    assert "existing = all_discussions(" in src, (
+        "create_discussions no longer reads the paginated listing")
+    assert 'discussions(first:100){' not in sg.REPO_Q, (
+        "REPO_Q reads one page of discussions again")
 
 
 # --------------------------------------------------------------- retired threads
@@ -211,3 +228,56 @@ def test_a_banded_thread_is_recognised_and_not_banded_twice():
     banner = seed_content.RETIREMENT_BANNER.format(
         replacement="x", url="/u", owner="o", repo="r")
     assert (banner + "original body").lstrip().startswith("> [!WARNING]")
+
+
+# ─────────────────────────────────────────────────────── the discussions guide ──
+GUIDE = ROOT / "docs" / "10-community" / "discussions-guide.md"
+
+
+def _guide() -> str:
+    return GUIDE.read_text(encoding="utf-8")
+
+
+def test_the_guide_documents_every_category_the_repository_creates():
+    """A category the seeder creates and the guide omits is one nobody will post in."""
+    import seed_content
+    text = _guide()
+    for name, *_ in seed_content.CATEGORIES:
+        assert f"**{name}**" in text, f"the discussions guide never mentions {name!r}"
+
+
+def test_the_guide_documents_every_discussion_label():
+    import seed_content
+    text = _guide()
+    for name, *_ in seed_content.DISCUSSION_LABELS:
+        assert f"`{name}`" in text, f"the discussions guide never explains the {name!r} label"
+
+
+def test_the_play_count_in_the_heading_matches_the_plays():
+    """The heading names a number. A table people add rows to will drift away from it."""
+    text = _guide()
+    words = {"twenty-one": 21, "twenty-two": 22, "twenty-three": 23, "twenty-four": 24,
+             "twenty-five": 25, "twenty-six": 26, "twenty-seven": 27}
+    heading = re.search(r"^## The ([a-z-]+) plays$", text, re.M)
+    assert heading, "the plays section has been renamed; this test names it explicitly"
+    claimed = words.get(heading.group(1))
+    assert claimed, f"unrecognised number word {heading.group(1)!r} — extend the map"
+
+    section = text[text.index(heading.group(0)):text.index("## Lifecycle")]
+    rows = [l for l in section.splitlines()
+            if l.startswith("| ") and "---" not in l and not l.startswith("| Category |")]
+    assert len(rows) == claimed, (
+        f"the heading says {claimed} plays and the tables carry {len(rows)}")
+
+
+def test_the_guide_does_not_claim_the_stale_bot_touches_discussions():
+    """It does not — `actions/stale` supports issues and pull requests only.
+
+    The guide said it did, in a table of bots, until somebody read the workflow. A wrong claim
+    about automation is worse than no claim: people wait for a thing that will not happen.
+    """
+    stale = (ROOT / ".github" / "workflows" / "stale.yml").read_text(encoding="utf-8")
+    assert "discussion" not in stale.lower(), (
+        "stale.yml now touches discussions, so the guide's statement that nothing ages a "
+        "discussion out is stale itself")
+    assert "Nothing ages a discussion out" in _guide()
