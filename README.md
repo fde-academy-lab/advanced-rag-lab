@@ -86,6 +86,10 @@ embeddings, Bedrock rerank, a model judge — and swapping any of them changes t
 
 ## Quick start
 
+> **Upgrading from an earlier clone?** The package was renamed `nanorag` → `raglab`. After
+> pulling, run `pip install -e ".[dev]"` again — otherwise the first import fails with
+> `ModuleNotFoundError: No module named 'nanorag'`, which does not say what to do about it.
+
 ```bash
 git clone https://github.com/fde-academy-lab/advanced-rag-lab.git
 cd raglab

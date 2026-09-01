@@ -3,6 +3,10 @@
 Every forward-deployed engineer has a first engagement. This is a synthetic one, built so you
 can make every mistake that matters before you make them somewhere they cost money.
 
+> **Meridian Group is fictional.** It and its subsidiaries are generated from a fact graph;
+> any resemblance to a real organisation is a coincidence of the name generator. Nothing here is
+> an anonymised real client, and nothing is under anyone's NDA.
+
 ## The engagement
 
 **Meridian Group** is a mid-market holding company. Twenty-four operating subsidiaries across
@@ -29,6 +33,13 @@ system *knows* which documents carry which facts. There is no annotator, so ther
 annotation-error floor under any number. When a metric moves, the system changed — not the
 labelling. On a real engagement your ceiling is your annotator's accuracy and you usually cannot
 measure it.
+
+*What this does not remove:* **construction error**. If the generator places a fact in a document
+the fact graph does not record, gold is wrong — and silently, because there is no annotator to
+disagree with it. That failure is rarer than annotation error and considerably harder to detect
+for exactly that reason. The test is manual and nobody has run it: sample gold pairs and check by
+hand that the fact is genuinely present in the cited chunk. "True by construction" means the
+labelling cannot drift from the generator, not that the generator cannot be wrong.
 
 **Nothing is under NDA.** You can publish every number, post every failure in a public thread,
 and put the whole thing on your CV. Try that with a real client corpus.
