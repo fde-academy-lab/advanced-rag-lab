@@ -86,5 +86,5 @@ fails on a regression beyond tolerance and does **not** fail on an improvement â
 unexplained improvement should be investigated with the same suspicion as a regression. See
 [release-gate.md](release-gate.md).
 
-Every metric is implemented in `nanorag/metrics.py` with the failure it is guarding against in
+Every metric is implemented in `raglab/metrics.py` with the failure it is guarding against in
 the docstring. If a number looks wrong, read the docstring before reading the formula.

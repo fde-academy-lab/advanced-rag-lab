@@ -8,7 +8,7 @@ rather than when a fortnight elapses.
 
 | Phase | Name | Exit criteria | Artefacts |
 |---|---|---|---|
-| **P0** | Harness | The whole thing runs end to end on a fresh machine with no API key, in under 10 s. Tests and lint pass in CI | `nanorag/bootstrap.py`, CI, Makefile |
+| **P0** | Harness | The whole thing runs end to end on a fresh machine with no API key, in under 10 s. Tests and lint pass in CI | `raglab/bootstrap.py`, CI, Makefile |
 | **P1** | Baseline | An untuned baseline is declared **before** any numbers are seen, and reproduces to 4 decimals | `run_eval.py`, `eval-baseline.json`, notebook `01` |
 | **P2** | Retrieval | BM25, dense, ANN and fusion all implemented and measured against each other with intervals. ANN recall verified against exact search | `retrieve.py`, `store.py`, notebook `04` |
 | **P3** | Context | Packing respects a hard token cap. Every packed block carries provenance so a citation resolves | `context.py`, notebook `05` |

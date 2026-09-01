@@ -18,8 +18,8 @@
     "tokens_in_p95": 1123,
     "tokens_out": 82.2058,
     "tokens_out_p95": 98,
-    "latency_ms": 35.299,
-    "latency_ms_p95": 46.33,
+    "latency_ms": 34.4504,
+    "latency_ms_p95": 43.04,
     "cost_usd": 0.0039,
     "cost_usd_p95": 0.0046
   },

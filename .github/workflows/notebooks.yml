@@ -3,9 +3,9 @@ name: Notebooks
 on:
   push:
     branches: [main]
-    paths: ["notebooks/**", "nanorag/**", ".github/workflows/notebooks.yml"]
+    paths: ["notebooks/**", "raglab/**", ".github/workflows/notebooks.yml"]
   pull_request:
-    paths: ["notebooks/**", "nanorag/**"]
+    paths: ["notebooks/**", "raglab/**"]
   schedule:
     # Nightly on unchanged code. Not redundant: it is how you detect dependency
     # drift and upstream changes that alter your system without anyone committing.

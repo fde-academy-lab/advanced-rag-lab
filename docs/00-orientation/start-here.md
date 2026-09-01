@@ -17,8 +17,11 @@ kernel.
 
 ## What this is
 
-A retrieval, RAG and evaluation system small enough to read in full and complete enough to be
-wrong in interesting ways. Ten notebooks build it; a ~6,800-line toolkit implements it; an
+The **Client Zero** engagement: Meridian Group, twenty-four subsidiaries, 484 documents nobody
+can search. Read [client-zero.md](client-zero.md) for the brief and the eight phases.
+
+Mechanically, it is a retrieval, RAG and evaluation system small enough to read in full and
+complete enough to be wrong in interesting ways. Ten notebooks build it; a ~6,800-line toolkit implements it; an
 evaluation harness judges it and gates changes to it in CI.
 
 The point is not the retrieval. Thousands of repositories implement retrieval. The point is

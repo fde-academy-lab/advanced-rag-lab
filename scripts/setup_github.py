@@ -6,7 +6,7 @@ seeded issues (open and closed), Discussions with their categories and seeded th
 Projects v2 board with custom fields and items.
 
     export GITHUB_TOKEN=github_pat_...
-    python scripts/setup_github.py --owner OWNER --repo nanorag
+    python scripts/setup_github.py --owner OWNER --repo raglab
 
 Idempotent: safe to re-run. Anything that already exists is skipped rather than duplicated.
 
@@ -122,8 +122,9 @@ def create_repository(owner, repo, private, dry):
     payload = {
         "name": repo,
         "private": bool(private),
-        "description": ("Runnable retrieval / RAG / evaluation curriculum — 10 notebooks and a "
-                        "toolkit that run entirely in memory, with an eval gate in CI"),
+        "description": ("Advanced RAG & Evals Lab — the Client Zero engagement. Ten runnable "
+                        "notebooks, a from-scratch retrieval stack, and an eval harness that "
+                        "gates releases. No vector DB, no API key."),
         "homepage": f"https://{owner}.github.io/{repo}/",
         "has_issues": True,
         "has_projects": True,
@@ -228,8 +229,9 @@ def push_repository(owner, repo, dry):
 def configure_repository(owner, repo, dry):
     """Description, topics, features, merge policy, branch protection."""
     payload = {
-        "description": ("Runnable retrieval / RAG / evaluation curriculum — 10 notebooks and a "
-                        "toolkit that run entirely in memory, with an eval gate in CI"),
+        "description": ("Advanced RAG & Evals Lab — the Client Zero engagement. Ten runnable "
+                        "notebooks, a from-scratch retrieval stack, and an eval harness that "
+                        "gates releases. No vector DB, no API key."),
         "homepage": f"https://{owner}.github.io/{repo}/",
         "has_issues": True,
         "has_projects": True,

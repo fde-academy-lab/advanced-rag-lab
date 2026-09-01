@@ -20,7 +20,7 @@ notebook cell:
 Credentials themselves come from the ordinary boto3 chain: environment,
 ~/.aws/credentials, SSO, or an instance role.
 
-    from nanorag.bedrock import BedrockConfig, preflight
+    from raglab.bedrock import BedrockConfig, preflight
     cfg = BedrockConfig.from_env()
     preflight(cfg)                       # says what is configured, calls nothing
 
@@ -139,7 +139,7 @@ class BedrockKnowledgeBaseRetriever:
         if not self.cfg.ready:
             raise RuntimeError(
                 "BedrockConfig is not ready: set AWS_REGION and BEDROCK_KB_ID. "
-                "Run nanorag.bedrock.preflight() to see what is missing.")
+                "Run raglab.bedrock.preflight() to see what is missing.")
         self.client = agent_client or boto3.client("bedrock-agent-runtime",
                                                    region_name=self.cfg.region)
         self.runtime = client or boto3.client("bedrock-runtime", region_name=self.cfg.region)
@@ -223,7 +223,7 @@ class BedrockKnowledgeBaseRetriever:
 
 # The mapping a learner needs when they move this off a laptop.
 LOCAL_TO_AWS = [
-    ("Chunking (nanorag.chunking)", "Knowledge Base chunking strategy",
+    ("Chunking (raglab.chunking)", "Knowledge Base chunking strategy",
      "FIXED_SIZE / HIERARCHICAL / SEMANTIC / NONE, set on the data source",
      "HIERARCHICAL is parent-document retrieval; NONE means you chunk upstream"),
     ("SQLite FTS5 lexical index", "OpenSearch Serverless / Aurora pgvector",

@@ -19,12 +19,12 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from nanorag.bootstrap import bootstrap  # noqa: E402
+from raglab.bootstrap import bootstrap  # noqa: E402
 
 bootstrap(verbose=False, allow_install=False)
 
-import nanorag  # noqa: E402
-from nanorag import metrics, pipeline  # noqa: E402
+import raglab  # noqa: E402
+from raglab import metrics, pipeline  # noqa: E402
 
 BASELINE = ROOT / ".github" / "eval-baseline.json"
 TOLERANCE = {"evidence_recall": 0.02, "full_chain_recall": 0.03, "answer_correct": 0.03}
@@ -37,7 +37,7 @@ def main() -> int:
     ap.add_argument("--out", default="eval-report.json")
     args = ap.parse_args()
 
-    bundle, _, pipe = nanorag.quickstart(**nanorag.TUNED, verbose=False)
+    bundle, _, pipe = raglab.quickstart(**raglab.TUNED, verbose=False)
     questions = [q for q in bundle.questions
                  if args.slice == "all" or q.slice == args.slice]
     rows = pipeline.evaluate(pipe, questions, pipe.chunks, personas=bundle.personas)

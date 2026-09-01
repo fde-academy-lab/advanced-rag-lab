@@ -41,7 +41,7 @@ jobs:
                 "- Move it to **Ready** only when the acceptance criteria are written down.",
                 "  \"Improve retrieval\" is not acceptance criteria; \"full-chain recall on the",
                 "  comparison slice rises ≥5 points at unchanged k, and holds on frozen\" is.",
-                "- Anything touching `nanorag/` gets the `needs: eval-numbers` label",
+                "- Anything touching `raglab/` gets the `needs: eval-numbers` label",
                 "  automatically. The eval gate will post a scorecard on the PR."
               ].join("\n")
             });

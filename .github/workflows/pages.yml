@@ -2,7 +2,7 @@
 # interviewer can read the work without installing anything.
 name: Pages
 on:
-  push: { branches: [main], paths: ["notebooks/**", "nanorag/**", "docs/**"] }
+  push: { branches: [main], paths: ["notebooks/**", "raglab/**", "docs/**"] }
   workflow_dispatch:
 permissions:
   contents: read

@@ -6,7 +6,7 @@ history — is provisioned by one script, from your machine.
 
 ```bash
 export GITHUB_TOKEN=github_pat_...
-python scripts/setup_github.py --owner OWNER --repo nanorag
+python scripts/setup_github.py --owner OWNER --repo raglab
 ```
 
 Preview it first with `--dry-run`; it prints the full plan and changes nothing. The script is
@@ -122,7 +122,7 @@ three, and an initial commit on the remote means a merge before you can push.
 The `push` step does this too. By hand:
 
 ```bash
-cd nanorag
+cd raglab
 git remote add origin https://github.com/fde-academy-lab/advanced-rag-lab.git
 git push -u origin main
 ```

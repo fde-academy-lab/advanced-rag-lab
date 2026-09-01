@@ -1,5 +1,5 @@
 {
-  "name": "nanorag-docs-tooling",
+  "name": "raglab-docs-tooling",
   "private": true,
   "description": "Documentation linters. Not part of the Python package — see pyproject.toml.",
   "type": "module",

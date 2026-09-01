@@ -1,7 +1,7 @@
 """The corpus is generated, so its invariants are testable rather than hoped for."""
 from collections import Counter
 
-from nanorag import chunking, corpus, metrics
+from raglab import chunking, corpus, metrics
 
 
 def test_corpus_is_deterministic():

@@ -13,7 +13,7 @@ Closes #
 - [ ] Exercise submission (student)
 - [ ] Bug fix
 - [ ] New teaching content (notebook / doc / diagram)
-- [ ] Toolkit change (`nanorag/`)
+- [ ] Toolkit change (`raglab/`)
 - [ ] Infrastructure (CI, templates, board)
 
 ---

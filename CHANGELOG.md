@@ -30,7 +30,7 @@ inside the noise band.
 ### Changed
 - `docs/` restructured into ten numbered domains, each with an index. All 153 relative links
   rewritten and verified.
-- Package renamed `fde_rag` → `nanorag`.
+- Package renamed `fde_rag` → `raglab`.
 - Every seeded thread now carries a conversation. Nine previously had none.
 
 ### Fixed

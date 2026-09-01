@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-title: "Advanced RAG — Hands On"
+title: "Advanced RAG & Evals Lab"
 message: "If you use this material in teaching or research, please cite it."
 type: software
 authors:
-  - name: "the maintainers"
+  - name: "FDE LAB"
     website: "https://github.com/fde-academy-lab/advanced-rag-lab"
 repository-code: "https://github.com/fde-academy-lab/advanced-rag-lab"
 abstract: >-

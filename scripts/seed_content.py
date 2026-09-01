@@ -33,7 +33,7 @@ LABELS = [
     ("area: agent", "fbca04", "Agentic search loop"),
     ("area: cost", "f9d0c4", "Tokens, caching, unit economics"),
     ("area: notebooks", "d4c5f9", "Teaching notebooks"),
-    ("area: toolkit", "c5def5", "The nanorag package"),
+    ("area: toolkit", "c5def5", "The raglab package"),
     ("area: docs", "bfdadc", "docs/ and top-level markdown"),
     ("area: ci", "ededed", "Workflows and automation"),
     ("area: bedrock", "ff9900", "AWS Bedrock integration"),
@@ -46,7 +46,7 @@ LABELS = [
     ("good first issue", "7057ff", "A good place to start"),
     ("help wanted", "008672", "Extra attention is welcome"),
     ("cohort", "006b75", "Cohort-facing work"),
-    ("needs: eval-numbers", "e4664f", "Touches nanorag — must ship with a measurement"),
+    ("needs: eval-numbers", "e4664f", "Touches raglab — must ship with a measurement"),
     ("dependencies", "0366d6", "Dependency updates"),
     ("negative-result", "8a63d2", "A change that was measured and rejected — full credit"),
 ]
@@ -1105,7 +1105,7 @@ Re-ran the cell. Same result.
 ### Where
 
 Notebook 01 §1.3 vs README""",
-        "answer": """Almost always a **stale kernel** holding an older `nanorag` module. Restart the kernel and run
+        "answer": """Almost always a **stale kernel** holding an older `raglab` module. Restart the kernel and run
 all cells from the top. `bootstrap()` pins the seed but it cannot un-import a module Python
 already loaded.
 

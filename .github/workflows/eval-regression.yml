@@ -8,7 +8,7 @@ name: Eval gate
 on:
   pull_request:
     paths:
-      - "nanorag/**"
+      - "raglab/**"
       - ".github/eval-baseline.json"
       - ".github/workflows/eval-regression.yml"
   workflow_dispatch:
