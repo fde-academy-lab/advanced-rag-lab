@@ -133,3 +133,54 @@ def test_preflight_rejects_a_token_that_cannot_see_the_repository(monkeypatch):
 def test_preflight_accepts_an_ordinary_pat(monkeypatch):
     ok, calls = _preflight_with(monkeypatch, {"/user": {"login": "akash-coded"}})
     assert ok and calls == ["/user"]
+
+
+# --------------------------------------------------------------- seeded answers
+
+def test_every_intended_answer_has_a_usable_fingerprint():
+    """The repair path finds a comment by a stretch of the reply's own prose.
+
+    It has to be non-empty (a reply starting with a blank line or a code fence would give
+    nothing to match on) and unique across the whole seed (two replies opening with the same
+    sentence would mark the wrong comment as the answer).
+    """
+    import seed_content
+    from setup_github import answer_fingerprint
+
+    accepted = [r for t in seed_content.DISCUSSIONS
+                for r in t.get("replies", []) if r.get("accepted")]
+    assert accepted, "the seed defines no accepted answers at all"
+
+    prints = [answer_fingerprint(r) for r in accepted]
+    assert all(len(p) > 20 for p in prints), \
+        [p for p in prints if len(p) <= 20]
+    assert len(set(prints)) == len(prints), "two accepted replies share an opening line"
+
+
+def test_an_accepted_reply_is_only_in_a_category_that_can_hold_one():
+    """Marking an answer in a non-answerable category is an API error, not a no-op."""
+    import seed_content
+    answerable = {n for n, _e, _d, fmt in seed_content.CATEGORIES if fmt == "ANSWER"}
+    # GitHub's own defaults that are answerable but not declared in CATEGORIES.
+    answerable |= {"Q&A"}
+    offenders = sorted({t["category"] for t in seed_content.DISCUSSIONS
+                        if any(r.get("accepted") for r in t.get("replies", []))
+                        and t["category"] not in answerable})
+    assert not offenders, offenders
+
+
+def test_the_repository_query_selects_every_field_the_code_branches_on():
+    """`answerable` was built from `isAnswerable` on a query that never selected it.
+
+    So the set was always empty, no answer was ever marked, and 24 threads shipped without the
+    resolution that makes them readable. A query and the code reading it drift silently; this
+    checks the two against each other.
+    """
+    import re
+
+    import setup_github as sg
+
+    query = sg.REPO_Q
+    for field in ("isAnswerable", "number", "title", "slug", "id"):
+        assert re.search(rf"\b{field}\b", query), \
+            f"code branches on {field!r} but REPO_Q does not select it"
