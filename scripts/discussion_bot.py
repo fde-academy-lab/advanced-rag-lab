@@ -72,11 +72,17 @@ def sanitise(body: str) -> str:
     return body
 
 
+BOT_LOGINS = {"github-actions", "github-actions[bot]"}
+
+
 def existing_bot_comment(node_id: str) -> str | None:
     data = graphql(COMMENTS_Q, {"id": node_id})
     for node in reversed(data["node"]["comments"]["nodes"]):
         author = (node.get("author") or {}).get("login", "")
-        if MARKER in (node.get("body") or "") and author.endswith("[bot]"):
+        # GraphQL returns `github-actions`; REST returns `github-actions[bot]`. Testing only
+        # the suffix meant the standing verdict was never found, so every re-grade appended a
+        # new comment instead of updating the one already there.
+        if MARKER in (node.get("body") or "") and author in BOT_LOGINS:
             return node["id"]
     return None
 

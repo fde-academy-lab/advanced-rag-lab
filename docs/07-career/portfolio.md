@@ -103,9 +103,11 @@ project 🚀". Post a finding.
 
 > **Three things I measured on a RAG system that contradicted what I expected.**
 >
-> **1. Equal-weight RRF was worse than BM25 alone.** Fusing a strong retriever with a weak one
-> at equal weight moves you toward the weak one. Weighted fusion at α=0.2 beat both. The folk
-> rule "always hybrid" hides a tuning decision.
+> **1. Hybrid retrieval bought nothing over its better single leg.** Fusion beat BM25 alone by
+> +0.0624 evidence recall — but against the dense leg on its own it was +0.0008, ci (−0.0101,
+> +0.0109), and it *lost* 0.075 nDCG. Fusion pays when the legs fail on different queries, and
+> 96.8% of the questions the dense leg missed were missed by the lexical leg too. The folk rule
+> "always hybrid" hides a measurement nobody takes: the per-query failure overlap.
 >
 > **2. No retrieval-score threshold could separate answerable from unanswerable questions**
 > (best F1 0.38). The reason turned out to be visible in the questions rather than the scores:

@@ -77,6 +77,13 @@ class Unit:
 
     def validate(self) -> list[str]:
         problems = []
+        # `id` and `title` used to be read with `meta["..."]`, so a unit.yaml missing either
+        # raised while the registry was being built and took every other unit down with it.
+        # They are read defensively now, which means validate() owes the report.
+        if not self.uid:
+            problems.append("unit.yaml has no `id`")
+        if not self.title:
+            problems.append("unit.yaml has no `title`")
         if self.mode not in MODES:
             problems.append(f"mode {self.mode!r} not in {MODES}")
         if self.difficulty not in DIFFICULTIES:

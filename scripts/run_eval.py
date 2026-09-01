@@ -48,10 +48,14 @@ def main() -> int:
     ap.add_argument("--k", type=int, help="override the number of chunks packed")
     ap.add_argument("--compare", action="store_true",
                     help="every fusion rule against every other, with a paired bootstrap")
+    ap.add_argument("--sweep", action="store_true",
+                    help="the weighted rule across the alpha grid, all four metrics")
     args = ap.parse_args()
 
     if args.compare:
         return compare(args.slice)
+    if args.sweep:
+        return sweep(args.slice)
 
     cfg = dict(raglab.TUNED)
     overridden = {k: v for k, v in
@@ -134,6 +138,40 @@ ARMS = [
 COMPARISONS = [("bm25", "rrf"), ("bm25", "dense"), ("dense", "rrf"), ("rrf", "w0.2"),
                ("rrf", "w0.5"), ("w0.2", "w0.5")]
 KEYS = ("evidence_recall", "full_chain_recall", "ndcg", "answer_correct")
+
+
+ALPHAS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.7)
+
+
+def sweep(which_slice: str) -> int:
+    """The weighted rule across the alpha grid.
+
+    `--compare` reports two points on this curve, w0.2 and w0.5, because those are the two the
+    fusion decision was between. The curve itself kept being quoted from memory in threads and
+    briefs with no command behind it, which is the shape of mistake ADR-0015 exists to prevent.
+    It is one line now.
+
+    No intervals here on purpose: adjacent alphas are not a decision anybody makes, and
+    printing an interval per row would invite reading the grid as six comparisons. Use
+    `--compare` for the two that matter.
+    """
+    print(f"slice {which_slice}, k={raglab.TUNED['k']}, rerank={raglab.TUNED['rerank']}, "
+          "fusion=weighted; alpha is the DENSE weight\n")
+    head = f"{'alpha':<8}" + "".join(f"{k:>19}" for k in KEYS)
+    print(head)
+    print("-" * len(head))
+    for alpha in ALPHAS:
+        bundle, _, pipe = raglab.quickstart(**{**raglab.TUNED, "fusion": "weighted",
+                                               "alpha": alpha}, verbose=False)
+        qs = [q for q in bundle.questions if which_slice == "all" or q.slice == which_slice]
+        s = metrics.summarize(pipeline.evaluate(pipe, qs, pipe.chunks,
+                                                personas=bundle.personas))
+        marker = "  ← shipped" if abs(alpha - raglab.TUNED["alpha"]) < 1e-9 else ""
+        print(f"{alpha:<8.1f}" + "".join(f"{s[k]:>19.4f}" for k in KEYS) + marker)
+    print("\nEvidence recall and nDCG rise with the dense weight and answer correctness does")
+    print("not move outside its noise band anywhere on this grid. That is the finding, and it")
+    print("is why the shipped alpha has not been chased upward.")
+    return 0
 
 
 def compare(which_slice: str) -> int:

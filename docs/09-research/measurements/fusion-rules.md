@@ -25,6 +25,34 @@ w0.5                         0.7790             0.4686             0.5967       
 `alpha` is the **dense** weight, so `w0.2` is one fifth dense and four fifths lexical.
 `w0.2` is `raglab.TUNED` and the configuration `.github/eval-baseline.json` is cut from.
 
+## The alpha grid
+
+`--compare` reports two points on this curve because those are the two the decision was
+between. The curve itself kept being quoted from memory, so it has a command now:
+
+```
+python scripts/run_eval.py --sweep
+
+alpha       evidence_recall  full_chain_recall               ndcg     answer_correct
+------------------------------------------------------------------------------------
+0.1                  0.7444             0.4493             0.4152             0.4156
+0.2                  0.7645             0.4686             0.4767             0.4115  ← shipped
+0.3                  0.7766             0.4686             0.5047             0.4033
+0.4                  0.7790             0.4686             0.5461             0.3992
+0.5                  0.7790             0.4686             0.5967             0.3992
+0.7                  0.7778             0.4686             0.6102             0.3951
+```
+
+`alpha` is the **dense** weight. Evidence recall and nDCG both climb with it and answer
+correctness does not move outside its noise band anywhere on the grid — which is finding 3
+below, seen from a different direction.
+
+**So why does 0.2 ship?** Not because it is the best row; it is not. `full_chain_recall` — the
+metric the release gate is cut from — is identical from 0.2 upward, so the grid gives no reason
+to move on the number being gated, and every alternative would move the committed baseline for a
+gain in a metric nobody gates on. That is a defensible reason to leave it alone and a bad reason
+to defend it as optimal, and the difference is worth being explicit about.
+
 ## What the intervals say
 
 Deltas are **second arm minus first**, matching `metrics.paired_bootstrap(a, b)`.
@@ -118,7 +146,7 @@ numerically worst retriever.
 The system is **generation-limited, not retrieval-limited**. That was already visible in the
 0.4686 → 0.4115 gap between full-chain recall and answer correctness and nobody joined it up: at
 k=8 the evidence is present for 47% of questions and the answer is right for 41%, so the last
-six points are the generator, and the 67 points below that are the chain.
+six points are the generator, and the 53 points below that are the chain.
 
 Consequences worth stating plainly:
 

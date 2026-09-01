@@ -350,7 +350,7 @@ fix in week 3 mattered — identifier-slice recall went 0.34 to 0.81 on that cha
 
 The generalisation I would not make is the reverse one. "BM25 always wins on identifiers"
 predicts a slice-level win, not a corpus-level one, and this corpus is paraphrase and inference
-over prose, so term overlap has very little to score on the other 95% of it.
+over prose, so term overlap has very little to score on the rest of it.
 
 The audit worries me more than the finding. My instinct is to design a full provenance scheme
 for every number in the docs before we quote another one, and to hold the ADR until that lands.

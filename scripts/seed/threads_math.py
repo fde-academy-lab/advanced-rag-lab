@@ -119,13 +119,14 @@ positions, and its only meaning is the *ratios* between them.
 
 The +1 anchors rank 1 at $\\log_2 2 = 1$, so the top position takes the full gain and every other
 position is a fraction of it. Remove it and rank 1 has no finite weight for the rest to be a
-fraction *of*. The two rows agree at ranks 1 and 3 and nowhere else, so the choice is about how
-steeply the middle of the list falls away.
+fraction *of*. The two rows agree at rank 1, where $\\log_2 2 = 1$, and nowhere else: for every
+$i \\ge 2$ we have $\\log_2(i+1) < i$, so the log discount is strictly the gentler of the two. The
+choice is about how steeply the middle of the list falls away.
 
 **What the choice is worth.** Four gold pieces, ideal ranking 1,2,3,4, a system that lands them
 at 1,2,5,8: $2.3332/2.5616 = 0.9109$ under the log discount against $1.8250/2.0833 = 0.8760$
-under $1/i$. Three points of extra severity on a two-rank displacement, nothing like the size of
-the disagreement the reviewer is describing.
+under $1/i$. Three and a half points of extra severity for displacing two of the four pieces,
+by two ranks and by four — nothing like the size of the disagreement the reviewer is describing.
 
 **The condition under which $1/i$ would be right.** If your interface shows one result and nobody
 scrolls, examination probability does collapse faster than logarithmically, and then the response

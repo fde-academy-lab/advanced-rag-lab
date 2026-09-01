@@ -64,9 +64,17 @@ nothing was structured to notice.
 Note that `k = 60` does not save you. `k` controls how much a single voter's *first preference*
 counts. It does not control how much a *voter* counts.
 
-**The condition.** The expected result returns when both legs are comparably strong. Our LSA
-dense leg is materially weaker than BM25 on this corpus; a modern sentence embedder would likely
-close that gap and RRF should then win.
+**The condition.** The expected result returns when the legs fail on **different queries**, not
+when they are comparably strong. Here they fail on the same ones: of the 207 answerable
+questions the dense leg misses 95, the lexical leg misses 102, and 92 of those are the same
+questions — `P(lexical also misses | dense misses)` = **0.9684**, one command,
+`python scripts/failure_overlap.py`. There is almost nothing for a merge to recover, which is
+why fusion does not separate from its better single leg.
+
+Note also which leg is which: the LSA leg is the **stronger** of the two here, by +0.0616
+evidence recall and +0.2416 nDCG over BM25. A modern sentence encoder changes both failure
+profiles, and whether that makes them complementary is an empirical question rather than a
+safe assumption — it is EX-15.
 
 **Reproduce it.** [Notebook `04`](../../notebooks/04_retrieval_methods_and_reranking.ipynb).
 

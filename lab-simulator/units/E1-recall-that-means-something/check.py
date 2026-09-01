@@ -51,10 +51,14 @@ def main(attempt: str) -> int:
       "k truncates the retrieved list, not the gold map")
 
     # The check that separates counting evidence from counting chunks.
+    # Three chunks of one hop, not two: at two, a flattening implementation scores 2/4 = 0.5
+    # and so does a correct one, so the check the unit names as its discriminator agreed with
+    # the decoy it was written to catch. At three the correct answer is still 1 of 2 pieces
+    # and the flattened one is 3/4.
     c("a piece of evidence is satisfied by any one of its chunks",
-      close(er(["c1", "c2"], INTERCHANGEABLE), 0.5),
-      "c1 and c2 both satisfy hop_a and hop_b was not found, so this is 1 of 2 pieces. "
-      "An implementation that flattens the gold map scores 2/4 here")
+      close(er(["c1", "c2", "c3"], INTERCHANGEABLE), 0.5),
+      "c1, c2 and c3 all satisfy hop_a and hop_b was not found, so this is 1 of 2 pieces. "
+      "An implementation that flattens the gold map scores 3/4 here")
 
     # ------------------------------------------------------------- full chain
     c("full-chain recall is 1.0 only when every piece is found",

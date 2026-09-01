@@ -71,9 +71,22 @@ class Submission:
         return bool(self.unit_id) and bool(self.files)
 
 
+def _is_form_label(label: str) -> bool:
+    """Is this `###` heading one of the form's own fields, or part of somebody's answer?"""
+    low = label.strip().lower()
+    return (_target_file(low) is not None
+            or any(word in low for word in PROSE_FIELDS))
+
+
 def _sections(body: str) -> dict[str, str]:
-    """`### Label` blocks from a discussion form, lowercased keys."""
-    out, marks = {}, list(SECTION.finditer(body))
+    """`### Label` blocks from a discussion form, lowercased keys.
+
+    Only a heading that names a *form field* starts a new section. Every `###` used to, which
+    truncated any field whose content had sub-headings of its own — and a P1 measurement note
+    is exactly that: the template it is graded against opens with `### The table`. The note was
+    cut off at its first sub-heading and graded on the fragment.
+    """
+    out, marks = {}, [m for m in SECTION.finditer(body) if _is_form_label(m.group("label"))]
     for i, m in enumerate(marks):
         end = marks[i + 1].start() if i + 1 < len(marks) else len(body)
         out[m.group("label").strip().lower()] = body[m.end():end].strip()
@@ -95,9 +108,18 @@ def _target_file(label: str) -> str | None:
 
 
 def _first_fence(text: str, *langs: str) -> str | None:
+    """The first non-empty fenced block, optionally restricted by language.
+
+    Non-empty matters: somebody who opens a fence and pastes nothing into it used to submit an
+    empty solution.py, which is a *different* failure from submitting nothing — the unit grades
+    it and reports a missing function rather than saying the form field was blank.
+    """
     for m in FENCE.finditer(text):
-        if not langs or (m.group("lang") or "").lower() in langs:
-            return m.group("code").rstrip() + "\n"
+        if langs and (m.group("lang") or "").lower() not in langs:
+            continue
+        code = m.group("code").rstrip()
+        if code.strip():
+            return code + "\n"
     return None
 
 

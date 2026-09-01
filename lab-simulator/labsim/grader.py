@@ -128,18 +128,35 @@ def _run_checks(unit: Unit, where: Path, out: list[str]) -> tuple[bool, dict]:
         capture_output=True, text=True, timeout=CHECK_TIMEOUT, cwd=str(ROOT.parent),
     )
     payload: dict = {}
+    reported = False               # did check.py actually print a result block?
     for line in proc.stdout.splitlines():
         if line.startswith("LABSIM_RESULT:"):
             try:
-                payload = json.loads(line[len("LABSIM_RESULT:"):])
+                parsed = json.loads(line[len("LABSIM_RESULT:"):])
             except json.JSONDecodeError:
-                pass
+                continue
+            # Valid JSON that is not an object used to reach `payload.get` and raise
+            # AttributeError inside grade(). A malformed result is a failed run, not a crash.
+            if isinstance(parsed, dict):
+                payload, reported = parsed, True
+            else:
+                out.append("check.py reported a result that is not an object")
         else:
             out.append(line)
-    if proc.returncode != 0 and not payload:
+    if proc.returncode != 0 and not reported:
         tail = (proc.stderr or "").strip().splitlines()[-6:]
         out.extend(tail or ["check.py failed with no output"])
-    return proc.returncode == 0, payload
+    # An exit code of 0 is not evidence that anything was checked.
+    #
+    # For the four units with no metric bar, `checks_ok` is the entire verdict, so a subprocess
+    # that exits before running a single check was reported as cleared — `import os;
+    # os._exit(0)` as solution.py graded green, and so did an attempt directory with no
+    # solution.py in it at all. Requiring the result block makes "it ran and said nothing" a
+    # failure, which is what it is.
+    if proc.returncode == 0 and not reported:
+        out.append("check.py exited cleanly without running any check — "
+                   "no LABSIM_RESULT block was produced")
+    return proc.returncode == 0 and reported, payload
 
 
 def grade(unit: Unit, where: Path | None = None) -> Result:

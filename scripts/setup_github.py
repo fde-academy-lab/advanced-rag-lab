@@ -433,9 +433,37 @@ query($owner:String!,$name:String!){
   repository(owner:$owner,name:$name){
     id hasDiscussionsEnabled
     discussionCategories(first:50){ nodes { id name slug isAnswerable description } }
-    discussions(first:100){ nodes { title number } }
   }
 }"""
+
+# Paginated, because `first:100` is not a listing — it is the first page of one, in an
+# unspecified order. The seeder decides what already exists from this map, so a repository
+# past a hundred threads would stop recognising its own content and seed a second copy of
+# everything it could not see. There are 44 defined today.
+DISCUSSIONS_PAGE_Q = """
+query($owner:String!,$name:String!,$after:String){
+  repository(owner:$owner,name:$name){
+    discussions(first:100, after:$after){
+      nodes { title number }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+}"""
+
+
+def all_discussions(owner, repo) -> dict:
+    """Every discussion title in the repository, mapped to its number."""
+    out, after = {}, None
+    while True:
+        page = graphql(DISCUSSIONS_PAGE_Q,
+                       {"owner": owner, "name": repo,
+                        "after": after})["repository"]["discussions"]
+        for node in page["nodes"]:
+            out[node["title"]] = node["number"]
+        if not page["pageInfo"]["hasNextPage"]:
+            return out
+        after = page["pageInfo"]["endCursor"]
+
 
 CREATE_DISCUSSION_M = """
 mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
@@ -879,7 +907,7 @@ def create_discussions(owner, repo, dry):
     categories = {c["name"]: c["id"] for c in data["discussionCategories"]["nodes"]}
     answerable = {c["name"] for c in data["discussionCategories"]["nodes"]
                   if c.get("isAnswerable")}
-    existing = {d["title"]: d["number"] for d in data["discussions"]["nodes"]}
+    existing = all_discussions(owner, repo)
 
     missing = {name for name, *_ in content.CATEGORIES} - set(categories)
     if missing:
@@ -1189,7 +1217,13 @@ def main() -> int:
         print("\n\033[1mDiscussions\033[0m")
         outcome = run_step("discussions", create_discussions,
                            args.owner, args.repo, args.dry_run)
-        seed_failures = (outcome or (None, []))[1]
+        # `run_step` returns None when the step raised, and `None or (None, [])` gives an
+        # empty failure list — identical to a clean run. A 502 partway through 196 mutations
+        # therefore printed one red line and exited 0, leaving the job green and the content
+        # permanently half-seeded, because the next run skips every title that already exists.
+        # An aborted step is a failure even though it has no per-thread failures to report.
+        seed_failures = ["the discussions step aborted before it finished"] \
+            if outcome is None else outcome[1]
     if "project" in wanted:
         print("\n\033[1mProject board\033[0m")
         if not issues and not args.dry_run:
@@ -1212,8 +1246,10 @@ def main() -> int:
     print("  2. Settings → Pages → source: GitHub Actions   (enables the notebook site)")
     print("  3. Pin 2–3 discussions and 3–4 issues")
     if seed_failures:
-        print(f"\n\033[31m{len(seed_failures)} discussion(s) failed to seed.\033[0m "
-              "Re-running is safe — existing threads are skipped.")
+        print("\n\033[31mSeeding did not complete cleanly:\033[0m")
+        for item in seed_failures:
+            print(f"  {item}")
+        print("Re-running is safe — existing threads are skipped.")
         return 1
     print("  4. Add a repository social preview image (Settings → General)")
     return 0

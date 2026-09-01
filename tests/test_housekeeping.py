@@ -181,10 +181,26 @@ def test_the_repository_query_selects_every_field_the_code_branches_on():
 
     import setup_github as sg
 
-    query = sg.REPO_Q
+    # The listing moved into its own paginated query, so check the pair.
+    query = sg.REPO_Q + sg.DISCUSSIONS_PAGE_Q
     for field in ("isAnswerable", "number", "title", "slug", "id"):
         assert re.search(rf"\b{field}\b", query), \
-            f"code branches on {field!r} but REPO_Q does not select it"
+            f"code branches on {field!r} but neither discussion query selects it"
+
+
+def test_the_discussion_listing_is_paginated():
+    """`first:100` is one page, not a listing, and the seeder decides what exists from it.
+
+    Past a hundred threads an unpaginated read stops recognising the repository's own content
+    and seeds a second copy of everything it cannot see. There are 44 defined.
+    """
+    import setup_github as sg
+    assert "pageInfo" in sg.DISCUSSIONS_PAGE_Q and "endCursor" in sg.DISCUSSIONS_PAGE_Q
+    src = (ROOT / "scripts" / "setup_github.py").read_text(encoding="utf-8")
+    assert "existing = all_discussions(" in src, (
+        "create_discussions no longer reads the paginated listing")
+    assert 'discussions(first:100){' not in sg.REPO_Q, (
+        "REPO_Q reads one page of discussions again")
 
 
 # --------------------------------------------------------------- retired threads

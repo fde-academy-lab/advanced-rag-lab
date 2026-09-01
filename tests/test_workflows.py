@@ -190,3 +190,22 @@ def test_every_discussion_template_matches_a_category_slug():
     for path in sorted((ROOT / ".github" / "DISCUSSION_TEMPLATE").glob("*.yml")):
         assert path.stem in known, (
             f"{path.name} names no category slug — known slugs are {sorted(known)}")
+
+
+def test_the_provision_summary_names_the_right_categories_as_answerable():
+    """The summary is the manual-setup instruction, and it said "the first four".
+
+    The first four in its own list were Design Reviews, Reading Club, Interview Prep and LAB
+    Simulator — two of which `CATEGORIES` declares open-ended. Following it produced two
+    categories that cannot carry an accepted answer and two that carry one nobody wanted.
+    """
+    import seed_content
+    text = (WORKFLOWS / "provision.yml").read_text(encoding="utf-8")
+    for name, _emoji, _desc, fmt in seed_content.CATEGORIES:
+        row = re.search(rf"^\s*echo \"\s*\|\s*{re.escape(name)}\s*\|\s*(.+?)\s*\|\"",
+                        text, re.M)
+        assert row, f"the provision summary does not list {name!r}"
+        says_qa = "Q&A" in row.group(1)
+        assert says_qa == (fmt == "ANSWER"), (
+            f"{name}: CATEGORIES says {fmt}, the summary says {row.group(1)!r}")
+    assert "the first four" not in text, "the positional instruction is back"
