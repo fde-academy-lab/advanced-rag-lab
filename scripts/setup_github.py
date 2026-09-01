@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -484,6 +485,7 @@ def create_discussions(owner, repo, dry):
               "category.\n      Threads for a missing category are skipped, not misfiled.")
 
     created, posts, answers = [], 0, 0
+    broken: list[str] = []          # failed for a reason that is not "category missing"
     for spec in content.DISCUSSIONS:
         title = spec["title"]
         if title in existing:
@@ -499,12 +501,13 @@ def create_discussions(owner, repo, dry):
             continue
 
         try:
-            out = graphql(CREATE_DISCUSSION_M, {
+            out = mutate(CREATE_DISCUSSION_M, {
                 "repoId": data["id"], "catId": cat_id, "title": title,
                 "body": render(spec.get("author", "maintainer"), spec["body"])})
             disc = out["createDiscussion"]["discussion"]
         except GitHubError as exc:
             fail(f"“{title[:46]}”", exc.message[:90])
+            broken.append(title)
             continue
 
         created.append((disc["number"], title))
@@ -516,7 +519,7 @@ def create_discussions(owner, repo, dry):
         accepted_id = None
         for reply in spec.get("replies", []):
             try:
-                res = graphql(ADD_COMMENT_M, {
+                res = mutate(ADD_COMMENT_M, {
                     "discussionId": disc_id,
                     "body": render(reply["by"], reply["body"])})
                 posts += 1
@@ -524,27 +527,58 @@ def create_discussions(owner, repo, dry):
                     accepted_id = res["addDiscussionComment"]["comment"]["id"]
             except GitHubError as exc:
                 warn("  ↳ reply", exc.message[:70])
-            time.sleep(0.35)
+            time.sleep(1.1)
 
         # Only answerable categories accept an answer; marking one elsewhere is an error,
         # not a no-op, so the category's own flag decides rather than a hardcoded list.
         if accepted_id and cat in answerable:
             try:
-                graphql(MARK_ANSWER_M, {"id": accepted_id})
+                mutate(MARK_ANSWER_M, {"id": accepted_id})
                 answers += 1
             except GitHubError as exc:
                 warn("  ↳ mark answer", exc.message[:70])
 
         ok(f"#{disc['number']}", f"{cat:<24} {len(spec.get('replies', [])):>2} replies  "
                                  f"{title[:44]}")
-        time.sleep(0.5)
+        time.sleep(1.1)
 
     ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked")
-    return created
+    if broken:
+        # A missing category is expected and skipped quietly. Anything else is a real failure,
+        # and a step that stays green through one is a step nobody will look at again.
+        fail("discussions", f"{len(broken)} thread(s) could not be created")
+        for title in broken:
+            print(f"        {title[:76]}")
+    return created, broken
 
 
 MARK_ANSWER_M = """
 mutation($id:ID!){ markDiscussionCommentAsAnswer(input:{id:$id}){ clientMutationId } }"""
+
+# GitHub's *secondary* rate limit is not the hourly quota and is not reported in the usual
+# headers. It trips on the rate of content-creating requests — roughly 80 a minute — and the
+# only signal is a 403 whose message says so.
+#
+# Seeding this repository is about 150 mutations. At the old 0.35-0.5s spacing that is ~120 a
+# minute, which is over the line: three threads at the tail of the run failed and the step still
+# reported success, because a per-thread failure was printed and swallowed. The retry is the fix;
+# the wider spacing below just makes the retry rare.
+RETRYABLE = re.compile(r"secondary rate limit|abuse detection|try again later|rate limit", re.I)
+
+
+def mutate(query, variables, *, attempts=4):
+    """A content-creating GraphQL call that survives the secondary rate limit."""
+    delay = 5
+    for attempt in range(1, attempts + 1):
+        try:
+            return graphql(query, variables)
+        except GitHubError as exc:
+            if attempt == attempts or not RETRYABLE.search(exc.message or ""):
+                raise
+            warn("  ↳ rate limited", f"waiting {delay}s (attempt {attempt}/{attempts - 1})")
+            time.sleep(delay)
+            delay *= 3
+    raise AssertionError("unreachable")
 
 ADD_REACTION_M = """
 mutation($id:ID!,$content:ReactionContent!){
@@ -717,10 +751,12 @@ def main() -> int:
                 f"/repos/{args.owner}/{args.repo}/milestones?state=all&per_page=100",
                 args.dry_run, [])}
         issues = create_issues(args.owner, args.repo, milestones, args.dry_run)
+    seed_failures = []
     if "discussions" in wanted:
         print("\n\033[1mDiscussions\033[0m")
-        run_step("discussions", create_discussions,
-                 args.owner, args.repo, args.dry_run)
+        outcome = run_step("discussions", create_discussions,
+                           args.owner, args.repo, args.dry_run)
+        seed_failures = (outcome or (None, []))[1]
     if "project" in wanted:
         print("\n\033[1mProject board\033[0m")
         if not issues and not args.dry_run:
@@ -736,10 +772,16 @@ def main() -> int:
 
     print(f"\n\033[1mDone.\033[0m  https://github.com/{args.owner}/{args.repo}")
     print("\nManual steps the API cannot do:")
-    print("  1. Settings → Discussions → create the custom categories listed above")
-    print("     (Design Reviews, Reading Club, Interview Prep) and set Q&A to answerable")
+    print("  1. Settings → Discussions → create any category reported missing above.")
+    print("     No API creates one. The full set this repository seeds into:")
+    for name, _emoji, _desc, fmt in content.CATEGORIES:
+        print(f"       {name:<26} {'Q&A (answerable)' if fmt == 'ANSWER' else fmt.lower()}")
     print("  2. Settings → Pages → source: GitHub Actions   (enables the notebook site)")
     print("  3. Pin 2–3 discussions and 3–4 issues")
+    if seed_failures:
+        print(f"\n\033[31m{len(seed_failures)} discussion(s) failed to seed.\033[0m "
+              "Re-running is safe — existing threads are skipped.")
+        return 1
     print("  4. Add a repository social preview image (Settings → General)")
     return 0
 
