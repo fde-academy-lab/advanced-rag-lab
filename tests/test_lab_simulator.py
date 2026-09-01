@@ -521,7 +521,6 @@ def rendered_form(**fields) -> str:
 def test_the_form_labels_match_what_the_parser_looks_for():
     """The contract between the YAML and the parser, checked against the YAML itself."""
     import yaml as _yaml
-
     from labsim.discussion import _target_file
     form = _yaml.safe_load(
         (ROOT / ".github" / "DISCUSSION_TEMPLATE" / "lab-simulator.yml").read_text())
