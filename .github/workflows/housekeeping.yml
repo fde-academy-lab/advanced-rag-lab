@@ -1,0 +1,107 @@
+# The repository tidying up after itself.
+#
+# Two things kept needing a human, and neither is a decision:
+#
+#   * branches whose pull request merged weeks ago, still sitting in the branch list
+#   * seeded discussion content that changed on main but was never re-seeded, because
+#     re-seeding is a workflow_dispatch somebody has to remember to click
+#
+# Both run here, on a push to main, so the act that *causes* the work is the act that does it.
+#
+# Deleting branches automatically is destructive, so the predicate is deliberately narrow: a
+# branch goes only when every pull request that ever pointed at it is merged and none is open.
+# That is stronger than "merged into main" — a squash merge leaves the branch tip absent from
+# main's history, so an ancestry check would keep exactly the branches you most want gone — and
+# it is safer, because a branch nobody ever opened a pull request for is never touched.
+name: Housekeeping
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would happen without doing it"
+        required: false
+        default: true
+        type: boolean
+      seed:
+        description: "Re-seed discussions even if the seed content did not change"
+        required: false
+        default: false
+        type: boolean
+
+permissions: {}
+
+jobs:
+  branches:
+    name: Delete branches whose pull request is finished
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # deleting a ref is a contents write; nothing else is needed
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Sweep
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: python scripts/sweep_branches.py
+
+  discussions:
+    name: Re-seed discussions when the seed content changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      discussions: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2, persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Did the seed content move
+        id: changed
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+             && [ "${{ inputs.seed }}" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "forced"; exit 0
+          fi
+          # A push to main with no seed change should not re-walk 36 threads and their replies.
+          if git diff --name-only HEAD^ HEAD -- scripts/seed_content.py scripts/seed \
+               | grep -q .; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "seed content changed"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"; echo "seed content unchanged"
+          fi
+
+      - name: Seed
+        if: steps.changed.outputs.run == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The seeder skips any thread whose title already exists and any thread whose category
+          # is missing, so this is safe to run repeatedly and safe to run before a category has
+          # been created by hand.
+          python scripts/setup_github.py \
+            --owner "${GITHUB_REPOSITORY%%/*}" \
+            --repo  "${GITHUB_REPOSITORY##*/}" \
+            --only  discussions
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Discussions"
+            echo ""
+            echo "Seed content changed: \`${{ steps.changed.outputs.run }}\`"
+            echo ""
+            echo "Threads whose category does not exist are skipped rather than misfiled."
+            echo "No GitHub API creates a discussion category — see lab-simulator/DISCUSSIONS.md."
+          } >> "$GITHUB_STEP_SUMMARY"
