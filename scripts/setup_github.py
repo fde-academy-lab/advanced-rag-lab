@@ -29,6 +29,7 @@ reported as skipped with the manual instructions.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -264,23 +265,44 @@ def configure_repository(owner, repo, dry):
     except GitHubError as exc:
         warn("topics", exc.message[:100])
 
-    # Branch protection: require CI + the eval gate, and a review. Best-effort — this needs
-    # Administration:write and is unavailable on some plans for private repos.
+    # Branch protection.
+    #
+    # Required status checks, yes: they run without a human and they have caught real defects —
+    # a link checker that had drifted from the one `make lint` runs, three doc directories that
+    # were empty and therefore untracked and therefore 404 in a clone, and a metric regression.
+    #
+    # Required *reviews*, no, and this is a deliberate reversal. A review requirement assumes two
+    # people. GitHub does not let an author approve their own pull request, so on a repository
+    # with one maintainer it is not a second pair of eyes — it is a button that person presses to
+    # unblock themselves. That is worse than no control, because it looks like one, and a control
+    # everybody learns to click through stops being read.
+    #
+    # Set REVIEWERS to the number of people who will actually review, which for most forks of
+    # this repository is zero.
+    reviewers = int(os.environ.get("REQUIRED_REVIEWERS", "0"))
     protection = {
         "required_status_checks": {
             "strict": True,
-            "contexts": ["Lint", "Tests (py3.11)",
-                         "One-click promise (fresh machine, no pip install)"],
+            "contexts": [
+                "Lint",
+                "Tests (py3.11)",
+                "One-click promise (fresh machine, no pip install)",
+                # The two doc checks. Cheap, and both have failed for real reasons.
+                "links",
+                "Mermaid renders on GitHub",
+            ],
         },
         "enforce_admins": False,
-        "required_pull_request_reviews": {
-            "required_approving_review_count": 1,
-            "dismiss_stale_reviews": True,
-        },
+        "required_pull_request_reviews": (
+            {"required_approving_review_count": reviewers, "dismiss_stale_reviews": True}
+            if reviewers else None
+        ),
         "restrictions": None,
         "allow_force_pushes": False,
         "allow_deletions": False,
-        "required_conversation_resolution": True,
+        # Off with zero reviewers: an unresolved conversation cannot be resolved by the person
+        # who opened it either, so this reintroduces the same block by a different route.
+        "required_conversation_resolution": bool(reviewers),
     }
     try:
         request("PUT", f"/repos/{owner}/{repo}/branches/main/protection", protection)
