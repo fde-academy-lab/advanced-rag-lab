@@ -34,11 +34,17 @@ questions before they tell you.
 > **Full-chain recall** — of all questions, what fraction had *every* required piece in the
 > window. Per-question. This is the one that predicts whether the generator can actually answer.
 >
-> If retrieval events were independent with probability p and a question needs two pieces,
-> full-chain would be p². At p = 0.76 that's 0.58. We measure 0.47 — meaningfully *below*
-> independence, and the shortfall is the diagnosis: the two pieces are not independently
-> retrievable. Hop-1 evidence resembles the query and hop-2 evidence resembles the *answer to
-> hop 1*, so widening k buys you more hop-1 and nothing else.
+> The interesting question is whether the gap between them is more than arithmetic. If pieces
+> were retrieved independently at p, a question needing k of them clears at p^k — weighted over
+> the real distribution of k, which on our corpus is half the questions needing four or more.
+> That predicts 0.4603 against a measured 0.4686. We are *at* independence, so there is no
+> correlated-failure structure to hunt: the gap is the arithmetic of needing four pieces at 76%
+> each, and nothing else.
+>
+> I'd say that carefully, because we published the opposite for months — a 21-point shortfall,
+> computed over hops instead of evidence pieces and against a question mixture that did not
+> exist. The lesson I took is that a derived number needs a command that regenerates it, or
+> nobody re-derives it.
 >
 > I'd report both plus the ratio, because a system that improves per-piece recall while the
 > ratio falls has got worse at the thing users care about while its headline number improved."

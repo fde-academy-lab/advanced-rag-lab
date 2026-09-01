@@ -77,28 +77,38 @@ full_chain_recall@8   0.4686        questions fully resolved
 answer_correct        0.4115        answers actually right
 ```
 
-**0.7645 → 0.4686.** If pieces failed independently, a question with `h` hops resolves with
-`p^h`. Over Client Zero's answerable mix — 128 single-hop, 61 two-hop, 18 three-plus —
-independence predicts:
+**0.7645 → 0.4686.** If pieces were retrieved independently, a question needing `k` of them
+resolves with `p^k`. The exponent is the count of **gold evidence pieces** — `len(gold_map)` —
+not the hop count, because that is exactly what `full_chain_recall` requires. Over Client Zero's
+real distribution:
 
 ```
-(128·0.7645 + 61·0.7645² + 18·0.7645³) / 207 = 0.6838
+python scripts/independence.py
+
+  pieces   questions          p^k
+      1          21        0.7645
+      2          59        0.5845
+      3          21        0.4469
+      4         100        0.3416
+      6           6        0.1997
+
+  weighted prediction  0.4603
+  measured             0.4686      +0.0083
 ```
 
-Measured is 0.4686, which is **21 points below** the independence prediction. Failures are
-positively correlated within a question: when one hop is missed, the others are more likely to be
-missed too.
+Measured is **at** independence. There is no shortfall.
 
-That single number changes the roadmap. Uncorrelated failures would mean "retrieval is uniformly
-a bit weak" and the fix is a uniformly better retriever — more candidates, better embeddings,
-budget. Correlated failures mean **some questions are hard in a structural way and most are
-fine**, and the fix is to find what those questions share. On Client Zero it was two things:
-questions whose entities appear only in the document *title* (which the structural chunker
-strips into metadata), and questions requiring a hop through an acronym never expanded in the
-same chunk as its expansion.
+That is the finding, and it is a negative one with a decision attached. Below independence would
+mean failures cluster inside a question — some structurally hard, most fine — and the work is to
+find what the hard ones share. At independence means there is nothing to find: the whole gap
+between 0.7645 and 0.4686 is the arithmetic of needing four pieces at 76% each, and a quarter
+spent hunting the hidden cause is a quarter spent on something that does not exist.
 
-Neither is a retriever problem. Both are indexing problems, and both are cheap to fix once
-named.
+Worth stating what it does *not* say. Correlated failure is common and real; on a corpus whose
+evidence clusters by document you would expect it. It is not happening here, and the likely
+reason is visible in the corpus generator: the fact graph spreads a question's evidence across
+documents by construction, so a retriever that fails a document does not thereby fail the whole
+chain.
 
 **0.4686 → 0.4115.** The remaining six points are generation: the evidence was all present and
 the answer was still wrong. That is the ceiling on what retrieval work can buy you, and knowing
@@ -118,16 +128,21 @@ The fix was not a better metric. It was reporting **all three, always, in that o
 gaps are visible and someone has to explain them. `raglab/tables.py:scorecard` is that table, and
 `scripts/run_eval.py` cannot print one number without the other two.
 
-**We computed the independence prediction with `p²` for everything.** Off by half. The corpus is
-62% single-hop, so `p²` describes a minority of it. The prediction came out 0.5845 against a
-measured 0.4686 — a 12-point gap — and we concluded the correlation was mild. With the real
-mixture the gap is 21 points and the conclusion is the opposite.
+**We computed it over hops, against a mixture that did not exist.** The published version read
+*"128 single-hop, 61 two-hop, 18 three-plus → predicts 0.6838 → measured 0.4686 → 21 points
+below independence → failures are correlated"*. Every step after the first is downstream of the
+first, and the first was wrong twice: the corpus reports no such mixture (the `hops` field says
+77 and 130), and `full_chain_recall` does not exponentiate hops — it exponentiates **pieces**.
 
-Two things came out of checking it. First: **weight by the actual distribution, always.** Second,
-and worse — reconciling the hop counts exposed that the slice table summed to 270 against 243
-questions, because `identifier`, `temporal` and `acl` are cross-cutting *attributes* rather than
-mutually exclusive types. A slice table whose rows do not partition anything cannot be read as
-percentages, and everyone had been reading it as percentages.
+Corrected, the prediction is 0.4603 and measured is *above* it. The finding did not shrink; it
+reversed.
+
+Two things came out of checking it. **Exponentiate the quantity the metric actually requires** —
+`len(gold_map)`, which you can print in one line, rather than a field that sounds like it means
+the same thing. And: a derived number needs a command that regenerates it. `p^k` weighted over a
+distribution is four lines of arithmetic that nobody re-does, so it became
+`scripts/independence.py`, and `tests/test_measurements.py` fails if the documentation drifts
+from what that command prints.
 
 ## Where this lives in the real system
 
