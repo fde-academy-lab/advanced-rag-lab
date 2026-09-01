@@ -73,3 +73,63 @@ def test_dependabot_branches_survive_a_merged_pull_request():
 ])
 def test_ordinary_branches_are_not_protected(name):
     assert not protected(name)
+
+
+# --------------------------------------------------------------- provisioning preflight
+
+class FakeError(Exception):
+    def __init__(self, status, message="nope"):
+        self.status, self.message = status, message
+        super().__init__(message)
+
+
+def _preflight_with(monkeypatch, responses):
+    """Run preflight against a stubbed `request`, returning (ok, calls)."""
+    import setup_github
+
+    calls = []
+
+    def fake_request(method, path, *a, **kw):
+        calls.append(path)
+        outcome = responses[path]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(setup_github, "request", fake_request)
+    monkeypatch.setattr(setup_github, "GitHubError", FakeError)
+    ok = setup_github.preflight("fde-academy-lab", "advanced-rag-lab")
+    return ok, calls
+
+
+def test_preflight_accepts_an_actions_installation_token(monkeypatch):
+    """An Actions GITHUB_TOKEN has no /user identity. That is normal, not a failure.
+
+    Treating the 403 as fatal is why provisioning only ever ran with a PAT, and why the
+    housekeeping workflow — which deliberately holds no PAT — could not seed a discussion.
+    """
+    ok, calls = _preflight_with(monkeypatch, {
+        "/user": FakeError(403, "Resource not accessible by integration"),
+        "/repos/fde-academy-lab/advanced-rag-lab": {"visibility": "public"},
+    })
+    assert ok
+    assert calls == ["/user", "/repos/fde-academy-lab/advanced-rag-lab"]
+
+
+def test_preflight_still_rejects_a_bad_token(monkeypatch):
+    ok, _ = _preflight_with(monkeypatch, {"/user": FakeError(401, "Bad credentials")})
+    assert not ok
+
+
+def test_preflight_rejects_a_token_that_cannot_see_the_repository(monkeypatch):
+    """403 on both questions is a real permission problem, not an installation token."""
+    ok, _ = _preflight_with(monkeypatch, {
+        "/user": FakeError(403, "Resource not accessible by integration"),
+        "/repos/fde-academy-lab/advanced-rag-lab": FakeError(403, "nope"),
+    })
+    assert not ok
+
+
+def test_preflight_accepts_an_ordinary_pat(monkeypatch):
+    ok, calls = _preflight_with(monkeypatch, {"/user": {"login": "akash-coded"}})
+    assert ok and calls == ["/user"]
