@@ -459,6 +459,11 @@ query($owner:String!,$name:String!,$number:Int!){
 # Enough to repair a thread that already exists: is it answered, and which comment should be
 # the answer. Seeding is create-only otherwise, so a thread created before a bug was fixed
 # stays broken forever unless somebody deletes it by hand.
+UPDATE_DISCUSSION_M = """
+mutation($id:ID!,$body:String!){
+  updateDiscussion(input:{discussionId:$id,body:$body}){ discussion { number url } }
+}"""
+
 DISCUSSION_STATE_Q = """
 query($owner:String!,$name:String!,$number:Int!){
   repository(owner:$owner,name:$name){
@@ -468,6 +473,63 @@ query($owner:String!,$name:String!,$number:Int!){
     }
   }
 }"""
+
+DISCUSSION_BODY_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){ discussion(number:$number){ id body } }
+}"""
+
+
+def retire_orphans(owner, repo, existing, dry) -> int:
+    """Band a renamed thread with a retraction notice, and report anything else orphaned.
+
+    A live thread the seed no longer defines is invisible to every check in this repository:
+    the seeder skips by title, so a renamed thread is simply never looked at again. One of them
+    spent a day in Announcements teaching a finding that had been retracted.
+    """
+    banded = 0
+    for old_title, new_title in getattr(content, "RETIRED", {}).items():
+        if old_title not in existing:
+            continue
+        number, new_number = existing[old_title], existing.get(new_title)
+        if new_number is None:
+            warn(f"retire “{old_title[:40]}”", f"replacement “{new_title[:40]}” is not live yet")
+            continue
+        if dry:
+            skip(f"retire #{number}", f"would band, pointing at #{new_number}")
+            continue
+        try:
+            state = graphql(DISCUSSION_STATE_Q,
+                            {"owner": owner, "name": repo, "number": number})
+            disc = state["repository"]["discussion"]
+            body = graphql(DISCUSSION_BODY_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]["body"] or ""
+        except GitHubError as exc:
+            warn(f"retire #{number}", exc.message[:70])
+            continue
+        if body.lstrip().startswith("> [!WARNING]"):
+            skip(f"retire #{number}", "already banded")
+            continue
+        banner = content.RETIREMENT_BANNER.format(
+            replacement=new_title, owner=owner, repo=repo,
+            url=f"/{owner}/{repo}/discussions/{new_number}")
+        try:
+            mutate(UPDATE_DISCUSSION_M, {"id": disc["id"], "body": banner + body})
+        except GitHubError as exc:
+            warn(f"retire #{number}", exc.message[:70])
+            continue
+        ok(f"#{number}", f"{'retracted, points at #' + str(new_number):<24} {old_title[:44]}")
+        banded += 1
+        time.sleep(1.1)
+
+    defined = {t["title"] for t in content.DISCUSSIONS} | set(getattr(content, "RETIRED", {}))
+    strays = [t for t in existing if t not in defined and "Discussions!" not in t]
+    if strays:
+        warn("orphaned threads", f"{len(strays)} live thread(s) the seed does not define")
+        for t in strays:
+            print(f"        #{existing[t]}  {t[:70]}")
+    return banded
 
 
 def answer_fingerprint(reply) -> str:
@@ -510,8 +572,15 @@ def _repair_answer(owner, repo, spec, number, answerable, dry) -> int:
         skip(f"“{title[:56]}”", "exists, answered")
         return 0
 
+    nodes = disc["comments"]["nodes"]
     mark = answer_fingerprint(wanted)
-    match = next((c for c in disc["comments"]["nodes"] if mark and mark in (c["body"] or "")), None)
+    match = next((c for c in nodes if mark and mark in (c["body"] or "")), None)
+    if not match and len(nodes) == 1 and len(spec.get("replies", [])) == 1:
+        # The seeded text has been edited since the thread was created — a rename, a correction —
+        # so the fingerprint no longer appears in the live comment. With exactly one comment and
+        # exactly one intended answer there is nothing to get wrong, so mark it and say so.
+        match = nodes[0]
+        warn(f"“{title[:46]}”", "reply text has drifted since seeding; marked the only comment")
     if not match:
         warn(f"“{title[:46]}”", "exists, but its accepted reply was not found to mark")
         return 0
@@ -610,8 +679,10 @@ def create_discussions(owner, repo, dry):
                                  f"{title[:44]}")
         time.sleep(1.1)
 
+    banded = retire_orphans(owner, repo, existing, dry)
     ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked"
-                      + (f" · {repaired} repaired" if repaired else ""))
+                      + (f" · {repaired} repaired" if repaired else "")
+                      + (f" · {banded} retracted" if banded else ""))
     if broken:
         # A missing category is expected and skipped quietly. Anything else is a real failure,
         # and a step that stays green through one is a step nobody will look at again.

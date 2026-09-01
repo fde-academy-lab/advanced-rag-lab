@@ -1690,6 +1690,30 @@ from seed import (  # noqa: E402
 # Five early threads were single posts with no conversation. Each has been superseded by a
 # fully-arced version in scripts/seed/, so they are filtered rather than deleted in place —
 # keeping the filter visible documents that the replacement was deliberate.
+# Threads that were RENAMED rather than superseded in place. The old one is already live, so
+# filtering it from DISCUSSIONS does nothing — it just sits there, and in one case it sat there
+# teaching a finding this repository has since retracted.
+#
+# Each entry is old title -> the title that replaced it. The seeder prepends a retraction banner
+# to the old thread and points at the new one. Edited, not deleted: the wrong version is part of
+# the record, and a repository that argues for reporting negative results should not quietly
+# remove its own.
+RETIRED = {
+    "The three findings in this repo that contradict the deck — and why we kept them":
+        "The findings in this repo that contradict the deck — and the one of them that was wrong",
+}
+
+RETIREMENT_BANNER = """> [!WARNING]
+> **Retracted, and kept for the record.** Finding 1 below does not reproduce: equal-weight RRF
+> *beats* BM25 alone on this corpus, and the LSA leg is the stronger of the two, not the weaker.
+> The mechanism argued for here was built on a number mis-attributed to the wrong configuration.
+>
+> The corrected post is [{replacement}]({url}). The retraction, including why nothing in CI was
+> able to notice for months, is
+> [ADR-0015](/{owner}/{repo}/blob/main/docs/01-architecture/adr/0015-correct-the-fusion-finding.md).
+
+"""
+
 SUPERSEDED = (
     "Design review: retrieval for a regulated insurance client",
     "Capstone: two of my four improvements were inside the noise",

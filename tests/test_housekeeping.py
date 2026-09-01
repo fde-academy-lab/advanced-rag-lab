@@ -184,3 +184,30 @@ def test_the_repository_query_selects_every_field_the_code_branches_on():
     for field in ("isAnswerable", "number", "title", "slug", "id"):
         assert re.search(rf"\b{field}\b", query), \
             f"code branches on {field!r} but REPO_Q does not select it"
+
+
+# --------------------------------------------------------------- retired threads
+
+def test_every_retired_thread_points_at_a_title_the_seed_still_defines():
+    """A banner pointing at a thread that does not exist is worse than no banner."""
+    import seed_content
+    defined = {t["title"] for t in seed_content.DISCUSSIONS}
+    for old, new in seed_content.RETIRED.items():
+        assert new in defined, f"{old!r} is retired in favour of {new!r}, which no longer exists"
+        assert old not in defined, f"{old!r} is both retired and still seeded"
+
+
+def test_the_retirement_banner_formats_with_the_fields_the_code_passes():
+    import seed_content
+    out = seed_content.RETIREMENT_BANNER.format(
+        replacement="The new title", url="/o/r/discussions/69", owner="o", repo="r")
+    assert out.lstrip().startswith("> [!WARNING]"), "the banner must be a GitHub alert"
+    assert "/o/r/discussions/69" in out and "0015-correct-the-fusion-finding" in out
+
+
+def test_a_banded_thread_is_recognised_and_not_banded_twice():
+    """The idempotence check is a prefix match on the live body — keep the two in step."""
+    import seed_content
+    banner = seed_content.RETIREMENT_BANNER.format(
+        replacement="x", url="/u", owner="o", repo="r")
+    assert (banner + "original body").lstrip().startswith("> [!WARNING]")
