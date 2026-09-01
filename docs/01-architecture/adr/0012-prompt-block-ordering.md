@@ -37,6 +37,15 @@ a cost decision rather than a formatting preference.
 Measured effect of moving the timestamp from block 1 to block 5: cache hit rate 4% → **71%**,
 cost per query down 58%.
 
+### Volatility is relative to the cache key
+
+A field that changes between tenants but never within one is stable *per tenant* and volatile
+globally. If the cache is keyed per tenant, that field belongs **before** the barrier; if it is
+not, it belongs after.
+
+Reading the rule absolutely — "it differs between requests, so it goes last" — throws away a hit
+rate you could have had. Ask what the cache key is first, then order relative to it.
+
 ## Consequences
 
 **Good.** The rule is mechanical and reviewable. "Does this new field change per request, and is

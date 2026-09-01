@@ -52,9 +52,17 @@ Keep the old slice, generate a new one, report against both for one phase, then 
 
 **Option C.**
 
-The deciding argument, from the week-3 standup: regenerating a frozen slice is a subtle way of
-leaking exactly the thing the slice protects. The people re-stratifying have seen results from
-the old one, and there is no procedure that unsees them.
+The deciding argument is structural rather than procedural, and the distinction matters because
+the procedural version has an apparent fix that does not work.
+
+The weak form: the people re-stratifying have seen results from the old slice. That suggests
+option B could be made safe by having someone else do it, blinded to prior results.
+
+It cannot. **The corpus itself is downstream of the old frozen slice.** We grew it because P4
+needed more questions per slice, and *which* slices needed more is a fact derived from prior
+results. Any sample drawn from the grown corpus inherits that contamination regardless of who
+draws it or what they have seen. Blinding the sampler does not help when the population is
+already shaped by the thing you are protecting against.
 
 Option A was tempting and is what we would have done without that argument. Its failure is
 slower and quieter — a slice that measures a corpus that no longer exists still produces

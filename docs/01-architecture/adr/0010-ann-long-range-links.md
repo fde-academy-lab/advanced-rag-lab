@@ -76,7 +76,13 @@ rather than reads about. The fix is five lines and the explanation is a paragrap
 
 **Bad.** Random long-range links are the crude version. Kleinberg's result requires links drawn
 with probability proportional to d(u,v)^−α with α equal to the lattice dimension; uniform random
-is an approximation that works at this scale and would degrade at larger ones.
+is an approximation.
+
+The degradation is worth stating precisely, because "degrades at larger scales" does not tell you
+when to act. Uniform links give **connectivity but not navigability**: greedy routing degrades
+toward O(n^(2/3)) rather than O(log²n). At 2,430 nodes that is invisible. At 10⁶ it is roughly
+400 hops against 190 — the point at which the distance-proportional draw stops being a refinement
+and becomes the thing that makes the index usable.
 
 **The regression test that matters.** `tests/test_retrieval.py` asserts monotonicity — recall
 must not decrease as ef increases, and recall at fixed ef must not collapse as n grows. The
