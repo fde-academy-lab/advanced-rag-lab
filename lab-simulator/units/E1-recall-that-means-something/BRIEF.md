@@ -51,24 +51,30 @@ Reporting only the first is the most common way a RAG evaluation flatters itself
 
 ## The arithmetic worth doing before you write code
 
-If retrieval succeeded on each piece of evidence independently with probability `p = 0.7645`, a
-question with `h` hops would fully resolve with probability `p^h`. Client Zero's 207 answerable
-questions split:
+If each piece of evidence were retrieved independently with probability `p = 0.7645`, a question
+needing `k` pieces would fully resolve with `p^k`. The exponent is **pieces of gold evidence**,
+not hops — a two-hop question routinely carries four pieces and `full_chain_recall` requires all
+four. `python scripts/independence.py` reads the distribution off the corpus:
 
-| Hops | Questions | `p^h` |
+| Gold pieces | Questions | `p^k` |
 |---|---|---|
-| 1 | 128 | 0.7645 |
-| 2 | 61 | 0.5845 |
-| 3+ | 18 | 0.4469 |
+| 1 | 21 | 0.7645 |
+| 2 | 59 | 0.5845 |
+| 3 | 21 | 0.4469 |
+| 4 | **100** | 0.3416 |
+| 6 | 6 | 0.1997 |
 
-Weighted, that predicts **0.6838**. Measured full-chain recall is **0.4686**.
+Half the answerable set needs four or more. Weighted, that predicts **0.4603**, and measured
+full-chain recall is **0.4686** — `+0.0083`, which is to say *at* independence.
 
-Independence over-predicts by 21 points, so the pieces are **not** independent — and they fail
-*together*. That is a specific, actionable claim: the misses concentrate in questions, not
-scatter across them. Which means there is structure to find, and a per-question fix exists, and
-buying uniformly better retrieval is the wrong purchase.
+So the gap between 0.7645 and 0.4686 is arithmetic, not pathology. That is a finding with a
+decision attached: **below** independence would mean failures cluster inside a question, some
+questions structurally hard, and the work is to find what they share. At independence means
+there is nothing to find, and a quarter spent hunting for the hidden cause is a quarter spent on
+something that does not exist.
 
-Notice that you cannot reach any of that from `evidence_recall` alone. The gap is the finding.
+Notice you cannot reach any of that from `evidence_recall` alone, and you cannot reach it from
+the *hop* count either — that is the trap this unit is really about.
 
 ## What to build
 

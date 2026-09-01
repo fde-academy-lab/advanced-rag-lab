@@ -29,21 +29,26 @@ evidence = len(found) / len(needed)          # per piece
 chain    = 1.0 if needed <= set(retrieved[:k]) else 0.0   # per question
 ```
 
-If retrieval events were independent with probability *p*, a question needing *j* pieces would
-clear full-chain with probability *pʲ*. The eval set is a mixture, so the comparison has to be
-too — using *p²* alone assumes every question is two-piece and understates the expected value:
+If pieces were retrieved independently with probability *p*, a question needing *j* pieces would
+clear full-chain with probability *pʲ*. The eval set is a mixture, so the comparison must be too
+— and *j* is the count of gold evidence pieces, not of hops. `scripts/independence.py` reads it
+off the corpus:
 
 | pieces | n | *pʲ* at *p* = 0.7645 |
 |---|---|---|
-| 1 | 128 | 0.7645 |
-| 2 | 61 | 0.5845 |
-| 3 | 18 | 0.4468 |
+| 1 | 21 | 0.7645 |
+| 2 | 59 | 0.5845 |
+| 3 | 21 | 0.4469 |
+| 4 | 100 | 0.3416 |
+| 6 | 6 | 0.1997 |
 
-Weighted over the 207 answerable questions, independence predicts **0.6838**. Measured:
-**0.4686** — a shortfall of 0.215, not the 0.116 that the naive *p²* comparison implies.
+Weighted over the 207 answerable questions, independence predicts **0.4603**. Measured:
+**0.4686** — `+0.0083`, at independence.
 
-The shortfall is the diagnosis. Hop-1 evidence resembles the query; hop-2 evidence resembles the
-*answer to hop 1*. Widening k returns more hop-1 and leaves hop-2 flat:
+That is the result, and it is a negative one: there is no correlated-failure structure on this
+corpus to go looking for. Widening k still shows the effect below, and it is the ordinary one —
+per-piece recall rises faster than the all-or-nothing metric, because clearing a four-piece
+question requires the last piece too:
 
 | | N = 20 | N = 200 |
 |---|---|---|

@@ -20,31 +20,39 @@ Produced by `python scripts/run_eval.py` over 243 questions.
 
 This is the most important thing on the page.
 
-**Evidence recall** is per piece. **Full-chain recall** is per question. If retrieval events
-were independent with probability *p*, a question with *h* pieces would fully resolve with
-*p^h* — so the prediction has to be weighted by the actual hop mixture, not computed at *h* = 2
-and applied to everything.
+**Evidence recall** is per piece. **Full-chain recall** is per question. If pieces were
+retrieved independently with probability *p*, a question needing *k* pieces would fully resolve
+with *p^k*, and the prediction is that weighted over the real distribution of *k*.
 
-The 207 answerable questions split 128 single-hop, 61 two-hop, 18 three-or-more. At
-*p* = 0.7645:
+Two things about that *k*. It is the number of **gold evidence pieces**, not the number of hops
+— a two-hop question routinely carries four pieces, and `full_chain_recall` requires all four.
+And the distribution is not what anybody guesses:
 
 ```
-(128·0.7645 + 61·0.7645² + 18·0.7645³) / 207 = 0.6838
+python scripts/independence.py
+
+  pieces of gold evidence   questions
+       1                      21
+       2                      59
+       3                      21
+       4                     100
+       6                       6
 ```
 
-We measure **0.4686** — **21 points below** independence, not the 12 that *p²* alone suggests.
-Using *p²* for the whole set understates the shortfall by roughly half, because the corpus is
-62% single-hop and *p²* describes a minority of it.
+**Half the answerable set needs four or more pieces.** At *p* = 0.7645 that predicts
+**0.4603**. We measure **0.4686** — `+0.0083`, which is to say *at* independence.
 
-The shortfall is the diagnosis, not noise, and its size changes what you do about it.
-Uncorrelated failures would mean retrieval is uniformly a little weak, and the fix is a
-uniformly better retriever. A 21-point shortfall means failures are **positively correlated
-within a question** — some questions are hard in a structural way and most are fine — and the
-fix is to find what those questions share.
+So there is no shortfall, and that is the finding. Below independence would mean failures
+cluster inside a question: some questions structurally hard, most fine, and the work is to find
+what the hard ones share. At independence means there is nothing to find — the 0.7645 → 0.4686
+gap is entirely the arithmetic of needing several pieces, and a hunt for a hidden cause would be
+a hunt for something that is not there.
 
-The two pieces are not independently retrievable:
-hop-1 evidence resembles the query, hop-2 evidence resembles the *answer to hop 1*. Widening k
-returns more hop-1 evidence, lifting the per-piece average while full-chain stays flat.
+> **Corrected 2026-09-01.** This section previously reported a mixture of "128 single-hop, 61
+> two-hop, 18 three-or-more", a prediction of 0.6838, and a 21-point shortfall attributed to
+> correlated failure. The mixture matches nothing this repository produces, the exponent was
+> hops rather than pieces, and the corrected comparison points the other way. See
+> [the measurement note](../09-research/measurements/multi-hop-independence.md).
 
 Measured directly across an N sweep from 20 to 200 candidates:
 
