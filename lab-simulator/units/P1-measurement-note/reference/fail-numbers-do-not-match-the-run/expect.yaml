@@ -1,0 +1,6 @@
+# Written from memory a day later. Every section is right, the reasoning is right, the
+# conclusion is right, and the numbers drifted. This is the exact mechanism of the finding this
+# repository had to retract, so it has to stay rejected.
+fails:
+  - the note's evidence_recall matches the run
+  - the note's failure_overlap matches the run

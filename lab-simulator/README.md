@@ -80,12 +80,45 @@ python -m labsim progress
 ```
 
 ```
-  wave 1  █░░  1/3   R1, F1, F2
-  wave 2  ░░   0/2   R2, E1
+  wave 1  ░░   0/2   F1, R1
+  wave 2  ░░░  0/3   C1, E1, R2
+  wave 3  ░    0/1   R3
+  wave 4  ░    0/1   P1
 ```
 
-Everything in a wave is genuinely parallel. Presenting them as a queue would invent an order
-that does not exist.
+Everything in a wave is genuinely parallel. Presenting them as a queue would invent an order that
+does not exist.
+
+### What is here now
+
+| | Unit | Mode | | Difficulty | What it is really about |
+|---|---|---|---|---|---|
+| **F1** | Chunk so the answer survives the cut | `implement` | ⌨ | easy | Overlap is a length budget, not a tuning knob — and the guarantee is about *spans*, so the check is too |
+| **R1** | Make a citation resolve | `implement` | ⌨ | easy | A citation that a human cannot follow is decoration. One line carries the unit |
+| **E1** | Build the two recalls that disagree by thirty points | `implement` | ⌨ | medium | Why `gold_map` is `dict[str, set[str]]`, and why a metric normalised against its own output cannot go down |
+| **R2** | Decide whether to fuse at all | `decide` | ⚖ | medium | No code. The deck says fuse; the measurement says the fused system is inside the noise band of one of its own legs |
+| **C1** | Find the five characters that cost two thirds of the bill | `diagnose` | 🔍 | hard | A correct feature, a passing test, and a bill three times the estimate. Two bars, because one cannot tell a fix from a workaround |
+| **R3** | Build the rule you rejected, and the measurement that rejected it | `measure` | 📐 | hard | The real corpus, the real reranker, and the one-line diagnostic that settles a month of argument |
+| **P1** | Write the measurement note that survives you leaving | `ship` | 📦 | medium | The grader re-runs the measurement and checks your numbers match. That is the unit |
+
+Seven units, all five modes, four tracks. The pathway is short on purpose: each unit is finished
+— brief, checks, a worked answer the grader accepts and decoys it rejects, and a solution note
+about what we got wrong first — rather than a stub with a `TODO` in it.
+
+### The delivery lifecycle, without the vocabulary
+
+`R2 → R3 → P1` is a decision record, then a measurement, then a note somebody else can re-run.
+Nobody is told they are doing PDLC. Each artefact exists because a specific thing goes wrong
+without it:
+
+- **no decision record** → the reasoning is written after the code, so it is rationalisation, and
+  the habit is invisible in the diff
+- **no measurement** → "it feels better" ships
+- **no note** → the result decays into folklore, which is not hypothetical here:
+  [ADR-0015](../docs/01-architecture/adr/0015-correct-the-fusion-finding.md) is a finding this
+  repository published, quoted in about twenty places, and had to retract
+
+Naming the process prevents none of those. Having the artefacts does.
 
 ### Tracks
 

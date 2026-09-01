@@ -1,0 +1,29 @@
+id: C1
+slug: cache-barrier
+title: Find the five characters that cost two thirds of the bill
+track: cost
+difficulty: hard
+minutes: 40
+mode: diagnose
+teaches: [prompt cache, prefix stability, volatility ordering, cost as an architecture concern]
+prereqs: [R1]
+bars:
+  - metric: cache_hit_rate
+    threshold: 0.7500
+    direction: at_least
+    note: >-
+      share of each prompt's tokens served from cache, averaged over 200 requests against a
+      cache that requires a byte-identical prefix. The assembler as given scores 0.2612;
+      the correct ordering scores 0.8176
+  - metric: prefix_tokens_billed
+    threshold: 45.0
+    direction: at_most
+    note: >-
+      mean full-rate input tokens per request. 154.04 as given, 38.07 when the volatile fields
+      move after the barrier, and 63.23 when stable blocks are moved after it too — which is
+      the shape of a fix that improves the dashboard and the wrong direction on the invoice
+artefact: null
+summary: >-
+  A working system with a correct feature and a bill three times the model. Nothing is throwing,
+  nothing is slow, every test passes. Find it, name the failure point, and fix the cause rather
+  than the symptom — the grader can tell the difference.

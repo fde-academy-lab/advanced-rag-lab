@@ -99,9 +99,13 @@ def cmd_start(args) -> int:
     dest = attempt_dir(u)
     dest.mkdir(parents=True, exist_ok=True)
     created = []
-    for name, target in (("starter.py", "solution.py"),
-                         ("decision.template.yaml", "decision.yaml")):
-        src = u.directory / name
+    # `starter.py` becomes `solution.py`; anything named `<name>.template.<ext>` becomes
+    # `<name>.<ext>`. The convention rather than a list, so a unit that needs a new kind of
+    # artefact ships one file and needs no change here.
+    scaffolds = [(u.directory / "starter.py", "solution.py")]
+    scaffolds += [(src, src.name.replace(".template", ""))
+                  for src in sorted(u.directory.glob("*.template.*"))]
+    for src, target in scaffolds:
         if src.exists() and not (dest / target).exists():
             shutil.copy2(src, dest / target)
             created.append(target)

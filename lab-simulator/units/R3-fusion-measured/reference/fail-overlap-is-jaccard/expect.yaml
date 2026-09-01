@@ -1,0 +1,2 @@
+fails:
+  - failure_overlap is conditional, not symmetric

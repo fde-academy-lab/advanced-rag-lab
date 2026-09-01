@@ -1,0 +1,2 @@
+fails:
+  - rank 1 in a single leg scores exactly 1/(k+1)

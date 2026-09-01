@@ -1,0 +1,5 @@
+# Correct numbers, correct reasoning, correct condition — and a prose description of how it was
+# produced instead of a command. In four months this is folklore, because re-running it means
+# reconstructing what "ran the R3 grader locally" meant.
+fails:
+  - names a command that regenerates the numbers
