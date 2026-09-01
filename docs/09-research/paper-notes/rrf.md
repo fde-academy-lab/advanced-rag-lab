@@ -20,32 +20,64 @@ weighted score fusion. Evidence Recall@8, paired bootstrap, verified on the froz
 
 ## Result
 
-**Equal-weight RRF loses to BM25 alone.** Weighted fusion at α = 0.2 wins:
+**Transfers as a fusion rule. Does not transfer as a reason to fuse.**
 
-| configuration | evidence_recall@8 |
-|---|---|
-| BM25 alone | 0.7645 |
-| equal-weight RRF | below BM25 at every k |
-| weighted, α = 0.2 | **0.7891**, [+0.008, +0.041], holds on frozen |
+`python scripts/run_eval.py --compare` — 243 questions, k=8 after the cross-encoder, paired
+bootstrap:
 
-## Why it did not transfer
+| configuration | evidence_recall@8 | nDCG@8 |
+|---|---|---|
+| BM25 alone | 0.7118 | 0.3639 |
+| Dense (LSA) alone | 0.7733 | **0.6055** |
+| equal-weight RRF | **0.7742** | 0.5302 |
+| weighted, α = 0.2 | 0.7645 | 0.4767 |
+| weighted, α = 0.5 | **0.7790** | 0.5967 |
 
-The precondition is comparable leg strength, and it is absent here.
+Two readings, and the second is the interesting one.
 
-RRF is a **voting rule that treats every voter as equally credible.** Fuse a strong leg with a
-weak one at equal weight and the result moves toward the weak one. Scale-invariance — the property
-that makes RRF work without normalisation — is exactly what discards the score distribution that
-would have told you to down-weight the weak leg.
+**RRF beats every alternative fusion rule and both individual systems on recall**, which is the
+paper's claim, and it does it with no training and no normalisation, which is the paper's point.
+`bm25 → rrf` is +0.0624 evidence recall, ci (+0.0407, +0.0857). Weighted fusion at the tuned
+α = 0.2 does *not* beat it — it loses on nDCG by 0.0535, ci excluding zero. The parameter-free
+rule wins against the parameterised one, exactly as advertised.
 
-The LSA dense leg on this corpus is materially weaker than BM25. Rank-parity is therefore the
-wrong prior, and no value of k fixes it, because k controls how much a single voter's *first
-preference* counts, not how much a *voter* counts.
+**And none of that was worth doing.** `dense → rrf` is +0.0008 evidence recall,
+ci (−0.0101, +0.0109), and on nDCG the unfused dense leg beats RRF by 0.0753. The fused system
+is inside the noise band of one of its own legs.
+
+## Why the second reading is the real one
+
+The paper's setup is fusion over **TREC runs**: multiple mature systems of broadly comparable
+quality, which is to say systems that are *good in different ways*. That is the precondition, and
+it is not "comparable strength" — it is **complementarity**. Two systems of identical strength
+that fail on the same queries have one signal between them, and combining a signal with itself
+returns the signal.
+
+On Client Zero the legs are not complementary. The questions are paraphrase and inference over
+incident prose; the dense leg handles nearly all of it and BM25 contributes on the exact-identifier
+slice, which is real and small. RRF duly finds what the dense leg found, plus a little, minus some
+ranking quality — because giving an equal ballot to a leg that is right less often costs
+precision at the top even when it does not cost recall.
+
+**k does not help.** At k=60 the gap between ranks 1 and 2 is about 2%, so k dampens how much a
+single voter's *first preference* counts. It does not change how much a *voter* counts, and it
+does it to both legs at once.
+
+> **Corrected 2026-09-01.** This note previously reported that equal-weight RRF *loses* to BM25
+> alone and that the LSA leg was materially weaker than BM25. Both are false — RRF beats BM25 by
+> +0.0624 and LSA beats it by +0.0616. See
+> [ADR-0015](../../01-architecture/adr/0015-correct-the-fusion-finding.md).
 
 ## What would change the answer
 
-**A stronger dense leg.** A modern sentence embedder would likely bring the legs to comparable
-strength, and the paper's result should return. That is a testable prediction and it is one of
-the extension points.
+**A complementary pair of legs.** A modern sentence embedder alongside BM25 on a corpus with real
+identifier traffic would give two systems that are good in different ways, which is the paper's
+actual precondition. Then fusion should beat both legs rather than tying the better one. That is
+a testable prediction and it is `EX-15`.
+
+The measurement that decides it is not the aggregate table — it is the **per-query overlap of
+failures** between the two legs. Disjoint failures mean fusion is worth a lot; nested failures
+mean it is worth nothing. Nobody ran it before choosing, on either side of this correction.
 
 **Non-stationary score distributions.** Where BM25's scale shifts per query but its ordering
 stays sound — mixed languages, wildly varying document lengths — a globally-tuned α is wrong on
@@ -53,6 +85,13 @@ every individual query and rank-based fusion is robust to exactly that. RRF shou
 
 ## What we did with it
 
-Weighted fusion is the default; α is a tuned parameter rather than an assumption. The result is
-one of the three headline findings, and it is reported with the condition attached — a negative
-result without the condition under which the expected outcome returns is an anecdote.
+Weighted fusion at α = 0.2 remains the default, and the honest reason is administrative rather
+than technical: `.github/eval-baseline.json` is cut from it, every headline number in the
+repository is that configuration, and the alternatives are inside the noise band on the metrics
+that matter. It is not the argmax — α = 0.5 measures better on both recall and nDCG — and
+[ADR-0015](../../01-architecture/adr/0015-correct-the-fusion-finding.md) says so rather than
+inventing a justification.
+
+The finding we report is *"fusion does not separate from its better single leg here"*, with the
+condition attached: it returns when the legs are complementary. A negative result without the
+condition under which the expected outcome returns is an anecdote.

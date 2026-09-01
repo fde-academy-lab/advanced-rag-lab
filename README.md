@@ -459,16 +459,27 @@ measurement discipline transfers; the values do not.
 
 ---
 
-## Three results that contradict the expected answer
+## Four results that contradict the expected answer
 
 These are the parts worth your attention, and they are reported rather than tuned away.
+
+The first one is also a correction: it previously read *"equal-weight RRF does not beat BM25
+alone"*, which was quoted in about twenty places here and **does not reproduce**. It was
+re-measured, retracted and replaced — [ADR-0015](docs/01-architecture/adr/0015-correct-the-fusion-finding.md)
+records what was claimed, what was measured, and why nothing was structured to notice. Every row
+below is now re-runnable in one command: `python scripts/run_eval.py --compare`.
 
 <table>
 <tr><th>Finding</th><th>Why it happens</th><th>When the expected result returns</th></tr>
 <tr>
-<td><b>Equal-weight RRF does not beat BM25 alone</b> here; weighted fusion at α=0.2 does.</td>
-<td>RRF gives both legs the same vote, and the offline dense leg is a fifty-year-old method that is genuinely weaker on this corpus. Fusing strong with weak at equal weight moves you toward the weak one.</td>
-<td>With a modern encoder the balance shifts and α moves up. The <i>procedure</i> — default to RRF, then measure once you have a labelled set — does not change.</td>
+<td><b>Fusion does not separate from its better single leg.</b> Dense alone 0.7733, equal-weight RRF 0.7742 — a gap of +0.0008 with a 95% interval of (−0.0101, +0.0109). On nDCG the <i>unfused</i> dense leg wins outright, by 0.075.</td>
+<td>Fusion pays when the legs fail on <i>different</i> queries. Here they do not: BM25 is the weak leg on this corpus (paraphrase and inference over prose, where term overlap has little to score) and it adds almost nothing the dense leg missed. The second index, second pipeline and per-corpus α buy a difference that cannot be measured.</td>
+<td>When the legs are complementary. The diagnostic is the per-query overlap of failures, not the aggregate table — and running it is the point. <code>EX-15</code> repeats this with a real sentence encoder.</td>
+</tr>
+<tr>
+<td><b>No retrieval configuration moves answer correctness.</b> Evidence recall spans 0.7118 → 0.7790 across five configurations — real, 9.4% relative — while <code>answer_correct</code> stays inside the noise band on <i>every</i> pairwise comparison. The best answers come from the worst retriever.</td>
+<td>The system is generation-limited, not retrieval-limited. It was already visible in the 0.4686 → 0.4115 gap between full-chain recall and answer correctness, and nobody joined it up.</td>
+<td>When retrieval is the binding constraint. Here it is not, which makes <code>evidence_recall</code> the right metric for catching regressions and the wrong one for justifying a roadmap.</td>
 </tr>
 <tr>
 <td><b>Comparison-question starvation does not reproduce.</b></td>

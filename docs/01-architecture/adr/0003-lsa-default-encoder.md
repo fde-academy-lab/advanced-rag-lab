@@ -38,13 +38,21 @@ dimension/generalisation tradeoff (notebook 04 measures the paraphrase slice pea
 dimension than the exact-match slice), prefix asymmetry, and mixed-version index corruption.
 It fits in 300 lines that a student can read. It is deterministic and fits in milliseconds.
 
-**Bad — and this one is load-bearing.** LSA is roughly fifty years behind a modern encoder,
-and on this corpus it is *weaker than BM25*. That produced a finding that contradicts the folk
-rule: equal-weight RRF loses to BM25 alone here, because fusing a strong retriever with a weak
-one at equal weight moves you toward the weak one. We chose to **report that rather than
-engineer around it**, with the mechanism explained and the condition under which the expected
-result returns (ADR-0007). Two consequences follow: the README carries an explicit
-real-vs-stand-in table, and α=0.2 must never be quoted outside this corpus.
+**Bad — and this one is load-bearing.** LSA is roughly fifty years behind a modern encoder, and
+it will not survive contact with a real embedding model on a real corpus. α must never be quoted
+outside this corpus, and the README carries an explicit real-vs-stand-in table.
+
+> **Corrected 2026-09-01 — see [ADR-0015](0015-correct-the-fusion-finding.md).** This section
+> previously claimed LSA was *weaker than BM25* here and that equal-weight RRF therefore lost to
+> BM25 alone. Re-measured, both are false. On this corpus LSA **beats** BM25 by +0.0616 evidence
+> recall and +0.2416 nDCG, and RRF beats BM25 by +0.0624 — the fifty-year-old method is the
+> stronger leg, because the questions are paraphrase and inference over prose where term overlap
+> has almost nothing to score. The full table is in
+> [`docs/09-research/measurements/fusion-rules.md`](../../09-research/measurements/fusion-rules.md).
+
+What survives the correction is the argument for choosing LSA in the first place, and it is
+strengthened rather than weakened: a stand-in that is *too weak to be interesting* would have
+made every fusion lesson vacuous, and this one is strong enough to win.
 
 We also had to fit LSA on *documents* rather than chunks — the association between a customer's
 register and an engineer's register lives at document level, and fitting on fragments learns

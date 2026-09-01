@@ -144,8 +144,8 @@ def write_decision(tmp_path: Path, **fields) -> Unit:
 
 GOOD = {
     "decision": "Weighted score fusion with alpha near 0.2 on the dense leg",
-    "why": "Equal weight assumes both retrievers are comparably credible voters, they are not",
-    "rejected": "RRF, which would have been right if the two legs were close in strength",
+    "why": "Fusion pays only when the legs fail on different queries, and here they do not",
+    "rejected": "RRF, which would have been right if the legs failed on different queries",
     "would_change_if": "The per-query win rate between the legs moves toward an even split",
 }
 

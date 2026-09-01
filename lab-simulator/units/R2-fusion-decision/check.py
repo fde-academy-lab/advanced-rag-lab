@@ -21,10 +21,15 @@ from labsim.checkkit import Checker, SolutionError, emit, run  # noqa: E402
 # Concept -> the words that would appear if the writer engaged with it. Deliberately broad:
 # this rewards touching the idea, not reproducing our phrasing.
 CONCEPTS = {
-    "the legs differ in strength": r"weak|strong|unequal|imbalanc|asymmetr|worse leg|better leg",
-    "equal weight is the problem, not fusion": r"equal|parity|same weight|equally|uniform",
-    "what rank-based fusion discards":
-        r"scale|normali[sz]|score distribut|magnitude|discard|ignore",
+    "which leg is actually stronger here":
+        r"dense|lsa|latent|paraphrase|semantic|bm25 is (the )?weak|lexical is (the )?weak"
+        r"|weaker leg|stronger leg|term overlap",
+    "what fusion needs in order to pay":
+        r"complement|different quer|disjoint|overlap of failure|fail together|orthogonal"
+        r"|same quer|correlat",
+    "a gap inside the interval is not a gap":
+        r"noise band|interval|confidence|ci\b|straddl|crosses zero|contains zero|not "
+        r"significant|indistinguishable|cannot measure|can.t measure",
 }
 
 
@@ -41,16 +46,19 @@ def main(attempt: str) -> int:
     rejected = str(data.get("rejected", ""))
     prose = f"{decision}\n{why}\n{rejected}".lower()
 
-    c("decision names a specific rule, not just 'hybrid'",
-      bool(re.search(r"weight|rrf|reciprocal|alpha|α|bm25|dense|rank", decision, re.I)),
-      "say which rule, and with what weight")
+    c("decision names a specific configuration, not just 'hybrid'",
+      bool(re.search(r"weight|rrf|reciprocal|alpha|α|bm25|dense|lsa|lexical|rank|single leg"
+                     r"|one leg|no fusion", decision, re.I)),
+      "say which configuration you would ship, and with what weight if it has one")
 
     touched = [name for name, pattern in CONCEPTS.items() if re.search(pattern, prose)]
     for name in CONCEPTS:
         c(f"engages with: {name}", name in touched)
     if len(touched) < len(CONCEPTS):
-        c.note("A mechanism-level answer explains *why* equal weight behaved as it did.")
-        c.note("Summarising the table is not the same as explaining it — see hint 3.")
+        c.note("A mechanism-level answer says why the legs behaved as they did, not which row "
+               "of the table was highest.")
+        c.note("Two questions it has to survive: which leg is the weak one, and what would have "
+               "had to be true for fusion to pay? See hints 3 and 4.")
 
     c("`rejected` names a condition, not only a choice",
       bool(re.search(r"\bif\b|\bwhen\b|\bwould\b|\bunless\b|\bonce\b", rejected, re.I)),
@@ -59,8 +67,16 @@ def main(attempt: str) -> int:
     # A falsifier that only repeats the evidence you were handed is not a falsifier.
     falsifier = str(data.get("would_change_if", "")).lower()
     c("falsifier is forward-looking, not a restatement of the given evidence",
-      not re.fullmatch(r"[^a-z]*(rrf|equal weight)[^a-z]*(lost|loses|is worse)[^a-z]*", falsifier),
+      not re.fullmatch(r"[^a-z]*(rrf|equal weight|fusion)[^a-z]*"
+                       r"(lost|loses|is worse|tied|ties|did not help)[^a-z]*", falsifier),
       "name something you could observe later that would change your mind")
+
+    # The number in the brief that most people read as "slightly ahead".
+    c("does not treat a gap inside the interval as a result",
+      not re.search(r"(rrf|fusion|fused)\b[^.]{0,60}(slightly|marginally|a (little|bit|touch)) "
+                    r"(better|ahead|higher|above)", prose),
+      "+0.0008 with an interval of (-0.0101, +0.0109) is not slightly better. It is the sign "
+      "of noise, and calling it slightly better is how complexity gets shipped")
 
     return emit({}, c)
 

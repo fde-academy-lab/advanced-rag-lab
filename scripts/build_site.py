@@ -38,11 +38,20 @@ NOTEBOOK_BLURBS = {
 }
 
 FINDINGS = [
-    ("Equal-weight RRF loses to BM25 alone.",
-     "Weighted fusion at &alpha;&nbsp;=&nbsp;0.2 wins instead: evidence recall 0.7645 &rarr; 0.7891, "
-     "[+0.008,&nbsp;+0.041], holding on the frozen slice. Fusing a strong retrieval leg with a weak "
-     "one at equal weight moves the result toward the weak one.",
-     "Returns to the expected result when both legs are comparably strong."),
+    ("Fusion does not separate from its better single leg.",
+     "Dense alone <b>0.7733</b> against equal-weight RRF <b>0.7742</b> &mdash; a gap of +0.0008 with a "
+     "95% interval of (&minus;0.0101,&nbsp;+0.0109). On nDCG the <i>unfused</i> dense leg wins "
+     "outright, by 0.075. The second index, second pipeline and per-corpus &alpha; buy a difference "
+     "that cannot be measured.",
+     "Returns when the legs are complementary &mdash; when they fail on <i>different</i> queries. The "
+     "diagnostic is the per-query overlap of failures, not the aggregate table."),
+    ("No retrieval configuration moves answer correctness.",
+     "Evidence recall spans 0.7118 &rarr; 0.7790 across five configurations &mdash; real, 9.4% "
+     "relative &mdash; while <code>answer_correct</code> stays inside the noise band on every "
+     "pairwise comparison, and the best answers come from the worst retriever. The system is "
+     "generation-limited, not retrieval-limited.",
+     "Returns when retrieval is the binding constraint &mdash; an assumption almost nobody checks "
+     "before spending a quarter on it."),
     ("Comparison starvation does not reproduce.",
      "The corpus is generated from a fact graph that emits organisations on a balanced schedule, so "
      "the prevalence ratio is &asymp;&nbsp;1 and the precondition is absent by construction.",

@@ -32,15 +32,37 @@ and 2 is ~2%, so agreement across systems outranks confidence within one.
 
 ### The measured result
 
-Equal-weight RRF **loses to BM25 alone** here. Weighted at α = 0.2 wins:
-evidence recall 0.7645 → 0.7891, [+0.008, +0.041], holding on frozen.
+`python scripts/run_eval.py --compare`, 243 questions, `k = 8` after the cross-encoder, paired
+bootstrap over questions:
 
-The mechanism: RRF is a voting rule that treats both voters as equally credible. Fusing a strong
-leg with a weak one at equal weight moves the result toward the weak one. Scale-invariance is a
-virtue when the legs are comparable and a liability when they are not, because it discards the
-score distribution — the one signal that would have told you to down-weight the weak leg.
+| Configuration | Evidence recall@8 | nDCG@8 | Answer correct |
+|---|---|---|---|
+| BM25 alone | 0.7118 | 0.3639 | **0.4156** |
+| Dense (LSA) alone | 0.7733 | **0.6055** | 0.3992 |
+| Equal-weight RRF | 0.7742 | 0.5302 | 0.4033 |
+| Weighted α = 0.2 | 0.7645 | 0.4767 | 0.4115 |
+| Weighted α = 0.5 | **0.7790** | 0.5967 | 0.3992 |
 
-**α = 0.2 is fitted to this corpus and this encoder.** It is not a recommendation.
+Both fusion rules beat BM25 alone decisively — `bm25 → rrf` is +0.0624 evidence recall,
+ci (+0.0407, +0.0857). **Neither beats the dense leg on its own.** `dense → rrf` is +0.0008 with
+an interval of (−0.0101, +0.0109), and on nDCG the unfused dense leg wins by 0.075.
+
+The mechanism is complementarity, not weighting. Fusion combines two signals into a better one
+only when the legs fail on different queries; two retrievers that fail together carry one signal
+between them. On this corpus BM25 is the weak leg — the questions are paraphrase and inference
+over incident prose, where term overlap has almost nothing to score — and it adds little the
+dense leg had not already found. Its genuine win is the exact-identifier slice (`PagerDuty-4471`,
+`ap-southeast-2`), which is real and small, and which the aggregate hides.
+
+**α = 0.2 is fitted to this corpus and this encoder, and it is not even the argmax** — α = 0.5
+measures better on both evidence recall (+0.0145, real) and nDCG (+0.1200, real). It is retained
+because `.github/eval-baseline.json` is cut from it and the alternatives are inside the noise
+band on the metrics that matter. It is not a recommendation.
+
+> **Corrected 2026-09-01.** This section previously stated that equal-weight RRF *loses* to BM25
+> alone and that weighted α = 0.2 wins. Neither reproduces. See
+> [ADR-0015](../adr/0015-correct-the-fusion-finding.md) and
+> [the measurement note](../../09-research/measurements/fusion-rules.md).
 
 ## The reranker
 

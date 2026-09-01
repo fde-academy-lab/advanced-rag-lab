@@ -7,7 +7,7 @@ answers the same questions.
 | Note | Paper | Replicated on Client Zero? |
 |---|---|---|
 | [lost-in-the-middle.md](lost-in-the-middle.md) | Liu et al., 2023 — *Lost in the Middle* | Direction consistent, amplitude inside the noise band |
-| [rrf.md](rrf.md) | Cormack et al., 2009 — *Reciprocal Rank Fusion* | **No** — equal-weight RRF loses to BM25 alone here |
+| [rrf.md](rrf.md) | Cormack et al., 2009 — *Reciprocal Rank Fusion* | **Partly** — RRF beats both legs and every other fusion rule on recall, and the whole exercise is inside the noise band of the dense leg alone |
 
 ## The format
 

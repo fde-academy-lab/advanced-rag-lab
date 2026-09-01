@@ -52,7 +52,7 @@ Reply with the result. The template the seeded examples all follow:
 **Result.**
 | Metric | Before | After | Δ | 95% CI |
 |---|---|---|---|---|
-| evidence_recall | 0.7645 | 0.7891 | +0.0246 | [+0.008, +0.041] |
+| evidence_recall | 0.7645 | 0.7790 | +0.0145 | [+0.0048, +0.0254] |
 
 Slice: <which one>. Frozen slice: <touched / not touched>.
 

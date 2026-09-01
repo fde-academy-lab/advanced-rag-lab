@@ -1,25 +1,27 @@
-# R2 · the worked answer. Graded in CI: if this stops being accepted, the gate has drifted
-# away from what the brief asks for.
+# R2 · the worked answer. Graded in CI: if this stops being accepted, the gate has drifted away
+# from what the brief asks for.
 
 decision: >-
-  Ship weighted score fusion with alpha near 0.2 on the dense leg, min-max normalised per
-  query, and keep BM25 alone as the fallback if normalisation ever has to be dropped.
+  Ship the dense leg alone at k=8. No fusion, no second index, no alpha. Keep the BM25 index
+  built and unwired behind a flag so the identifier slice can be re-tested cheaply.
 
 why: >-
-  Equal-weight RRF loses here because it is a voting rule and a voting rule assumes its voters
-  are comparably credible. Scale-invariance is what lets RRF skip normalisation, and it is the
-  same mechanism that throws away the only signal saying the LSA leg is the weaker voter. So
-  the weak leg gets a full ballot on every query and drags the strong leg's top hit down the
-  fused list. A weight is the smallest thing that can express "one of these is worse".
+  The fused configurations lose because they do not win. Equal-weight RRF scores 0.7742 against
+  the dense leg's 0.7733, which is +0.0008 with an interval of -0.0101 to +0.0109, and on nDCG
+  the unfused leg beats it outright by 0.075. Fusion only pays when the two legs fail on
+  different queries, and here they do not: BM25 is the weak leg on paraphrase and inference
+  prose because term overlap has almost nothing to score, so it mostly re-finds what the dense
+  leg already had. A second index and a fusion rule in the query hot path is permanent cost
+  bought with a number whose interval contains zero.
 
 rejected: >-
-  RRF, which would have been the right call if the two legs were close in strength, or if
-  scores were unstable enough per query that any normalisation I picked would be noise. On a
-  corpus where the dense leg is a real sentence embedder rather than a truncated SVD, I would
-  expect that condition to hold and I would revisit this.
+  Weighted fusion at alpha 0.5, which would have been right if the per-query overlap of the two
+  legs' failures were low, or once the identifier slice grows enough that BM25's real win stops
+  being invisible in the aggregate. I would also take it over RRF if we ever need the scores
+  themselves downstream, since RRF discards them.
 
 would_change_if: >-
-  I see the per-query win rate between the two legs move toward even — say each leg is best on
-  40 to 60 percent of queries instead of the current lopsided split — or the tuned alpha
-  starts landing near 0.5 with a confidence interval that crosses it. Either says the legs
-  became comparable, and the reason to weight them differently has gone.
+  I plot the per-query failure overlap between the legs and find BM25 succeeding on a
+  meaningful share of the questions the dense leg misses, rather than a subset of them. Or the
+  identifier and exact-match slice grows past roughly a fifth of traffic, which is where its
+  aggregate contribution stops rounding to nothing.

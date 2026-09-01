@@ -1,21 +1,22 @@
-# Decoy · reaches the defensible answer without the mechanism.
+# Decoy · reaches a defensible answer without the mechanism.
 #
-# Correct conclusion, and worth nothing on the next corpus. The brief says this explicitly and
-# people do it anyway, because the table makes the answer obvious and reading a table feels
-# like reasoning. The gate has to be able to tell "I know why" from "I know which one won".
+# Reading a table feels like reasoning. It is worth nothing on the next corpus, and the next
+# corpus is the only reason to learn this. The gate has to tell "I know why" from "I know which
+# row was highest".
 
 decision: >-
-  Weighted score fusion with alpha around 0.2, because the measurements support it.
+  Ship weighted fusion at alpha 0.5, because it scores highest on evidence recall.
 
 why: >-
-  The evidence table shows equal-weight RRF scoring below BM25 alone at every value of k, while
-  the weighted configuration scored 0.7891 against the 0.7645 baseline with a confidence
-  interval that does not cross zero. The measured result is what should decide this.
+  The measurements are clear. Weighted fusion at alpha 0.5 reaches 0.7790 evidence recall,
+  ahead of RRF at 0.7742, the dense leg at 0.7733 and BM25 alone at 0.7118. The improvement
+  from alpha 0.2 to alpha 0.5 is +0.0145 with an interval that excludes zero, so it is real.
+  The highest measured configuration is the one that should ship.
 
 rejected: >-
-  RRF, which the numbers rule out. It would have been the right choice if it had scored above
-  the BM25 baseline instead of below it.
+  BM25 alone, which the numbers rule out, and which would only have been right if the other
+  rows had scored below it.
 
 would_change_if: >-
-  I re-run the evaluation on a refreshed corpus snapshot next quarter and the weighted
-  configuration no longer clears the BM25 baseline outside the bootstrap interval.
+  I re-run the evaluation on a refreshed corpus snapshot next quarter and alpha 0.5 no longer
+  comes out at the top of the table.

@@ -34,7 +34,7 @@ and each changed what got built next:
 
 | Finding | What it changed |
 |---|---|
-| Equal-weight RRF loses to BM25 alone | Weighted fusion became the default; α is now a tuned parameter rather than an assumption |
+| Fusion does not separate from its better single leg | Stopped a second index being justified on a +0.0008 difference; produced the `--compare` command, and ADR-0015 when the earlier version of this finding turned out to be wrong |
 | Comparison starvation does not reproduce | Produced issue #14 — an adversarial eval slice with deliberate prevalence imbalance |
 | No score threshold separates answerable from unanswerable | Produced issue #10, and stopped a week of threshold tuning that could not have worked |
 

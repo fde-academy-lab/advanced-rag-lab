@@ -8,7 +8,10 @@
 
 Three measurements in the notebooks contradict what the source deck's matrices predict:
 
-1. Equal-weight RRF does not beat BM25 alone on this corpus; weighted fusion at α=0.2 does.
+1. ~~Equal-weight RRF does not beat BM25 alone on this corpus; weighted fusion at α=0.2 does.~~
+   **Retracted 2026-09-01 — it does not reproduce. See [ADR-0015](0015-correct-the-fusion-finding.md).**
+   Replaced by: *fusion does not separate from its better single leg here, and no retrieval
+   configuration moves answer correctness at all.*
 2. Comparison-question starvation does not reproduce.
 3. No retrieval-score threshold separates answerable from unanswerable questions (best F1 0.38).
 
@@ -49,3 +52,10 @@ here, and here is why", which is a harder room to hold than a clean confirmation
 
 **Revisit when:** never, as a policy. Individual findings should be revisited whenever the
 corpus, the encoder or the eval set changes — and re-measured rather than assumed to still hold.
+
+That clause was cashed in on 2026-09-01. Finding 1 was re-measured and retracted
+([ADR-0015](0015-correct-the-fusion-finding.md)); it had been wrong for some time, quoted in
+about twenty places, and nothing in the repository was structured to notice. The policy is only
+worth having if it is applied to its own findings, and the mechanism that makes it applicable is
+`python scripts/run_eval.py --compare` — a claim you cannot re-run in one command is a claim
+nobody will re-run.

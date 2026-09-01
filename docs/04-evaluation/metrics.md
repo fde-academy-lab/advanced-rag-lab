@@ -21,11 +21,28 @@ Produced by `python scripts/run_eval.py` over 243 questions.
 This is the most important thing on the page.
 
 **Evidence recall** is per piece. **Full-chain recall** is per question. If retrieval events
-were independent with probability *p*, a two-piece question would have full-chain probability
-*p²* — at *p* = 0.7645 that is **0.584**. We measure **0.4686**, meaningfully *below*
-independence.
+were independent with probability *p*, a question with *h* pieces would fully resolve with
+*p^h* — so the prediction has to be weighted by the actual hop mixture, not computed at *h* = 2
+and applied to everything.
 
-The shortfall is the diagnosis, not noise. The two pieces are not independently retrievable:
+The 207 answerable questions split 128 single-hop, 61 two-hop, 18 three-or-more. At
+*p* = 0.7645:
+
+```
+(128·0.7645 + 61·0.7645² + 18·0.7645³) / 207 = 0.6838
+```
+
+We measure **0.4686** — **21 points below** independence, not the 12 that *p²* alone suggests.
+Using *p²* for the whole set understates the shortfall by roughly half, because the corpus is
+62% single-hop and *p²* describes a minority of it.
+
+The shortfall is the diagnosis, not noise, and its size changes what you do about it.
+Uncorrelated failures would mean retrieval is uniformly a little weak, and the fix is a
+uniformly better retriever. A 21-point shortfall means failures are **positively correlated
+within a question** — some questions are hard in a structural way and most are fine — and the
+fix is to find what those questions share.
+
+The two pieces are not independently retrievable:
 hop-1 evidence resembles the query, hop-2 evidence resembles the *answer to hop 1*. Widening k
 returns more hop-1 evidence, lifting the per-piece average while full-chain stays flat.
 
