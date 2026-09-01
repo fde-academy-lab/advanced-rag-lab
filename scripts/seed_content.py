@@ -1631,7 +1631,9 @@ from seed import (  # noqa: E402
     threads_extra,
     threads_interview,
     threads_more,
+    threads_prep,
     threads_standup,
+    threads_usecases,
 )
 
 # Five early threads were single posts with no conversation. Each has been superseded by a
@@ -1667,7 +1669,9 @@ DISCUSSIONS = (DISCUSSIONS
                + threads_design.THREADS
                + threads_interview.THREADS
                + threads_standup.THREADS
-               + threads_more.THREADS)
+               + threads_more.THREADS
+               + threads_prep.THREADS
+               + threads_usecases.THREADS)
 
 ANSWERABLE = {name for name, _emoji, _desc, fmt in CATEGORIES if fmt == "ANSWER"} | {"Q&A"}
 

@@ -1,0 +1,314 @@
+# Machine-readable question bank.
+#
+# Consumed by practice.py. Every entry points at the file where the full answer lives, so this
+# stays an index rather than a second copy that drifts from the first.
+#
+# tier:   screen | mid | senior | staff
+# model:  which mental model fires first (see mental-models.md)
+# trap:   the specific wrong turn this question is built to catch
+
+meta:
+  version: 1
+  source_of_truth: "docs/06-interview-prep/"
+  scoring: [misses, screen, mid, senior]
+
+questions:
+  - id: R1
+    topic: retrieval
+    tier: screen
+    model: two-timelines
+    q: "Walk me through what happens between a user typing a question and your system returning an answer."
+    trap: "Naming technologies instead of stages."
+    signals:
+      senior: "Splits index-time from query-time unprompted and attaches a budget to each stage."
+      mid: "Names where each stage can fail; volunteers the weakest link."
+      screen: "Gets the happy path in order."
+    followups:
+      - "Where does that break first at ten times the corpus?"
+      - "Which stage would you instrument first, and why that one?"
+    source: "docs/06-interview-prep/retrieval.md#r1--the-90-second-opener"
+
+  - id: R2
+    topic: retrieval
+    tier: mid
+    model: condition-not-law
+    q: "Here is a scoring function: score = sum of tf x idf. What is wrong with it?"
+    trap: "Giving only one of the two failures."
+    signals:
+      senior: "Both failures, plus what k1 and b model rather than what they tune."
+      mid: "Saturation and length normalisation, correctly explained."
+    followups:
+      - "You set b = 0.75 and recall got worse. Why might that be?"
+      - "Your corpus is bimodal in length. Now what?"
+    source: "docs/06-interview-prep/retrieval.md#r2--the-saturation-question"
+
+  - id: R3
+    topic: retrieval
+    tier: senior
+    model: cheapest-diagnostic-first
+    q: "Your retrieval works. A PM says users report search is broken. Recall@10 is 0.89 and stable. Where do you look?"
+    trap: "Defending the metric."
+    signals:
+      senior: "Questions whether the eval set still resembles production traffic, and says how to check cheaply."
+      mid: "Proposes slicing by query class, segment, recency."
+      screen: "Suggests looking at logs."
+    followups:
+      - "The eval set was built eighteen months ago. Does that change your answer?"
+      - "What is the first thing you actually run tomorrow morning?"
+    source: "docs/06-interview-prep/retrieval.md#r3--the-one-nobody-prepares-for"
+
+  - id: R4
+    topic: retrieval
+    tier: mid
+    model: whose-budget
+    q: "What chunk size do you use?"
+    trap: "Producing a number. The question has no answer and they know it."
+    signals:
+      senior: "Names boundary damage as the measurement, and the embedder-fitting trap."
+      mid: "Refuses the number, describes what it depends on and how to measure it."
+    followups:
+      - "How would you know your chunking is any good?"
+      - "You compared seven strategies and they all scored the same. What happened?"
+    source: "docs/06-interview-prep/retrieval.md#r4--chunking-asked-as-a-trap"
+
+  - id: R5
+    topic: retrieval
+    tier: senior
+    model: the-third-case
+    q: "You add a cross-encoder reranker and recall goes down. Debug it out loud."
+    trap: "Assuming a wiring bug. Uniformly-slightly-worse is not what a wiring bug looks like."
+    signals:
+      senior: "Reasons from the shape of the degradation to a feature-set diagnosis."
+      mid: "Rules out sort order, then reasons about what the reranker can and cannot add."
+    followups:
+      - "What does uniformly worse at every k tell you that catastrophically worse would not?"
+      - "How would you fix it without training a neural model?"
+    source: "docs/06-interview-prep/retrieval.md#r5--reranking-and-the-honest-failure"
+
+  - id: R7
+    topic: retrieval
+    tier: staff
+    model: whose-budget
+    q: "Every document has an ACL. Users see different subsets. How do you retrieve?"
+    trap: "Post-filtering, or pre-filtering without noticing what it does to the ANN graph."
+    signals:
+      staff: "Notices a filtered graph search can disconnect the graph for restricted users."
+      senior: "Pre-filter, with k-collapse and score leak named."
+      mid: "Pre-filter, correctly justified."
+    followups:
+      - "Now fifty thousand ACL groups."
+      - "Where is the permission evaluated, and why does that matter?"
+    source: "docs/06-interview-prep/retrieval.md#r7--the-multi-tenant-question"
+
+  - id: E1
+    topic: evaluation
+    tier: senior
+    model: name-the-denominator
+    q: "Design a metric for a retrieval system whose answers can require two documents."
+    trap: "Recall@k and stop."
+    signals:
+      senior: "Defines both per-piece and per-question, predicts the gap arithmetically, says what the gap diagnoses."
+      mid: "Distinguishes some-evidence from all-evidence."
+    followups:
+      - "Which one do you gate a release on?"
+      - "Independence would predict 0.68 and you measure 0.47. What does the shortfall tell you?"
+    source: "docs/06-interview-prep/evaluation.md#e1--design-a-metric-for-a-retrieval-system-whose-answers-can-require-two-documents"
+
+  - id: E2
+    topic: evaluation
+    tier: senior
+    model: cheapest-diagnostic-first
+    q: "Your eval set says 0.89. Users are unhappy. Defend the number or abandon it."
+    trap: "Defending it."
+    signals:
+      senior: "Names four ways an eval set stops describing production, and the cheap fix for each."
+      mid: "Identifies drift or aggregation."
+    followups:
+      - "But the metric is objective. Is it not?"
+    source: "docs/06-interview-prep/evaluation.md#e2--your-eval-set-says-089-users-are-unhappy-defend-the-number-or-abandon-it"
+
+  - id: E3
+    topic: evaluation
+    tier: staff
+    model: what-would-make-this-false
+    q: "Walk me through validating an LLM judge."
+    trap: "Reporting kappa without the marginals or the shape of the disagreement."
+    signals:
+      staff: "Distinguishes judge noise from judge bias and says why the same kappa implies opposite decisions."
+      senior: "Agreement, bias probes, drift monitoring, all as specific experiments."
+    followups:
+      - "Kappa is 0.62. Good enough to gate a release?"
+      - "Your kappa is low. Whose fault is it?"
+    source: "docs/06-interview-prep/evaluation.md#e3--walk-me-through-validating-an-llm-judge"
+
+  - id: E4
+    topic: evaluation
+    tier: senior
+    model: name-the-denominator
+    q: "How do you know an improvement is real?"
+    trap: "Saying t-test without knowing what it assumes."
+    signals:
+      senior: "Paired bootstrap over queries, plus the three things it does not cover."
+      mid: "Bootstrap, correctly described."
+    followups:
+      - "Why paired?"
+      - "Why resample queries and not documents?"
+      - "Interval is [+0.001, +0.09]. Ship?"
+    source: "docs/06-interview-prep/evaluation.md#e4--how-do-you-know-an-improvement-is-real"
+
+  - id: M1
+    topic: mathematics
+    tier: senior
+    model: condition-not-law
+    q: "Derive BM25's term-frequency saturation. Why not raw tf?"
+    trap: "Describing k1 as a tuning parameter without saying what it models."
+    signals:
+      senior: "2-Poisson origin, the Jeffreys prior in the IDF, and what breaks at each extreme of k1 and b."
+      mid: "Saturation and length normalisation with the formula."
+    followups:
+      - "Bimodal document lengths. What do you do with b?"
+      - "Why 0.5 and not any other smoothing constant?"
+    source: "docs/06-interview-prep/mathematics.md#m1--derive-bm25s-term-frequency-saturation-why-not-raw-tf"
+
+  - id: M4
+    topic: mathematics
+    tier: staff
+    model: condition-not-law
+    q: "Why does a plain k-NN graph fail as an ANN index, and what fixes it?"
+    trap: "Describing HNSW without explaining why the lattice fails."
+    signals:
+      staff: "Kleinberg navigability, the O(log^2 n) result, and that the failure is latent in corpus size."
+      senior: "Local minima, long-range links, the layered version."
+    followups:
+      - "Recall is 0.94 and you need 0.99. What do you turn?"
+      - "Why did every test pass while the index was broken?"
+    source: "docs/06-interview-prep/mathematics.md#m4--why-does-a-k-nn-graph-fail-as-an-ann-index-and-what-fixes-it"
+
+  - id: M5
+    topic: mathematics
+    tier: senior
+    model: name-the-denominator
+    q: "Cohen's kappa is 0.31 but the annotators agree 85% of the time. Explain."
+    trap: "Concluding the annotators are bad."
+    signals:
+      senior: "Works the prevalence arithmetic and proposes four responses in order."
+      mid: "Names the prevalence problem."
+    followups:
+      - "Is 0.62 good enough to gate a release?"
+      - "Your kappa is low. Where do you look first?"
+    source: "docs/06-interview-prep/mathematics.md#m5--cohens-kappa-is-031-but-the-annotators-agree-85-of-the-time-explain"
+
+  - id: S1
+    topic: systems-design
+    tier: senior
+    model: two-timelines
+    q: "Design search for our support knowledge base."
+    trap: "Drawing before asking. The prompt is unanswerable as given and that is the first thing scored."
+    signals:
+      senior: "Extracts six requirements, writes them down, states assumptions for the deflected ones."
+      mid: "Asks requirements, then designs to them."
+      misses: "Starts drawing boxes."
+    followups:
+      - "A policy article changes at 9am. Walk me through what has to happen."
+      - "Half your agents cannot see billing documents."
+      - "How do you know it is working?"
+      - "Ten times the corpus, a tenth of the budget."
+    source: "docs/06-interview-prep/systems-design.md#s1--the-full-round-design-search-for-our-support-knowledge-base"
+
+  - id: S2
+    topic: systems-design
+    tier: senior
+    model: cheapest-diagnostic-first
+    q: "Design an eval set for a client who has none. You cannot ask them for 500 labelled questions."
+    trap: "Proposing an annotation project the client will not fund."
+    signals:
+      senior: "Three sources cheapest-first, and the check that the set discriminates."
+      mid: "Logs plus synthetic, with the paraphrase trap named."
+    followups:
+      - "How do you know your synthetic set is any good?"
+      - "The client says they have no time for an eval set."
+    source: "docs/06-interview-prep/systems-design.md#s2--design-an-eval-set-for-a-client-who-has-none"
+
+  - id: S3
+    topic: systems-design
+    tier: senior
+    model: what-would-make-this-false
+    q: "The client wants an agent. Talk me out of it, or do not."
+    trap: "Arguing that agents are overhyped. You lose that argument even when right."
+    signals:
+      senior: "Proposes measuring the multi-hop fraction before building, and says what each outcome implies."
+      mid: "Names cost and latency multiplication, proposes routing."
+    followups:
+      - "It comes back at 40%. Now what?"
+      - "How would you score the agent once it exists?"
+    source: "docs/06-interview-prep/systems-design.md#s3--the-client-wants-an-agent-talk-me-out-of-it-or-dont"
+
+  - id: S5
+    topic: systems-design
+    tier: senior
+    model: cheapest-diagnostic-first
+    q: "It worked in the pilot and is failing in production. Diagnose."
+    trap: "Instrumenting before asking what changed."
+    signals:
+      senior: "Five hypotheses ordered by likelihood and cheapness; runs twenty queries by hand first."
+      mid: "Asks what changed between the two environments."
+    followups:
+      - "The corpus went from 5k curated to 200k real. Does that change your ordering?"
+    source: "docs/06-interview-prep/systems-design.md#s5--it-worked-in-the-pilot-and-is-failing-in-production"
+
+  - id: C1
+    topic: coding
+    tier: screen
+    model: say-the-shape-first
+    q: "Implement BM25 scoring over a list of documents. Write it as if someone else will read it."
+    trap: "Counting document frequency from occurrences rather than documents."
+    signals:
+      senior: "Narrates the plan before typing; names edge cases even when not handling them."
+      screen: "Correct scoring, readable, guards the empty corpus."
+    followups:
+      - "What is the complexity?"
+      - "Make it work for a million documents."
+      - "A query term appears in no document. What happens?"
+    source: "docs/06-interview-prep/coding.md#c1--implement-bm25-scoring-over-a-small-in-memory-corpus"
+
+  - id: C4
+    topic: coding
+    tier: mid
+    model: name-the-denominator
+    q: "Write an evaluation function for a retriever."
+    trap: "Returning recall and MRR and stopping."
+    signals:
+      senior: "Computes full-chain as well as per-piece, returns n, handles an empty result list."
+      mid: "Correct recall and MRR."
+    followups:
+      - "What does this miss?"
+      - "Would you act on the mean alone?"
+    source: "docs/06-interview-prep/coding.md#c4--evaluate-a-retriever"
+
+  - id: B1
+    topic: behavioural
+    tier: senior
+    model: name-the-denominator
+    q: "Tell me about a time you were wrong about something technical."
+    trap: "A humblebrag, or a mistake with no consequence."
+    signals:
+      senior: "A reasoning error they found themselves, with a mechanism and a process change still in place."
+      mid: "A real mistake with a specific fix."
+      misses: "A disguised strength."
+    followups:
+      - "How did you find out?"
+      - "What stops it happening again?"
+    source: "docs/06-interview-prep/behavioural.md#b1--tell-me-about-a-time-you-were-wrong-about-something-technical"
+
+  - id: B3
+    topic: behavioural
+    tier: senior
+    model: what-would-make-this-false
+    q: "A stakeholder wants something you think is a bad idea."
+    trap: "Capitulating, or lecturing."
+    signals:
+      senior: "Proposes a measurement that makes it their number rather than your opinion."
+      mid: "Disagrees and still delivers."
+    followups:
+      - "What if the measurement had gone the other way?"
+    source: "docs/06-interview-prep/behavioural.md#b3--a-stakeholder-wants-something-you-think-is-a-bad-idea"
