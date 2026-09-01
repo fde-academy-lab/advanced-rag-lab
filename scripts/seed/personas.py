@@ -69,6 +69,16 @@ PERSONAS: dict[str, dict[str, str]] = {
         "strength": "states the standard and marks the answer",
         "flaw": "",
     },
+    # Not a person, and not pretending to be one. Seeded simulator threads quote the grading
+    # Action's reply verbatim, because a thread that jumps from a wrong submission straight to
+    # a peer explaining it hides the step that made the peer's explanation possible. The
+    # attribution line says what it is.
+    "labsim-bot": {
+        "name": "L.A.B. Simulator",
+        "tag": "the grading Action — this reply is a transcript, not a person",
+        "strength": "names the check that caught it",
+        "flaw": "cannot tell you why the check exists",
+    },
 }
 
 FOOTER = (
@@ -84,6 +94,8 @@ def header(key: str) -> str:
     p = PERSONAS[key]
     if key == "maintainer":
         return "> 🛠 **Maintainer**\n\n"
+    if key == "labsim-bot":
+        return "> 🤖 **L.A.B. Simulator** · <sub>the grading Action, quoted verbatim</sub>\n\n"
     return f"> 💬 **{p['name']}** · <sub>{p['tag']}</sub>\n\n"
 
 

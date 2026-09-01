@@ -731,6 +731,13 @@ CATEGORIES = [
     ("Debugging Clinic", "🐞",
      "Bring a failure you cannot explain. Symptom first, then what you have already ruled out. "
      "Threads here are long on purpose.", "ANSWER"),
+    # The simulator's own category. Named without dots so the slug is predictably
+    # `lab-simulator`, which is what .github/DISCUSSION_TEMPLATE/lab-simulator.yml is keyed to.
+    ("LAB Simulator", "🧪",
+     "Post a unit, a bot grades it. It runs the same `python -m labsim check` you would run "
+     "locally, on a clean checkout, and replies with the named checks that failed. Comment "
+     "/hint for the next hint, /solution once you clear, /status for the pathway. No clone "
+     "needed — or open the repo in Codespaces and use the editor.", "ANSWER"),
     ("Weekly Standup & Retro", "🗓",
      "What moved, what is blocked, what we got wrong. One thread per week, posted by the "
      "maintainers.", "ANNOUNCEMENT"),
@@ -1673,6 +1680,7 @@ from seed import (  # noqa: E402
     threads_exercises,
     threads_extra,
     threads_interview,
+    threads_labsim,
     threads_more,
     threads_prep,
     threads_standup,
@@ -1714,6 +1722,7 @@ DISCUSSIONS = (DISCUSSIONS
                + threads_standup.THREADS
                + threads_more.THREADS
                + threads_prep.THREADS
+               + threads_labsim.THREADS
                + threads_usecases.THREADS)
 
 ANSWERABLE = {name for name, _emoji, _desc, fmt in CATEGORIES if fmt == "ANSWER"} | {"Q&A"}

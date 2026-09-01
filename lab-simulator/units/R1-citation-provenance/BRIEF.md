@@ -67,6 +67,30 @@ Ordinary shape checks — and one that matters more: for a random hit list, **ev
 assembled text resolves through `markers` to a `chunk_id` that was actually in the input.** That
 is the promise, tested.
 
+## Hints, in order
+
+<details><summary>Hint 1 — what the marker number is, and what it is not</summary>
+
+`enumerate(hits, start=1)`. The marker is a position in **this** bundle, not a rank from
+upstream — reuse an upstream rank and renumbering anywhere earlier silently repoints every
+citation, with nothing to detect it.
+</details>
+
+<details><summary>Hint 2 — the line the unit is about</summary>
+
+Everything else in this function is formatting. Exactly one line is what makes a citation
+*resolvable*, and if you deleted it the assembled text would look identical and every shape
+check would still pass. Which line is it, and who would notice it was gone?
+</details>
+
+<details><summary>Hint 3 — why the check uses random inputs</summary>
+
+A test comparing your output to an expected string tests your formatting choices. The graded
+property is stated over randomised hit lists: *every marker appearing in the text resolves,
+through `markers`, to a chunk_id that was in the input.* Write it so that sentence is true by
+construction rather than true for the example in front of you.
+</details>
+
 ## Before you start
 
 Read `raglab/context.py` in this repository. It solves the same problem, and reading it after

@@ -86,7 +86,32 @@ jobs:
         with: { python-version: "3.11", cache: pip }
       - run: pip install -e ".[dev]"
       - run: pytest tests/test_lab_simulator.py -q
-      - run: ruff check lab-simulator
+      - run: ruff check lab-simulator scripts
+
+      - name: The Codespaces surface has not drifted
+        run: python scripts/lint/check_devcontainer.py
+
+      - name: The discussion form offers every unit
+        run: |
+          python - <<'PY'
+          # The form's dropdown is hand-maintained; the pick-list in tasks.json is checked by
+          # check_devcontainer.py and this is its other half. A unit missing from the form is
+          # a unit nobody can submit from a browser.
+          import pathlib, re, sys, yaml
+          sys.path.insert(0, "lab-simulator")
+          from labsim.registry import all_units
+
+          form = yaml.safe_load(
+              pathlib.Path(".github/DISCUSSION_TEMPLATE/lab-simulator.yml").read_text())
+          options = next(f for f in form["body"] if f.get("id") == "unit")["attributes"]["options"]
+          listed = {re.match(r"([A-Z]+\d+)", o).group(1) for o in options}
+          known = {u.uid for u in all_units()}
+          if listed != known:
+              print(f"discussion form drift: missing {sorted(known - listed)}, "
+                    f"stale {sorted(listed - known)}")
+              sys.exit(1)
+          print(f"discussion form lists all {len(known)} units")
+          PY
 
   grade:
     name: Grade submitted attempts
