@@ -46,16 +46,34 @@ STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions",
 
 
 
-def preflight(owner):
+def preflight(owner, repo=None):
     """Prove the token works and report who it is, before anything is created.
 
     Every later failure is easier to read once this has run: a 404 means the repository is
     missing rather than the token being wrong, and a 403 means a permission is missing rather
     than the credential being bad.
+
+    `GET /user` is the wrong question for one caller. An Actions `GITHUB_TOKEN` is an
+    *installation* token: it has no user identity, so that endpoint answers 403 even though the
+    token is perfectly good for everything this script does. Treating that as a failure is why
+    provisioning only ever ran with a PAT — and why the housekeeping workflow, which
+    deliberately holds no PAT, could not seed a discussion.
     """
     try:
         me = request("GET", "/user")
     except GitHubError as exc:
+        if exc.status == 403 and repo:
+            # Could still be a working installation token. Ask a question it can answer.
+            try:
+                request("GET", f"/repos/{owner}/{repo}")
+            except GitHubError:
+                pass
+            else:
+                preflight.login = "github-actions[bot]"
+                print("  authenticated as \033[1mthe GitHub Actions token\033[0m"
+                      "  \033[90m(installation token — no /user identity, which is normal)"
+                      "\033[0m")
+                return True
         if exc.status == 401:
             print("\n\033[31mGITHUB_TOKEN is not valid.\033[0m  GitHub answered: "
                   f"{exc.message}")
@@ -635,12 +653,16 @@ def main() -> int:
     print(f"\n\033[1mProvisioning {args.owner}/{args.repo}\033[0m"
           + ("  \033[33m(dry run)\033[0m" if args.dry_run else ""))
 
-    if not preflight(args.owner):
+    if not preflight(args.owner, args.repo):
         return 1
 
     # Keep the tree's badges, clone URL, CODEOWNERS and packaging metadata in step with the
     # owner/repo actually being provisioned, so a fork does not ship badges pointing upstream.
-    if not args.dry_run:
+    #
+    # Only for the steps that stand up a repository. A run that just seeds discussions has no
+    # business rewriting the working tree, and on a runner those edits are discarded anyway —
+    # so all it can do is confuse whoever reads the log.
+    if not args.dry_run and wanted & {"create", "settings", "push"}:
         import subprocess
         subprocess.run([sys.executable, str(Path(__file__).with_name("retarget.py")),
                         "--owner", args.owner, "--repo", args.repo], check=False)
