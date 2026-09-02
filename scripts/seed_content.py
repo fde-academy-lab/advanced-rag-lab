@@ -1919,9 +1919,14 @@ which is about why it survived rather than about fusion.
 # Deliberately few. A taxonomy nobody can hold in their head gets applied inconsistently and
 # then means nothing, so this is four topic labels, four kinds, and one level.
 DISCUSSION_LABELS = [
+    # GitHub caps a label description at 100 characters. This one was 131, so the POST that
+    # creates it answered 422 on every run, with every token, and fifteen threads went without
+    # the label that separates a faculty-written example from a real question. The warning was
+    # in a seed log nobody can download. tests/test_seed_content.py now holds every label to
+    # the cap, so the next one fails in CI instead.
     ("worked example", "0e8a16",
-     "Written by the maintainers to model a good question, a good wrong turn and a good "
-     "correction. Not a real cohort member."),
+     "Written by faculty to model a good question, a wrong turn and a correction. "
+     "Not a real learner."),
     ("retracted", "b60205",
      "Contains a claim this repository has since withdrawn. Kept for the record, banded at "
      "the top."),
