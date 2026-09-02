@@ -600,7 +600,7 @@ def label_discussions(owner, repo, existing, dry) -> int:
     return applied
 
 
-def rename_threads(owner, repo, existing, dry) -> int:
+def rename_threads(owner, repo, existing, dry) -> tuple[int, set[str]]:
     """Retitle threads in place, rather than creating a second copy under the new name.
 
     Seeding is keyed by title. Change a title in seed_content and the seeder does not rename
@@ -610,8 +610,13 @@ def rename_threads(owner, repo, existing, dry) -> int:
     `updateDiscussion` edits a thread this token may not have authored, so this can be refused
     for the built-in Actions token and succeed for the PAT the provision workflow uses. It says
     which happened rather than failing silently.
+
+    Returns the count **and the new titles it could not apply**, because saying so was not
+    enough. When all nine renames were refused, the create loop saw nine new titles that were
+    not live, created them, and left nine duplicate pairs — the exact failure this function
+    exists to prevent, arrived at through its own error path.
     """
-    renamed = 0
+    renamed, refused = 0, set()
     for old, new in getattr(content, "RENAMED", {}).items():
         if old not in existing:
             continue
@@ -628,12 +633,18 @@ def rename_threads(owner, repo, existing, dry) -> int:
             mutate(RETITLE_M, {"id": disc["repository"]["discussion"]["id"], "title": new})
         except GitHubError as exc:
             warn(f"rename #{number}", f"updateDiscussion refused: {exc.message}")
+            refused.add(new)
             continue
         ok(f"#{number}", f"{'retitled':<24} {new[:48]}")
         existing[new] = existing.pop(old)
         renamed += 1
         time.sleep(1.1)
-    return renamed
+    if refused:
+        warn("renames refused", f"{len(refused)} thread(s) keep their old title")
+        print("      The threads below already exist under their previous names and will NOT be "
+              "created\n      a second time. Run the provision workflow with PROJECT_TOKEN to "
+              "apply the renames.")
+    return renamed, refused
 
 
 def cross_link(owner, repo, existing, dry) -> int:
@@ -931,12 +942,16 @@ def create_discussions(owner, repo, dry):
             print(f"        Settings → Discussions → {name} → Edit → Description:")
             print(f"          {desc}")
 
-    renamed = rename_threads(owner, repo, existing, dry)
+    renamed, rename_refused = rename_threads(owner, repo, existing, dry)
 
     created, posts, answers, repaired = [], 0, 0, 0
     broken: list[str] = []          # failed for a reason that is not "category missing"
     for spec in content.DISCUSSIONS:
         title = spec["title"]
+        if title in rename_refused:
+            # The thread exists under its previous name. Creating it here is how you get two.
+            skip(f"“{title[:52]}”", "exists under its old title")
+            continue
         if title in existing:
             repaired += _repair_answer(owner, repo, spec, existing[title], answerable, dry)
             continue
