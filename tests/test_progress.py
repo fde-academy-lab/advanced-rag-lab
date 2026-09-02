@@ -77,3 +77,26 @@ def test_the_progress_reply_for_a_stranger_is_an_invitation():
     from labsim.registry import all_units
     text = render_for("nobody", {}, all_units())
     assert "nothing graded yet" in text and "`F1`" in text
+
+
+def test_a_refusal_becomes_an_annotation_not_a_traceback(monkeypatch, capsys):
+    """The job log is unreadable through the API from a restricted network; an annotation is
+    readable. Two board runs failed with the PAT present and the only fact exposed was
+    'exit code 1'."""
+    import labsim_progress as lp
+    from gh import GitHubError
+
+    def boom():
+        raise GitHubError(403, "Resource not accessible by integration: createProjectV2")
+    monkeypatch.setattr(lp, "main", boom)
+    assert lp._run() == 1
+    out = capsys.readouterr().out
+    assert "::error::" in out
+    assert "project" in out and "scope" in out
+
+    def spent():
+        raise GitHubError(403, "API rate limit already exceeded")
+    monkeypatch.setattr(lp, "main", spent)
+    monkeypatch.setattr(lp, "rate_limit_reset", lambda: "08:38 UTC, in 40 min")
+    assert lp._run() == 1
+    assert "::error::rate limit exceeded; resets at 08:38 UTC" in capsys.readouterr().out

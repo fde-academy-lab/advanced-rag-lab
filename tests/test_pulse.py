@@ -70,3 +70,16 @@ def test_content_changes_groups_units_together(tmp_path):
     assert set(groups) == {"docs", "lab-simulator/units", "notebooks"}, groups
     assert len(groups["lab-simulator/units"]) == 2
     assert all(f.startswith("+ ") for fs in groups.values() for f in fs)
+
+
+def test_a_refusal_becomes_an_annotation_not_a_traceback(monkeypatch, capsys):
+    import discussions_pulse as dp
+    from gh import GitHubError
+
+    def boom():
+        raise GitHubError(401, "Bad credentials")
+    monkeypatch.setattr(dp, "main", boom)
+    assert dp._run() == 1
+    out = capsys.readouterr().out
+    assert "::error::HTTP 401: Bad credentials" in out
+    assert "not allowed" in out

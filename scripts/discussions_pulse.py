@@ -294,16 +294,36 @@ def main() -> int:
     return 0
 
 
+def explain(exc: GitHubError) -> str:
+    """One readable sentence for a refusal, with the fix the message itself does not name."""
+    msg = (exc.message or "").strip().replace("\n", " ")
+    low = msg.lower()
+    if "createprojectv2" in low or "projectsv2" in low or "projects" in low and "scope" in low:
+        return (f"GitHub refused a Projects v2 call: {msg[:160]}. The token needs the classic "
+                "`project` scope or fine-grained account permission Projects: read/write.")
+    if exc.status in (401, 403):
+        return f"HTTP {exc.status}: {msg[:160]}. The token is present but not allowed to do this."
+    return f"HTTP {exc.status}: {msg[:200]}"
+
+
 def _run() -> int:
     try:
         return main()
     except GitHubError as exc:
+        # Both branches also write a `::error::` line. A workflow annotation is the one part of
+        # a failed run that the REST API exposes from a restricted network; the job log is not.
+        # Two board runs failed with the PAT present and the only readable fact was "exit 1".
         if is_rate_limit(exc):
             # A traceback for a spent quota sends somebody reading code that is not wrong.
+            when = rate_limit_reset()
             print(f"\nGitHub API rate limit exceeded for this token. It resets at "
-                  f"{rate_limit_reset()}. Nothing is broken; re-run the workflow then.")
+                  f"{when}. Nothing is broken; re-run the workflow then.")
+            print(f"::error::rate limit exceeded; resets at {when}")
             return 1
-        raise
+        reason = explain(exc)
+        print(f"\n{reason}")
+        print(f"::error::{reason}")
+        return 1
 
 
 if __name__ == "__main__":
