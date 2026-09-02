@@ -60,6 +60,7 @@ LABELS = [
     ("needs: eval-numbers", "e4664f", "Touches raglab — must ship with a measurement"),
     ("dependencies", "0366d6", "Dependency updates"),
     ("negative-result", "8a63d2", "A change that was measured and rejected — full credit"),
+    ("newsletter", "0e8a16", "An item for the next wiki newsletter issue: link, date, why an FDE cares"),
 ]
 
 # ─────────────────────────────────────────────────────────────────── milestones ──
@@ -1784,6 +1785,89 @@ LIFECYCLE = [
     ("⑦ Operate", "Retract in public, with the mechanism that let it stand",
      "ADR-0015; the retracted label; a correction that becomes the accepted answer",
      "docs/01-architecture/adr/0015-correct-the-fusion-finding.md"),
+]
+
+
+
+def _extension_items() -> list[tuple[str, str, str]]:
+    """One board item per `### N. Title` heading in extension-points.md, with its tier.
+
+    Read from the document rather than typed here, so the board cannot drift from the file it
+    points at; tests/test_seed_content.py checks the two agree anyway.
+    """
+    import re
+    from pathlib import Path
+    doc = Path(__file__).resolve().parents[1] / "docs" / "09-research" / "extension-points.md"
+    tier, out = "", []
+    for line in doc.read_text().splitlines():
+        m = re.match(r"^## (Tier \d)", line)
+        if m:
+            tier = m.group(1)
+        m = re.match(r"^### (\d+)\. (.+)$", line)
+        if m:
+            out.append((f"{m.group(1)}. {m.group(2)}",
+                        f"docs/09-research/extension-points.md · {tier} · #{m.group(1)}. "
+                        "Hypothesis and seam in the file.", "Proposed"))
+    return out
+
+
+# ───────────────────────────────────────────────────────── content boards ──
+# Three boards whose items are content rather than live activity, seeded by
+# `setup_github.py --only boards` beside the Lifecycle board. Each is (title, description,
+# status field options, items); an item is (title, body, status). Items are keyed by title,
+# so re-running never duplicates. Every path named here must exist: tests/test_seed_content.py
+# checks, because a board that points at a missing file is a board nobody trusts.
+CONTENT_BOARDS = [
+    {
+        "title": "Reading Club — Papers",
+        "description": "One item per paper note: what replicated on Client Zero and what did not.",
+        "statuses": ["To read", "Reading", "Discussed", "Replicated here"],
+        "items": [
+            ("Liu et al., 2023 — Lost in the Middle",
+             "docs/09-research/paper-notes/lost-in-the-middle.md · Direction consistent on Client "
+             "Zero, amplitude inside the noise band.", "Replicated here"),
+            ("Cormack et al., 2009 — Reciprocal Rank Fusion",
+             "docs/09-research/paper-notes/rrf.md · RRF beats both legs on recall and the whole "
+             "exercise sits inside the noise band of the dense leg alone. See ADR-0015.",
+             "Replicated here"),
+            ("Robertson & Zaragoza — The Probabilistic Relevance Framework: BM25 and Beyond",
+             "docs/09-research/reading-list.md · The saturation term and why k1 and b matter more "
+             "than people think. Notebook 04 builds it from scratch.", "To read"),
+            ("Karpukhin et al., 2020 — Dense Passage Retrieval",
+             "docs/09-research/reading-list.md · Where the dense leg comes from, and why an LSA "
+             "encoder is the honest default here (ADR-0003).", "To read"),
+            ("Nogueira & Cho — Passage Re-ranking with BERT",
+             "docs/09-research/reading-list.md · The cross-encoder idea behind the reranker seam "
+             "and extension 4.", "To read"),
+        ],
+    },
+    {
+        "title": "Extension Points — What to build next",
+        "description": "The twenty techniques in docs/09-research/extension-points.md, each with "
+                       "its hypothesis and seam. Claim one with an issue labelled type: extension.",
+        "statuses": ["Proposed", "Claimed", "Measured", "Rejected with a number"],
+        "items": _extension_items(),
+    },
+    {
+        "title": "Newsletter — Pipeline",
+        "description": "Issues of the wiki newsletter: ideas arrive as Ideas threads with the "
+                       "newsletter label, get drafted in wiki/, and are announced when merged.",
+        "statuses": ["Idea", "Drafting", "Published"],
+        "items": [
+            ("Issue 1 · September 2026",
+             "wiki/Newsletter-2026-09.md · Harnesses as plug-in runtimes, agent sandboxes, RL for "
+             "agents, cheaper long context, keyless sign-in.", "Published"),
+            ("Issue 2 · October 2026",
+             "wiki/Newsletter.md · Collect items as Ideas threads with the newsletter label.",
+             "Idea"),
+            ("Standing item · a reliability metric for the grader",
+             "wiki/Newsletter-2026-09.md · 'verdict identical over N runs' in labsim selftest, "
+             "proposed in Issue 1.", "Idea"),
+            ("Standing item · the long-context bet, measured",
+             "wiki/Newsletter-2026-09.md · whole corpus in a long-context model versus the "
+             "pipeline, with cost per query. Extension 14 has the seam.", "Idea"),
+        ],
+    },
 ]
 
 # ───────────────────────────────────────────────────────────────── cross-links ──
