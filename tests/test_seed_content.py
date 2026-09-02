@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+ROOT = Path(__file__).resolve().parents[1]
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import seed_content as content  # noqa: E402
@@ -358,3 +360,26 @@ def test_the_drills_index_thread_names_every_drill():
     for u in all_units():
         if u.is_drill:
             assert f"`{u.uid}`" in thread["body"], f"{u.uid} is not in the drills index thread"
+
+
+# ──────────────────────────────────────────────── GitHub's label description cap ──
+GITHUB_LABEL_DESCRIPTION_MAX = 100
+
+
+def test_every_label_description_fits_githubs_cap():
+    """A description over 100 characters makes the create call answer 422.
+
+    `worked example` was 131. It was never created, on any run, with any token; the warning
+    went into a seed log that the network policy will not let anybody download; and fifteen
+    threads shipped without the label whose whole job is to say "this was not a real question".
+    """
+    import sys
+
+    import seed_content
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from discussion_bot import BOT_LABELS
+    everything = ([(n, d) for n, _c, d in seed_content.LABELS]
+                  + [(n, d) for n, _c, d in seed_content.DISCUSSION_LABELS]
+                  + [(n, d) for n, (_c, d) in BOT_LABELS.items()])
+    too_long = [(n, len(d)) for n, d in everything if len(d) > GITHUB_LABEL_DESCRIPTION_MAX]
+    assert not too_long, f"over GitHub's {GITHUB_LABEL_DESCRIPTION_MAX}-char cap: {too_long}"
