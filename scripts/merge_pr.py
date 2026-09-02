@@ -38,12 +38,24 @@ def identity() -> tuple[str, str]:
     return data["owner"], data["repo"]
 
 
-def check_state(owner: str, repo: str, sha: str) -> tuple[list[str], list[str]]:
-    runs = request("GET", f"/repos/{owner}/{repo}/commits/{sha}/check-runs?per_page=100")
-    pending = [c["name"] for c in runs["check_runs"] if c["status"] != "completed"]
-    failing = [f"{c['name']} ({c.get('conclusion')})" for c in runs["check_runs"]
+def classify(check_runs: list[dict]) -> tuple[list[str], list[str]]:
+    """Pending and failing check names. Pure, so the rule below is testable.
+
+    **No check runs at all counts as pending.** GitHub registers a commit's checks a few
+    seconds after the push; in that window the list is empty, and an empty list read as
+    "nothing pending, nothing failing" merged — or refused — on no evidence at all.
+    """
+    if not check_runs:
+        return ["(checks not registered yet)"], []
+    pending = [c["name"] for c in check_runs if c["status"] != "completed"]
+    failing = [f"{c['name']} ({c.get('conclusion')})" for c in check_runs
                if c["status"] == "completed" and c.get("conclusion") not in OK]
     return pending, failing
+
+
+def check_state(owner: str, repo: str, sha: str) -> tuple[list[str], list[str]]:
+    runs = request("GET", f"/repos/{owner}/{repo}/commits/{sha}/check-runs?per_page=100")
+    return classify(runs["check_runs"])
 
 
 def main() -> int:
@@ -53,6 +65,10 @@ def main() -> int:
     ap.add_argument("--title")
     ap.add_argument("--wait", type=int, default=0,
                     help="seconds to wait for pending checks (0 = do not wait)")
+    ap.add_argument("--expect-head",
+                    help="the commit you just pushed; wait until the PR's head is this sha "
+                         "before reading any checks, so a fresh push is not judged on the "
+                         "previous commit's results")
     args = ap.parse_args()
 
     owner, repo = identity()
@@ -68,7 +84,18 @@ def main() -> int:
 
     deadline = time.time() + args.wait
     while True:
-        pending, failing = check_state(owner, repo, pr["head"]["sha"])
+        # Re-read the PR every iteration. The head sha was read once, before the loop, and a
+        # merge attempted straight after a push judged the *previous* commit's red check.
+        pr = request("GET", f"/repos/{owner}/{repo}/pulls/{args.number}")
+        head = pr["head"]["sha"]
+        if args.expect_head and not head.startswith(args.expect_head):
+            if time.time() >= deadline:
+                print(f"#{args.number} head is {head[:8]}, not the pushed {args.expect_head[:8]}")
+                return 1
+            print(f"  PR head is {head[:8]}, waiting for {args.expect_head[:8]}…")
+            time.sleep(10)
+            continue
+        pending, failing = check_state(owner, repo, head)
         if failing:
             print(f"#{args.number} has failing checks, so it is not being merged:")
             for f in failing:
