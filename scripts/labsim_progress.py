@@ -256,13 +256,15 @@ def ensure_board(owner: str, dry: bool) -> tuple[str | None, dict]:
         if dry:
             print(f"would create field {name} ({dtype})")
             continue
-        if dtype == "SINGLE_SELECT":
-            graphql(CREATE_SELECT_M, {"projectId": pid, "name": name,
-                                      "options": [{"name": o, "description": "", "color": "GRAY"}
-                                                  for o in options]})
-        else:
-            graphql(CREATE_FIELD_M, {"projectId": pid, "name": name, "type": dtype})
-        print("created field", name)
+        try:
+            if dtype == "SINGLE_SELECT":
+                opts = [{"name": o, "description": "", "color": "GRAY"} for o in options]
+                graphql(CREATE_SELECT_M, {"projectId": pid, "name": name, "options": opts})
+            else:
+                graphql(CREATE_FIELD_M, {"projectId": pid, "name": name, "type": dtype})
+            print("created field", name)
+        except GitHubError as exc:
+            print(f"::warning::field {name!r} was refused and is skipped: {exc.message[:140]}")
     node = graphql(FIELDS_Q, {"id": pid})["node"]
     fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
     fields["__items__"] = {i["content"]["title"]: i["id"]
@@ -357,6 +359,9 @@ def explain(exc: GitHubError) -> str:
     """One readable sentence for a refusal, with the fix the message itself does not name."""
     msg = (exc.message or "").strip().replace("\n", " ")
     low = msg.lower()
+    if "reserved value" in low:
+        return (f"GitHub refused a field name it reserves: {msg[:160]}. Rename that entry in "
+                "BOARD_FIELDS; the token is fine.")
     if "createprojectv2" in low or "projectsv2" in low or "projects" in low and "scope" in low:
         return (f"GitHub refused a Projects v2 call: {msg[:160]}. The token needs the classic "
                 "`project` scope or fine-grained account permission Projects: read/write.")

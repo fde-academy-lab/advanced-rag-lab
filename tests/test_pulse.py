@@ -83,3 +83,18 @@ def test_a_refusal_becomes_an_annotation_not_a_traceback(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "::error::HTTP 401: Bad credentials" in out
     assert "not allowed" in out
+
+
+def test_a_reserved_field_name_is_named_as_such_not_blamed_on_the_token(monkeypatch, capsys):
+    """The first live Pulse run was refused with 'Name cannot have a reserved value' and the
+    explanation said the token lacked scope. The token was fine; a field name was not."""
+    import discussions_pulse as dp
+    from gh import GitHubError
+
+    def boom():
+        raise GitHubError(200, '[{"path": ["createProjectV2Field"], "message": '
+                               '"Name cannot have a reserved value"}]')
+    monkeypatch.setattr(dp, "main", boom)
+    assert dp._run() == 1
+    out = capsys.readouterr().out
+    assert "reserves" in out and "BOARD_FIELDS" in out and "scope" not in out
