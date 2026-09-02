@@ -1,0 +1,2 @@
+drops_the_tail: [A]
+because: A stops before len-size so the last partial window is never emitted at all.

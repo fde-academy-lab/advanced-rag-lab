@@ -1,0 +1,33 @@
+id: RD1
+slug: rrf-in-eight-lines
+title: Reciprocal rank fusion, with the two blanks everyone fills in wrong
+kind: drill
+track: retrieval
+difficulty: easy
+minutes: 10
+mode: implement
+teaches: [reciprocal rank fusion, rank starts at one, single-leg chunks survive]
+prereqs: []
+bars: []
+artefact: null
+reading:
+  - docs/09-research/paper-notes/rrf.md
+  - lab-simulator/units/R3-fusion-measured/BRIEF.md
+on_fail:
+  - check: "rank 1 is 1/(k+1)"
+    work_on: >-
+      enumerate() starts at zero unless you tell it otherwise, and rank zero is not a rank. The
+      symptom is a fused list that is nearly right, which is why this ships.
+    read: lab-simulator/units/R3-fusion-measured/BRIEF.md
+  - check: "a chunk in only one leg survives"
+    work_on: >-
+      Fusion exists so that a chunk one retriever found and the other missed can still win. If
+      your merge keeps only chunks present in every leg, you built an intersection.
+    read: docs/09-research/paper-notes/rrf.md
+  - check: "a chunk in both legs outranks"
+    work_on: >-
+      The score is a sum over legs. Agreement across systems is the signal RRF rewards, and it
+      cannot reward it if each chunk keeps only its best single-leg score.
+summary: >-
+  Two blanks in a working RRF. Fill them, and find out why the most common answers to each are
+  plausible enough to ship and wrong enough to matter.

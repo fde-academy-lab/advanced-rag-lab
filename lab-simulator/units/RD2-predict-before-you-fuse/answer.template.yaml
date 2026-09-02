@@ -1,0 +1,17 @@
+# RD2 · Predict before you fuse.
+#
+# Three arms at k=8, cross-encoder reranked, 243 questions, structural chunking. Evidence
+# recall. Write your prediction for each BEFORE opening the measurement note. Then which is the
+# strongest single leg, and whether fusion beats it by more than the noise band (~0.01).
+
+evidence_recall:
+  bm25: <0.xxxx>
+  dense: <0.xxxx>
+  rrf: <0.xxxx>
+
+strongest_single_leg: <bm25 or dense>
+
+fusion_beats_its_better_leg: <yes or no>
+
+# One sentence on why you expected the ordering you wrote.
+because: <one sentence>

@@ -21,13 +21,22 @@ body:
     attributes:
       label: Which unit
       options:
-        - "F1 — Chunk so the answer survives the cut (implement, easy)"
-        - "R1 — Make a citation resolve (implement, easy)"
-        - "E1 — Build the two recalls that disagree by thirty points (implement, medium)"
-        - "R2 — Decide whether to fuse at all (decide, medium)"
-        - "C1 — Find the five characters that cost two thirds of the bill (diagnose, hard)"
-        - "R3 — Build the rule you rejected (measure, hard)"
-        - "P1 — Write the measurement note that survives you leaving (ship, medium)"
+        - "F1 — Chunk so the answer survives the cut (unit, implement, easy, ~30 min)"
+        - "C1 — Find the five characters that cost two thirds of the bill (unit, diagnose, hard, ~40 min)"
+        - "E1 — Build the two recalls that disagree by thirty points (unit, implement, medium, ~40 min)"
+        - "P1 — Write the measurement note that survives you leaving (unit, ship, medium, ~40 min)"
+        - "R1 — Make a citation resolve (unit, implement, easy, ~25 min)"
+        - "R2 — Decide whether to fuse at all, and say what would make you wrong (unit, decide, medium, ~30 min)"
+        - "R3 — Build the rule you rejected, and the measurement that rejected it (unit, measure, hard, ~45 min)"
+        - "FD1 — Three chunkers, one of them loses the end of every document — which? (drill, answer, easy, ~8 min)"
+        - "AD1 — An agent that keeps searching after it has the answer is paying for confidence it already had (drill, implement, hard, ~15 min)"
+        - "CD1 — One line makes every request a cache miss. Move it, do not delete it. (drill, diagnose, easy, ~10 min)"
+        - "ED1 — This full-chain recall returns 0.667 on a question it did not answer. Fix it. (drill, diagnose, easy, ~10 min)"
+        - "ED2 — Four deltas, four intervals. Which of them would you ship on? (drill, answer, medium, ~8 min)"
+        - "ED3 — Five claims in a write-up. Three of them are the reason this repo has an ADR-0015. (drill, answer, hard, ~12 min)"
+        - "RD1 — Reciprocal rank fusion, with the two blanks everyone fills in wrong (drill, implement, easy, ~10 min)"
+        - "RD2 — Write down what fusion will score before you look. Then look. (drill, answer, medium, ~10 min)"
+        - "XD1 — k goes from 5 to 10. Which way does context precision move, and by how much? (drill, answer, medium, ~8 min)"
     validations: { required: true }
 
   - type: textarea
@@ -55,6 +64,15 @@ body:
       description: >-
         For units that gate on a decision (R2). All four fields, and remember the grader
         rejects a falsifier that names the conclusion instead of an observation.
+      render: yaml
+
+  - type: textarea
+    id: answer
+    attributes:
+      label: "Your answer.yaml"
+      description: >-
+        For an `answer` drill — a number, a ranking or a set of choices, committed before you
+        look. The grader tells you how far off you were, which is the point.
       render: yaml
 
   - type: textarea

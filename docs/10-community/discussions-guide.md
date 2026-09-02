@@ -14,7 +14,7 @@ become something else, what the bots do to a thread, and what GitHub will not le
 - [Titles](#titles-the-highest-leverage-thing-on-the-page)
 - [Labels](#labels)
 - [Asking](#asking-a-question-people-can-answer) · [Answering](#answering-well) · [Marking an answer](#marking-an-answer)
-- [The twenty-two plays](#the-twenty-two-plays) · every use of this tab we have found
+- [The twenty-four plays](#the-twenty-four-plays) · every use of this tab we have found
 - [Lifecycle](#lifecycle-what-happens-to-a-thread-after-it-is-answered)
 - [Moderation](#moderation)
 - [The bots](#the-bots)
@@ -78,7 +78,7 @@ That is not cosmetic — see [Marking an answer](#marking-an-answer).
 | 🔎 | **Design Reviews** | no | An architecture you want attacked *before* you build it | Something you already built → **Show and tell** |
 | 🙌 | **Show and tell** | no | A finished thing, a capstone, and especially a negative result | Work in progress → **Design Reviews** |
 | ✳️ | **Exercises & Submissions** | **yes** | Every exercise runs here. Approach → submission → peer review | Anything not tied to an `EX-NN` brief |
-| 🔬 | **LAB Simulator** | **yes** | An attempt at a simulator unit. A bot grades it | Questions about the simulator itself → **Q&A** |
+| 🔬 | **LAB Simulator** | **yes** | An attempt at a unit or a drill. A bot grades it, labels the thread, and says what to work on | Questions about the simulator itself → **Q&A** |
 | 📖 | **Math & Theory** | **yes** | A derivation, a proof, the question behind the formula | "Which k should I use" → **Q&A** |
 | ⁉️ | **Interview Prep** | **yes** | Practising an answer and getting it critiqued | Anything under NDA. Ever |
 | 📚 | **Reading Club** | no | The argument about an assigned paper | The assignment itself → **issue** |
@@ -247,7 +247,7 @@ what would change it back.
 
 ---
 
-## The twenty-two plays
+## The twenty-four plays
 
 Every use of this tab we have found worth having a name for. The first column is the category.
 
@@ -259,7 +259,9 @@ Every use of this tab we have found worth having a name for. The first column is
 | Debugging Clinic | **Symptom-first triage** | You cannot state the question. You post the symptom and the four things it is not, and the thread converges on a diagnosis |
 | Math & Theory | **The derivation request** | "Someone told me the +0.5 is just smoothing" → the actual derivation, in LaTeX |
 | Exercises | **Approach before code** | State what you will do and what you expect, *before* writing it. The most transferable habit here |
-| LAB Simulator | **Post and get graded** | A bot runs `python -m labsim check` on a clean checkout and replies with the named checks that failed |
+| LAB Simulator | **Post and get graded** | A bot runs `python -m labsim check` on a clean checkout and replies with the named checks that failed, what each is guarding against, and what is unlocked |
+| LAB Simulator | **Predict, then look** | An `answer` drill: commit to a number before opening the measurement note. The distance is the lesson |
+| LAB Simulator | **The weekday-evening drill** | `label:drill label:"difficulty: easy" -label:cleared` — fifteen minutes, one idea, and the next one unlocks |
 | Reading Club | **Does the paper survive our corpus?** | Take a published claim and test it here. "Lost in the Middle — does the U-curve survive?" |
 | Interview Prep | **Critique my answer** | Post the answer you actually gave, get it taken apart. Nothing under NDA |
 
@@ -355,7 +357,9 @@ Three automations touch this tab. Knowing which one is replying to you matters w
 
 | Bot | Trigger | What it does |
 |---|---|---|
-| **Simulator grader** | A post or comment in **LAB Simulator** | Runs `python -m labsim check` on a clean checkout, replies with the named checks that failed. Comment commands: `/check` `/hint` `/solution` `/status` `/help` |
+| **Simulator grader** | A post or comment in **LAB Simulator** | Runs `python -m labsim check` on a clean checkout, replies with the named checks that failed and what to work on, and labels the thread. Comment commands: `/check` `/hint` `/why` `/solution` `/status` `/progress` `/help` |
+| **Hands-on board** | Monday 08:41 UTC | One draft item per learner on *L.A.B. Simulator — Hands-on*: attempts, clears, retries, hints, open units, stage. Sorted by login, no score |
+| **Pulse board** | Daily 07:17 UTC | One draft item per thread that moved on *Discussions — Pulse*: heat, comments this week, people, needs-an-answer; plus a weekly item listing the content that changed |
 | **Weekly digest** | Monday 08:17 UTC | Tallies which *check* caught people most often. Deliberately not a leaderboard |
 | **Seeder** | Every push to `main` | Creates any seeded thread that is missing, renames threads whose canonical title changed, applies `THREAD_LABELS`, marks accepted answers. Skips anything that already exists |
 

@@ -35,6 +35,17 @@ LABELS = [
     ("area: notebooks", "d4c5f9", "Teaching notebooks"),
     ("area: toolkit", "c5def5", "The raglab package"),
     ("area: docs", "bfdadc", "docs/ and top-level markdown"),
+    ("area: foundations", "d4c5f9", "Chunking, indexing, the floor everything stands on"),
+    ("area: context", "d4c5f9", "Packing, position, the window the model actually reads"),
+    ("area: delivery", "d4c5f9", "Notes, records, the artefacts an FDE hands over"),
+    # Applied by the simulator bot from a unit's metadata, never from what a learner typed.
+    ("drill", "5319e7", "A bite-sized L.A.B. Simulator drill: one idea, under fifteen minutes"),
+    ("unit", "5319e7", "A full L.A.B. Simulator unit: a real corpus and three gates"),
+    ("cleared", "0e8a16", "The grader accepted the submission on this thread"),
+    ("difficulty: easy", "c2e0c6", "Simulator difficulty"),
+    ("difficulty: medium", "fbca04", "Simulator difficulty"),
+    ("difficulty: hard", "e99695", "Simulator difficulty"),
+    ("difficulty: brutal", "b60205", "Simulator difficulty"),
     ("area: ci", "ededed", "Workflows and automation"),
     ("area: bedrock", "ff9900", "AWS Bedrock integration"),
     # status
@@ -1724,6 +1735,57 @@ RETIREMENT_BANNER = """> [!WARNING]
 
 """
 
+# ────────────────────────────────────────────────────────── the lifecycle board ──
+# One board, seven columns, seeded as draft items. Each item is a practice this repository
+# actually followed, with the file that proves it. See docs/08-project-management/lifecycle.md.
+LIFECYCLE_BOARD = "Project Lifecycle — the shape this project follows"
+LIFECYCLE_PHASES = ["① Frame", "② Harness", "③ Baseline", "④ Iterate", "⑤ Verify", "⑥ Ship",
+                    "⑦ Operate"]
+LIFECYCLE = [
+    # (phase, title, artefact, where in this repository)
+    ("① Frame", "Name the failure the client pays to remove, as something observable",
+     "A one-paragraph PRD line", "docs/00-orientation/start-here.md"),
+    ("① Frame", "Say where RAG is the wrong answer before proposing it",
+     "A design review that can conclude 'do not build'", "Design Reviews · use case threads"),
+    ("② Harness", "Build the corpus and the labelled set before the retriever",
+     "raglab/corpus.py, 243 questions with gold evidence", "raglab/corpus.py"),
+    ("② Harness", "Freeze a slice and never tune on it",
+     "slice == frozen in the eval set", "docs/04-evaluation/protocol.md"),
+    ("② Harness", "Put a gate on every pull request that touches the system",
+     "A scorecard comment with tolerances", ".github/workflows/eval-regression.yml"),
+    ("③ Baseline", "Commit the simplest configuration's numbers with their command",
+     ".github/eval-baseline.json", "python scripts/run_eval.py --baseline"),
+    ("③ Baseline", "Report two recalls, not one",
+     "evidence_recall beside full_chain_recall", "docs/04-evaluation/metrics.md"),
+    ("④ Iterate", "One change per pull request, and the eval set never in the same one",
+     "The PR template's measurement table", ".github/pull_request_template.md"),
+    ("④ Iterate", "Record every seam choice as a decision with what would reverse it",
+     "An ADR with a 'what would change this' section", "docs/01-architecture/adr/"),
+    ("④ Iterate", "Publish the negative results with full credit",
+     "negative-result label; ADR-0007", "docs/01-architecture/adr/0007-report-negative-results.md"),
+    ("⑤ Verify", "Compare configurations against each other, not only against history",
+     "A measurement note with paired-bootstrap intervals", "python scripts/run_eval.py --compare"),
+    ("⑤ Verify", "Give every derived number a command that regenerates it",
+     "scripts/independence.py, scripts/failure_overlap.py, --sweep, --ksweep",
+     "docs/09-research/measurements/README.md"),
+    ("⑤ Verify", "Test the prose against the code",
+     "tests/test_measurements.py fails when a document drifts from its command",
+     "tests/test_measurements.py"),
+    ("⑥ Ship", "Write the note somebody could re-run after you leave",
+     "P1's measurement note format", "lab-simulator/units/P1-measurement-note/BRIEF.md"),
+    ("⑥ Ship", "Quote a number only with its configuration",
+     "k, fusion rule, encoder, question count on every figure", "docs/10-community/discussions-guide.md"),
+    ("⑥ Ship", "Hand over runbooks, not slides",
+     "docs/05-operations/", "docs/05-operations/README.md"),
+    ("⑦ Operate", "Watch cost as an architecture concern, not a bill",
+     "Cache hit rate on the dashboard; ADR-0012", "docs/01-architecture/adr/0012-prompt-block-ordering.md"),
+    ("⑦ Operate", "Re-run the frozen human slice against the judge on a schedule",
+     "Judge drift check", "docs/04-evaluation/judge.md"),
+    ("⑦ Operate", "Retract in public, with the mechanism that let it stand",
+     "ADR-0015; the retracted label; a correction that becomes the accepted answer",
+     "docs/01-architecture/adr/0015-correct-the-fusion-finding.md"),
+]
+
 # ───────────────────────────────────────────────────────────────── cross-links ──
 # Three pairs of threads cover the same ground and none of them says so.
 #
@@ -1922,6 +1984,8 @@ THREAD_LABELS = {
         ["area: retrieval", "mechanism"],
 
     "Start here — the simulator, and how to use it without cloning anything": ["first-week"],
+    "Drills — the fifteen-minute pathway, and the three where you predict before you look":
+        ["first-week", "drill"],
     "R1 · my attempt — every shape check passes and the last one does not":
         ["worked example", "area: retrieval"],
     "R2 · rejected before it ran a single test, and I think the gate is wrong":

@@ -11,7 +11,7 @@ Projects v2 board with custom fields and items.
 Idempotent: safe to re-run. Anything that already exists is skipped rather than duplicated.
 
     --dry-run     print what would happen, change nothing
-    --only        create,settings,labels,milestones,issues,discussions,project,push
+    --only        create,settings,labels,milestones,issues,discussions,boards,project,push
     --private     create the repository private (default public)
     --skip        same vocabulary, inverted
 
@@ -41,7 +41,7 @@ import seed_content as content  # noqa: E402
 from gh import GitHubError, fail, graphql, ok, request, skip, warn  # noqa: E402
 from gh import token as gh_token  # noqa: E402
 
-STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions",
+STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions", "boards",
          "project", "push")
 
 
@@ -1159,6 +1159,91 @@ def create_project(owner, repo, issues, dry):
     ok("  items", f"{added} issues added to the board")
 
 
+# ─────────────────────────────────────────────────────────── the lifecycle board ──
+LIFECYCLE_FIELDS_Q = """query($id:ID!){ node(id:$id){ ... on ProjectV2 {
+  fields(first:50){ nodes{ ... on ProjectV2Field { id name dataType }
+    ... on ProjectV2SingleSelectField { id name dataType options { id name } } } }
+  items(first:100){ nodes{ id content { ... on DraftIssue { id title } } } } } } }"""
+PROJECTS_Q = """query($login:String!){ repositoryOwner(login:$login){ id
+  ... on User { projectsV2(first:50){ nodes{ id title url } } }
+  ... on Organization { projectsV2(first:50){ nodes{ id title url } } } } }"""
+ADD_DRAFT_M = """mutation($projectId:ID!,$title:String!,$body:String!){
+  addProjectV2DraftIssue(input:{projectId:$projectId,title:$title,body:$body}){
+    projectItem { id } } }"""
+SET_FIELD_M = """mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$value:ProjectV2FieldValue!){
+  updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,
+                                       fieldId:$fieldId,value:$value}){ projectV2Item { id } } }"""
+
+
+def create_boards(owner, repo, dry):
+    """The lifecycle board, seeded from `content.LIFECYCLE`; and a note about the other two.
+
+    Three boards besides Delivery. The Hands-on and Pulse boards are created by their own sync
+    scripts on first run, because their contents come from live activity. The lifecycle board
+    is content — nineteen practices with the file that proves each — so it is seeded here.
+    """
+    if dry:
+        skip("lifecycle board", f"would seed {len(content.LIFECYCLE)} items in "
+                                f"{len(content.LIFECYCLE_PHASES)} phases")
+        return
+    try:
+        data = graphql(PROJECTS_Q, {"login": owner}, partial_ok=True)["repositoryOwner"]
+    except GitHubError as exc:
+        warn("lifecycle board", f"cannot list boards — {exc.message[:80]}")
+        return
+    board = next((p for p in data["projectsV2"]["nodes"]
+                  if p["title"] == content.LIFECYCLE_BOARD), None)
+    if board is None:
+        try:
+            board = graphql(CREATE_PROJECT_M, {"ownerId": data["id"],
+                                               "title": content.LIFECYCLE_BOARD}
+                            )["createProjectV2"]["projectV2"]
+            ok("lifecycle board", board["url"])
+        except GitHubError as exc:
+            warn("lifecycle board", f"skipped — {exc.message[:100]}")
+            print("      Needs PROJECT_TOKEN with account-level Projects: read/write.")
+            return
+    pid = board["id"]
+    node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+    fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+    if "Phase" not in fields:
+        graphql(CREATE_FIELD_M, {"projectId": pid, "name": "Phase",
+                                 "options": [{"name": o, "description": "", "color": "GRAY"}
+                                             for o in content.LIFECYCLE_PHASES]})
+        ok("  field Phase", f"{len(content.LIFECYCLE_PHASES)} phases")
+    for name in ("Artefact", "Where in this repository"):
+        if name not in fields:
+            graphql(CREATE_TEXT_FIELD_M, {"projectId": pid, "name": name})
+            ok(f"  field {name}", "text")
+    node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+    fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+    have = {i["content"]["title"]: i["id"] for i in node["items"]["nodes"] if i.get("content")}
+    phase_ids = {o["name"]: o["id"] for o in fields["Phase"]["options"]}
+
+    added = 0
+    for phase, title, artefact, where in content.LIFECYCLE:
+        if title in have:
+            continue
+        body = (f"**Phase** {phase}\n\n**Artefact that proves it:** {artefact}\n\n"
+                f"**Where this repository did it:** `{where}`\n\n"
+                "See docs/08-project-management/lifecycle.md.")
+        try:
+            item = graphql(ADD_DRAFT_M, {"projectId": pid, "title": title,
+                                         "body": body})["addProjectV2DraftIssue"]["projectItem"]
+            for fname, val in (("Phase", {"singleSelectOptionId": phase_ids[phase]}),
+                               ("Artefact", {"text": artefact}),
+                               ("Where in this repository", {"text": where})):
+                graphql(SET_FIELD_M, {"projectId": pid, "itemId": item["id"],
+                                      "fieldId": fields[fname]["id"], "value": val})
+            added += 1
+            time.sleep(0.5)
+        except GitHubError as exc:
+            warn(f"  {title[:40]}", exc.message[:70])
+    ok("lifecycle board", f"{added} items added, {len(have)} already there")
+    print("      The Hands-on and Pulse boards are created by their sync workflows on first run:")
+    print("      Actions → 'L.A.B. Simulator · hands-on board' and 'Discussions · pulse'.")
+
+
 # ────────────────────────────────────────────────────────────────────── main ──
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -1239,6 +1324,9 @@ def main() -> int:
         # An aborted step is a failure even though it has no per-thread failures to report.
         seed_failures = ["the discussions step aborted before it finished"] \
             if outcome is None else outcome[1]
+    if "boards" in wanted:
+        print("\n\033[1mLifecycle board\033[0m")
+        run_step("boards", create_boards, args.owner, args.repo, args.dry_run)
     if "project" in wanted:
         print("\n\033[1mProject board\033[0m")
         if not issues and not args.dry_run:

@@ -1,0 +1,32 @@
+id: ED3
+slug: spot-the-measurement-smell
+title: Five claims in a write-up. Three of them are the reason this repo has an ADR-0015.
+kind: drill
+track: evaluation
+difficulty: hard
+minutes: 12
+mode: answer
+teaches: [measurement smells, the frozen slice, the noise band, denominator traps, quoting a number with its configuration]
+prereqs: [ED2]
+bars: []
+artefact: null
+reading:
+  - docs/01-architecture/adr/0015-correct-the-fusion-finding.md
+  - docs/04-evaluation/release-gate.md
+  - docs/09-research/measurements/README.md
+on_fail:
+  - check: "every smell is caught"
+    work_on: >-
+      Each unsupported claim has a shape. A delta quoted without its interval. A metric whose
+      denominator is a config flag read as quality. A number tuned on the slice it is reported
+      on. A figure with no command behind it. Learn the four shapes and you never need the key.
+    read: docs/09-research/measurements/README.md
+  - check: "no sound claim is accused"
+    work_on: >-
+      A claim with a command, an interval and a stated configuration is not a smell because it
+      is inconvenient. Suspicion is a habit; accusation needs the specific shape.
+    read: docs/04-evaluation/release-gate.md
+summary: >-
+  A plausible internal write-up with five numbered claims. Three are measurement smells of the
+  exact kinds that let a wrong finding stand in this repository for months. Name them, and name
+  the shape of each.

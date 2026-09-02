@@ -1,0 +1,35 @@
+id: ED1
+slug: full-chain-that-averages
+title: This full-chain recall returns 0.667 on a question it did not answer. Fix it.
+kind: drill
+track: evaluation
+difficulty: easy
+minutes: 10
+mode: diagnose
+teaches: [full-chain recall, all-or-nothing metrics, per-question vs per-piece]
+prereqs: []
+bars: []
+artefact: null
+reading:
+  - docs/04-evaluation/metrics.md
+  - docs/01-architecture/lld/metrics.md
+on_fail:
+  - check: "all or nothing"
+    work_on: >-
+      Full-chain recall is a statement about a question, not about its pieces. Two of three
+      pieces found is a confident wrong answer downstream, and the metric has to say zero so
+      that the gate can see it.
+    read: docs/04-evaluation/metrics.md
+  - check: "any satisfying chunk"
+    work_on: >-
+      A piece of evidence is satisfied by any one of the chunks that carry it. Requiring a
+      specific chunk id turns a near-duplicate into a miss.
+    read: docs/01-architecture/lld/metrics.md
+  - check: "respects k"
+    work_on: >-
+      The window is the first k retrieved. Evidence at rank k+1 was not in the context the
+      model saw, so it does not count.
+summary: >-
+  A working full_chain_recall that returns 0.667 on a three-hop question with two pieces found.
+  That number is what goes in the deck. Find the line, and make the metric say what the
+  question deserves.

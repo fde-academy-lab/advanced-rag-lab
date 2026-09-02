@@ -27,9 +27,44 @@ minutes. Edit your post and it re-grades.
 |---|---|
 | `/check` | force a re-grade |
 | `/hint` · `/hint 3` | the next hint from the brief, one at a time |
+| `/why <check name>` | what one failing check is guarding against — one sentence, written by whoever wrote the check |
 | `/solution` | the worked answer — opens once the thread has cleared |
 | `/status` | the pathway, and where this unit sits in it |
+| `/progress` | what *you* have cleared, attempted and retried across this category, and what is unlocked |
 | `/help` | this table |
+
+## Drills, and the difference from a unit
+
+Two kinds of thing sit in the same prerequisite graph.
+
+| | **drill** | **unit** |
+|---|---|---|
+| time | 5–15 minutes | 25–45 minutes |
+| shape | one idea, one check that carries it | a real corpus, three gates |
+| modes | `answer` (commit to a number or a choice before you look), `diagnose` (fix the planted bug), `implement` (fill the blanks) | `implement`, `diagnose`, `decide`, `measure`, `ship` |
+| labelled | `drill` · `difficulty: easy/medium/hard` · `area: …` | `unit` · the same |
+| example | `RD2` — predict what fusion will score, then find out how far off you were | `R3` — build the rule and the measurement that rejected it |
+
+Nine drills ship. The pathway starts in four places now — `F1`, `R1`, and the drills `FD1`,
+`RD1`, `ED1`, `CD1` — so a first evening can be four short clears rather than one long one.
+
+**`answer` drills are the ones nothing else has.** You write down a number *before* opening
+the measurement note, post it, and the grader tells you how far off you were. Being wrong is the
+product: it names the model of the system you were carrying, which is the one thing a passing
+test never does. This repository carried the wrong one for months, in print, and `RD2` is that
+finding turned into eight minutes of practice.
+
+## What the reply says, and why none of it is generated
+
+Every reply is assembled from the unit's own metadata — the check names, a `teaches` list, a
+per-check `on_fail` note, a `reading` list and the prerequisite graph. So it can say **what to
+work on** for the specific check you failed, **what this drill was for** when you clear it,
+**what to read next**, and **which drill is unlocked**, without a sentence of it being invented
+on the spot. Each `on_fail` note was written by whoever wrote the check, which is the only way
+to be specific without being wrong.
+
+The bot also labels the thread — kind, difficulty, area, and `cleared` when it passes — so
+`label:drill label:"difficulty: easy" -label:cleared` is a to-do list.
 
 Commands work anywhere in a comment (`any ideas? /hint` is fine) and are ignored inside code
 fences, so quoting a file that contains `/check` does not set the bot off.

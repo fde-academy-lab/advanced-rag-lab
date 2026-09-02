@@ -20,7 +20,10 @@ from .model import Unit
 from .registry import all_units, by_id, unlocked
 from .selftest import CaseOutcome, format_report
 
-ATTEMPT_PATH = re.compile(r"^lab-simulator/attempts/([A-Za-z]\d+)/")
+# Two letters, because drills are `FD1`, `RD2`, `XD1`. With a single letter the CI guard
+# that stops you grading an attempt whose check.py you also edited went blind to every
+# drill. Same pattern as discussion.UID_IN_TITLE and the digest's TAG.
+ATTEMPT_PATH = re.compile(r"^lab-simulator/attempts/([A-Za-z]{1,2}\d{1,2})/")
 UNIT_PATH = re.compile(r"^lab-simulator/units/([^/]+)/")
 ENGINE_PATH = re.compile(r"^lab-simulator/labsim/")
 MARKER = "<!-- labsim-report -->"

@@ -27,7 +27,8 @@ on:
           - project
           - settings
           - discussions,project
-          - settings,labels,milestones,issues,discussions,project
+          - boards
+          - settings,labels,milestones,issues,discussions,boards,project
       dry_run:
         description: "Print the plan without changing anything"
         required: false

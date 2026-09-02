@@ -1,0 +1,9 @@
+evidence_recall:
+  bm25: 0.76
+  dense: 0.68
+  rrf: 0.72
+strongest_single_leg: bm25
+fusion_beats_its_better_leg: no
+because: >-
+  The deck said equal-weight RRF loses to BM25 alone because the dense leg is weak and drags
+  the merge down, so BM25 leads and fusion sits between them.
