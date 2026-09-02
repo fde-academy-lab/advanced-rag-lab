@@ -245,3 +245,18 @@ def test_the_codespaces_pick_list_offers_every_unit():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert mod.main() == 0, "the Codespaces surface has drifted — run scripts/lint/check_devcontainer.py"
+
+
+def test_no_workflow_uses_secrets_in_an_if():
+    """GitHub rejects the whole file, on push, and the schedule never fires.
+
+    Two workflows shipped with `if: ${{ secrets.PROJECT_TOKEN != '' }}`. Each produced a failed
+    run named after its own path with zero jobs — the signature of an invalid file — and the
+    boards they create never appeared. Read the secret into a step output and branch on that.
+    """
+    bad = []
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.match(r"\s*if:", line) and "secrets." in line:
+                bad.append(f"{path.name}:{i}: {line.strip()}")
+    assert not bad, "\n".join(bad)

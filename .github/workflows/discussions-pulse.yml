@@ -41,6 +41,15 @@ jobs:
         with: { python-version: "3.11" }
       - run: pip install pyyaml
 
+      # See labsim-progress.yml: `secrets` cannot be used in an `if`.
+      - name: Is there a PAT
+        id: tok
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then echo "have_pat=true" >> "$GITHUB_OUTPUT"
+          else echo "have_pat=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Render
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +61,7 @@ jobs:
           cat pulse.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Sync the board
-        if: ${{ secrets.PROJECT_TOKEN != '' }}
+        if: steps.tok.outputs.have_pat == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           DAYS: ${{ github.event_name == 'workflow_dispatch' && inputs.days || '7' }}
