@@ -231,3 +231,17 @@ def test_the_simulator_form_lists_every_unit():
     assert listed <= have, f"the form lists units that do not exist: {sorted(listed - have)}"
     for o in options:
         assert re.match(r"^[A-Z]{1,2}\d{1,2} — ", o), f"option does not start with an id: {o!r}"
+
+
+def test_the_codespaces_pick_list_offers_every_unit():
+    """Mirror of the `Engine tests` job's devcontainer step, so it fails here before it fails in CI.
+
+    `.vscode/tasks.json` hard-codes the unit menu. Nine drills were added and the merge was
+    refused because this check — which only CI ran — went red. Now pytest runs it too.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "check_devcontainer", ROOT / "scripts" / "lint" / "check_devcontainer.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0, "the Codespaces surface has drifted — run scripts/lint/check_devcontainer.py"
