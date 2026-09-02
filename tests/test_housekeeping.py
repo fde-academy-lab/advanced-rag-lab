@@ -323,3 +323,26 @@ def test_no_two_canonical_titles_could_collide_after_a_rename():
             "thread the rename was meant to retitle")
         assert new in titles or new in seed_content.RETIRED, (
             f"{new!r} is a rename target that nothing seeds")
+
+
+# ──────────────────────────────────────────────── merge_pr: what counts as green ──
+def test_no_registered_checks_is_pending_not_green():
+    """An empty check list is the seconds after a push, not a clean build.
+
+    Read as "nothing pending, nothing failing", it merged — or refused — on no evidence. This
+    session hit the refusing half: called straight after a push, the script judged the previous
+    commit's red check and declined a green one.
+    """
+    from merge_pr import classify
+    pending, failing = classify([])
+    assert pending and not failing
+
+
+def test_classify_separates_pending_from_failing():
+    from merge_pr import classify
+    runs = [{"name": "a", "status": "completed", "conclusion": "success"},
+            {"name": "b", "status": "in_progress", "conclusion": None},
+            {"name": "c", "status": "completed", "conclusion": "failure"},
+            {"name": "d", "status": "completed", "conclusion": "skipped"}]
+    pending, failing = classify(runs)
+    assert pending == ["b"] and failing == ["c (failure)"]
