@@ -106,6 +106,30 @@ def graphql(query: str, variables: dict | None = None, partial_ok: bool = False)
     return out["data"]
 
 
+RATE_LIMITED = ("RATE_LIMIT", "rate limit", "graphql_rate_limit")
+
+
+def is_rate_limit(exc: GitHubError) -> bool:
+    return any(m.lower() in (exc.message or "").lower() for m in RATE_LIMITED)
+
+
+def rate_limit_reset() -> str:
+    """When the quota comes back, as HH:MM UTC. `/rate_limit` itself is not counted.
+
+    The GraphQL error says only "API rate limit already exceeded", which leaves a person
+    deciding whether to click again now or in an hour. This is the missing half of that.
+    """
+    import datetime
+    try:
+        data = request("GET", "/rate_limit")["resources"]
+    except GitHubError:
+        return "the top of the hour"
+    stamp = max(data["core"]["reset"], data["graphql"]["reset"])
+    when = datetime.datetime.fromtimestamp(stamp, datetime.timezone.utc)
+    mins = int((when - datetime.datetime.now(datetime.timezone.utc)).total_seconds() // 60)
+    return f"{when.strftime('%H:%M')} UTC, in {max(mins, 0)} min"
+
+
 def ok(label: str, detail: str = ""):
     print(f"  \033[32m✓\033[0m {label}" + (f"  {detail}" if detail else ""))
 

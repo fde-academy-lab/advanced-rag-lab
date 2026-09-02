@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lab-simulator"))
-from gh import GitHubError, graphql  # noqa: E402
+from gh import GitHubError, graphql, is_rate_limit, rate_limit_reset  # noqa: E402
 
 TAG = re.compile(r"<!--\s*labsim:([A-Z]{1,2}\d{1,2}):(pass|fail|hint|no-result|why):?(.*?)-->",
                  re.S)
@@ -353,5 +353,17 @@ def main() -> int:
     return 0
 
 
+def _run() -> int:
+    try:
+        return main()
+    except GitHubError as exc:
+        if is_rate_limit(exc):
+            # A traceback for a spent quota sends somebody reading code that is not wrong.
+            print(f"\nGitHub API rate limit exceeded for this token. It resets at "
+                  f"{rate_limit_reset()}. Nothing is broken; re-run the workflow then.")
+            return 1
+        raise
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_run())

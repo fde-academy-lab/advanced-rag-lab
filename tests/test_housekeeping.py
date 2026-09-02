@@ -372,3 +372,11 @@ def test_the_merge_script_reads_the_provisioners_required_list():
     import setup_github
     assert merge_pr.REQUIRED_CHECKS is setup_github.REQUIRED_CHECKS
 
+
+
+def test_rate_limit_errors_are_recognised_by_message():
+    """The GraphQL error is HTTP 200 with a RATE_LIMIT body; REST is a 403 with 'rate limit'."""
+    from gh import GitHubError, is_rate_limit
+    assert is_rate_limit(GitHubError(200, '[{"type": "RATE_LIMIT", "code": "graphql_rate_limit"}]'))
+    assert is_rate_limit(GitHubError(403, "API rate limit exceeded for user ID 1"))
+    assert not is_rate_limit(GitHubError(404, "Not Found"))
