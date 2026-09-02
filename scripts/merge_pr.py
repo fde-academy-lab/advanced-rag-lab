@@ -38,16 +38,33 @@ def identity() -> tuple[str, str]:
     return data["owner"], data["repo"]
 
 
-def classify(check_runs: list[dict]) -> tuple[list[str], list[str]]:
-    """Pending and failing check names. Pure, so the rule below is testable.
+# The contexts branch protection insists on, from the one place that provisions them. A run
+# that is registered and green is not enough: the PUT is refused with "N of N required status
+# checks are expected" until every *required* context exists and has passed, and a check that
+# has not been created yet is not in the list at all.
+from setup_github import REQUIRED_CHECKS  # noqa: E402
 
-    **No check runs at all counts as pending.** GitHub registers a commit's checks a few
-    seconds after the push; in that window the list is empty, and an empty list read as
-    "nothing pending, nothing failing" merged — or refused — on no evidence at all.
+
+def classify(check_runs: list[dict],
+             required: tuple[str, ...] = REQUIRED_CHECKS) -> tuple[list[str], list[str]]:
+    """Pending and failing check names. Pure, so the rules below are testable.
+
+    Three rules, each learned by being refused:
+
+    * **No check runs at all counts as pending.** GitHub registers a commit's checks a few
+      seconds after the push; an empty list read as "nothing pending, nothing failing" acted
+      on no evidence at all.
+    * **A required context that is absent counts as pending.** Being registered is not the
+      same as being required; the merge API refused a PR whose eleven registered runs were
+      green because two of the five required ones had not been created yet.
+    * Anything registered and not green is failing.
     """
     if not check_runs:
         return ["(checks not registered yet)"], []
+    by_name = {c["name"]: c for c in check_runs}
     pending = [c["name"] for c in check_runs if c["status"] != "completed"]
+    pending += [f"{name} (required, not registered yet)" for name in required
+                if name not in by_name]
     failing = [f"{c['name']} ({c.get('conclusion')})" for c in check_runs
                if c["status"] == "completed" and c.get("conclusion") not in OK]
     return pending, failing
@@ -94,6 +111,23 @@ def main() -> int:
                 return 1
             print(f"  PR head is {head[:8]}, waiting for {args.expect_head[:8]}…")
             time.sleep(10)
+            continue
+        # "Require branches to be up to date" refuses a green PR whose branch is behind the
+        # base with the misleading "N of N required status checks are expected". The checks
+        # have to run on a head that includes the current base, so update the branch through
+        # the API — which pushes a merge commit and a new head — and keep waiting on that.
+        if pr.get("mergeable_state") == "behind":
+            if time.time() >= deadline:
+                print(f"#{args.number} is behind {pr['base']['ref']} and the wait ran out")
+                return 1
+            print(f"  #{args.number} is behind {pr['base']['ref']}; updating the branch…")
+            try:
+                request("PUT", f"/repos/{owner}/{repo}/pulls/{args.number}/update-branch", {})
+            except GitHubError as exc:
+                print(f"could not update the branch: {exc.message[:120]}")
+                return 1
+            args.expect_head = None          # the head is about to change; do not pin the old one
+            time.sleep(15)
             continue
         pending, failing = check_state(owner, repo, head)
         if failing:

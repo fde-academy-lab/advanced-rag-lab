@@ -344,5 +344,31 @@ def test_classify_separates_pending_from_failing():
             {"name": "b", "status": "in_progress", "conclusion": None},
             {"name": "c", "status": "completed", "conclusion": "failure"},
             {"name": "d", "status": "completed", "conclusion": "skipped"}]
-    pending, failing = classify(runs)
+    pending, failing = classify(runs, required=())
     assert pending == ["b"] and failing == ["c (failure)"]
+
+
+def test_a_required_context_that_is_not_registered_yet_is_pending():
+    """Eleven green runs were not enough: two of the five required contexts did not exist yet,
+    and the merge API refused with "5 of 5 required status checks are expected"."""
+    from merge_pr import classify
+    runs = [{"name": "Lint", "status": "completed", "conclusion": "success"},
+            {"name": "greet", "status": "completed", "conclusion": "success"}]
+    pending, failing = classify(runs, required=("Lint", "Tests (py3.11)"))
+    assert not failing
+    assert pending == ["Tests (py3.11) (required, not registered yet)"]
+
+
+def test_all_required_contexts_green_is_green():
+    from merge_pr import classify
+    runs = [{"name": n, "status": "completed", "conclusion": "success"}
+            for n in ("Lint", "Tests (py3.11)")]
+    assert classify(runs, required=("Lint", "Tests (py3.11)")) == ([], [])
+
+
+def test_the_merge_script_reads_the_provisioners_required_list():
+    """Two lists of required checks would drift; there is one, and the script imports it."""
+    import merge_pr
+    import setup_github
+    assert merge_pr.REQUIRED_CHECKS is setup_github.REQUIRED_CHECKS
+
