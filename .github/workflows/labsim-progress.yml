@@ -36,6 +36,17 @@ jobs:
         with: { python-version: "3.11" }
       - run: pip install pyyaml
 
+      # `secrets` may not appear in an `if`; GitHub rejects the whole file on push, silently
+      # from the schedule's point of view. So the secret is read here, into an output, and the
+      # steps below branch on that — the same shape provision.yml uses.
+      - name: Is there a PAT
+        id: tok
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then echo "have_pat=true" >> "$GITHUB_OUTPUT"
+          else echo "have_pat=false" >> "$GITHUB_OUTPUT"; fi
+
       - name: Print the table
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +57,7 @@ jobs:
           { echo "### Hands-on progress"; echo; cat progress.md; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Sync the board
-        if: ${{ secrets.PROJECT_TOKEN != '' }}
+        if: steps.tok.outputs.have_pat == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
@@ -57,6 +68,6 @@ jobs:
           python scripts/labsim_progress.py "${args[@]}"
 
       - name: Say why the board was skipped
-        if: ${{ secrets.PROJECT_TOKEN == '' }}
+        if: steps.tok.outputs.have_pat != 'true'
         run: |
           echo "::warning::No PROJECT_TOKEN secret. The table above is the same data; the board needs a PAT with account-level Projects: read/write."
