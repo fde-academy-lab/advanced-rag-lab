@@ -22,6 +22,7 @@ step fails independently, so a token without Projects access still gets you the 
 | `issues` | 15 issues — 8 closed real defects with their fixes, 7 open | REST |
 | `discussions` | 17 seeded threads across 7 categories | **GraphQL** |
 | `project` | Projects v2 board, 5 custom fields, every issue placed | **GraphQL** |
+| `boards` | The Lifecycle board: 7 phases, 19 practices, each with its artefact | **GraphQL**, needs `PROJECT_TOKEN` |
 | `push` | Adds `origin`, pushes `main` with its 20 phased commits | git |
 
 ### If you cannot run this from a terminal

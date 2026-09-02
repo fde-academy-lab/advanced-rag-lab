@@ -260,3 +260,18 @@ def test_no_workflow_uses_secrets_in_an_if():
             if re.match(r"\s*if:", line) and "secrets." in line:
                 bad.append(f"{path.name}:{i}: {line.strip()}")
     assert not bad, "\n".join(bad)
+
+
+def test_provision_warns_about_a_missing_pat_for_every_step_that_needs_one():
+    """A `boards` run without PROJECT_TOKEN used to produce no run-level warning at all.
+
+    The "Choose a token" step matched the steps string against `*project*` only, so the one
+    other step that needs the PAT warned inside its log and the run went green. Found by an
+    eval of the cohort-repo-setup skill, which is the kind of place a gap like this hides.
+    """
+    text = (WORKFLOWS / "provision.yml").read_text()
+    m = re.search(r"case \"\$\{\{ inputs.steps \}\}\" in\n\s*([^)]+)\)", text)
+    assert m, "the Choose a token step has no case statement"
+    pattern = m.group(1)
+    for step in ("project", "boards"):
+        assert f"*{step}*" in pattern, f"a `{step}` run without the PAT would be silent"
