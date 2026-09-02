@@ -1249,6 +1249,72 @@ def create_boards(owner, repo, dry):
     print("      Actions → 'L.A.B. Simulator · hands-on board' and 'Discussions · pulse'.")
 
 
+def create_content_boards(owner, repo, dry):
+    """The three content boards in `content.CONTENT_BOARDS`: a Status field and draft items.
+
+    Same mechanics as the lifecycle board, generalised: find or create the board by title,
+    make sure the Status field exists with the spec's options, add every item whose title is
+    not there yet. A refused field or item is a warning; the rest of the board still fills in.
+    """
+    if dry:
+        for spec in content.CONTENT_BOARDS:
+            skip(spec["title"], f"would seed {len(spec['items'])} items")
+        return
+    try:
+        data = graphql(PROJECTS_Q, {"login": owner}, partial_ok=True)["repositoryOwner"]
+    except GitHubError as exc:
+        warn("content boards", f"cannot list boards — {exc.message[:80]}")
+        return
+    have_boards = {p["title"]: p for p in data["projectsV2"]["nodes"]}
+    for spec in content.CONTENT_BOARDS:
+        board = have_boards.get(spec["title"])
+        if board is None:
+            try:
+                board = graphql(CREATE_PROJECT_M, {"ownerId": data["id"], "title": spec["title"]}
+                                )["createProjectV2"]["projectV2"]
+                ok(spec["title"], board["url"])
+            except GitHubError as exc:
+                from gh import is_rate_limit, rate_limit_reset
+                if is_rate_limit(exc):
+                    warn(spec["title"], f"rate limited — resets at {rate_limit_reset()}")
+                    return
+                warn(spec["title"], f"skipped — {exc.message[:100]}")
+                continue
+        pid = board["id"]
+        node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+        fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+        # "Status" is a built-in single-select on every board, with GitHub's own options. It
+        # cannot be created again, so the spec's options go on a field named "Stage".
+        if "Stage" not in fields:
+            try:
+                graphql(CREATE_FIELD_M, {"projectId": pid, "name": "Stage",
+                                         "options": [{"name": o, "description": "", "color": "GRAY"}
+                                                     for o in spec["statuses"]]})
+                ok("  field Stage", ", ".join(spec["statuses"]))
+            except GitHubError as exc:
+                warn("  field Stage", exc.message[:100])
+        node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+        fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+        have = {i["content"]["title"] for i in node["items"]["nodes"] if i.get("content")}
+        stage_ids = {o["name"]: o["id"] for o in (fields.get("Stage") or {}).get("options", [])}
+        added = 0
+        for title, body, stage in spec["items"]:
+            if title in have:
+                continue
+            try:
+                item = graphql(ADD_DRAFT_M, {"projectId": pid, "title": title,
+                                             "body": body})["addProjectV2DraftIssue"]["projectItem"]
+                if stage in stage_ids:
+                    graphql(SET_FIELD_M, {"projectId": pid, "itemId": item["id"],
+                                          "fieldId": fields["Stage"]["id"],
+                                          "value": {"singleSelectOptionId": stage_ids[stage]}})
+                added += 1
+                time.sleep(0.5)
+            except GitHubError as exc:
+                warn(f"  {title[:40]}", exc.message[:70])
+        ok(spec["title"], f"{added} items added, {len(have)} already there")
+
+
 # ────────────────────────────────────────────────────────────────────── main ──
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -1332,6 +1398,7 @@ def main() -> int:
     if "boards" in wanted:
         print("\n\033[1mLifecycle board\033[0m")
         run_step("boards", create_boards, args.owner, args.repo, args.dry_run)
+        run_step("content boards", create_content_boards, args.owner, args.repo, args.dry_run)
     if "project" in wanted:
         print("\n\033[1mProject board\033[0m")
         if not issues and not args.dry_run:

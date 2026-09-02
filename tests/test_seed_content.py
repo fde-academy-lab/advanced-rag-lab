@@ -383,3 +383,25 @@ def test_every_label_description_fits_githubs_cap():
                   + [(n, d) for n, (_c, d) in BOT_LABELS.items()])
     too_long = [(n, len(d)) for n, d in everything if len(d) > GITHUB_LABEL_DESCRIPTION_MAX]
     assert not too_long, f"over GitHub's {GITHUB_LABEL_DESCRIPTION_MAX}-char cap: {too_long}"
+
+
+
+def test_content_boards_point_at_files_that_exist_and_have_unique_titles():
+    """A board item that names a missing file is a board nobody trusts."""
+    import re
+    for spec in content.CONTENT_BOARDS:
+        assert spec["statuses"] and spec["items"], spec["title"]
+        titles = [t for t, _, _ in spec["items"]]
+        assert len(titles) == len(set(titles)), spec["title"]
+        for title, body, stage in spec["items"]:
+            assert stage in spec["statuses"], (spec["title"], title, stage)
+            for path in re.findall(r"(?:docs|wiki|scripts|lab-simulator)/[A-Za-z0-9_./-]+", body):
+                assert (ROOT / path.rstrip(".")).exists(), (spec["title"], title, path)
+
+
+def test_extension_board_mirrors_the_extension_points_document():
+    import re
+    doc = (ROOT / "docs/09-research/extension-points.md").read_text()
+    headings = [f"{n}. {t}" for n, t in re.findall(r"^### (\d+)\. (.+)$", doc, re.M)]
+    board = next(b for b in content.CONTENT_BOARDS if b["title"].startswith("Extension Points"))
+    assert [t for t, _, _ in board["items"]] == headings

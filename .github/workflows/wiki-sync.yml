@@ -1,0 +1,59 @@
+# The wiki is generated from wiki/ in this repository, on every merge to main.
+#
+# Pages live in the repository so they are reviewed, link-checked and tested like every other
+# document, and so a change is a pull request rather than an edit nobody sees. The wiki tab is
+# the reading surface. A page edited on the wiki tab directly is overwritten by the next merge;
+# wiki/Contributing.md says so.
+#
+# The first page of a wiki must be created in the browser once; until then the wiki git
+# repository does not exist and this job reports that rather than failing mysteriously.
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths: ["wiki/**", "scripts/wiki_sync.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Clone the wiki
+        id: clone
+        env:
+          # The built-in token is expected to be enough for the wiki repository of the same
+          # repository; if a push is refused, PROJECT_TOKEN is used on the next run instead.
+          TOKEN: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git clone --depth=1 "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" "$RUNNER_TEMP/wiki" 2>clone.err; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The wiki repository does not exist yet. Create the first page at https://github.com/${GITHUB_REPOSITORY}/wiki once, then re-run this workflow."
+            cat clone.err
+          fi
+      - name: Sync and push
+        if: steps.clone.outputs.ok == 'true'
+        run: |
+          set -euo pipefail
+          python scripts/wiki_sync.py "$RUNNER_TEMP/wiki" | tee sync.log
+          cd "$RUNNER_TEMP/wiki"
+          git config user.name "wiki-sync"; git config user.email "wiki-sync@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "wiki already current"; exit 0; fi
+          git commit -qm "wiki: sync from ${GITHUB_SHA::7}"
+          git push
+      - name: Summary
+        if: always()
+        run: |
+          { echo "### Wiki"; echo; cat sync.log 2>/dev/null || echo "not synced; see the steps above";
+            echo; echo "https://github.com/${GITHUB_REPOSITORY}/wiki"; } >> "$GITHUB_STEP_SUMMARY"

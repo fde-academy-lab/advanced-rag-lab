@@ -24,6 +24,12 @@ follow the lifecycle of the work rather than the alphabet.
 | `09` | [Research](09-research/) | [reading-list.md](09-research/reading-list.md) | Papers with notes, 20 extension points |
 | `10` | [Community](10-community/) | [discussions-guide.md](10-community/discussions-guide.md) | How Discussions work, and how exercises run through them |
 
+## Also
+
+- [The wiki](../../../wiki): how-tos, the architecture breakdown, interview questions with
+  graded answers, trivia with the file behind each fact, the monthly newsletter, and twenty
+  experiments to try. Its pages live in [`wiki/`](../wiki/) and sync on every merge.
+
 ## Conventions
 
 Every folder has a `README.md` that says what is in it and what to read first — a directory

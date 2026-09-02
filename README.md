@@ -21,6 +21,20 @@ memory, in about ten seconds.*
 
 ---
 
+## Find it in ten seconds
+
+| You want | Go to |
+|---|---|
+| To run something and see a number | [Quick start](#quick-start), or a Codespace: Code ▸ Codespaces ▸ Create |
+| To be graded without cloning | [Discussions ▸ LAB Simulator](../../discussions/categories/lab-simulator), post a drill |
+| To ask a question | [Discussions ▸ Q&A](../../discussions/categories/q-a), say what you tried |
+| How-tos, the architecture in one page, interview questions with answers, trivia, the newsletter | [The wiki](../../wiki) |
+| Where the work stands | [The boards](https://github.com/fde-academy-lab?tab=projects): Delivery, Hands-on, Pulse, Lifecycle, Reading Club, Extension points, Newsletter |
+| Every document, in reading order | [docs/README.md](docs/README.md) |
+| The notebooks rendered as a site | [fde-academy-lab.github.io/advanced-rag-lab](https://fde-academy-lab.github.io/advanced-rag-lab/) |
+
+---
+
 ## The brief
 
 > "We have all this documentation and our people can't find answers in it. Can you put an AI
