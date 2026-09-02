@@ -1200,6 +1200,11 @@ def create_boards(owner, repo, dry):
                             )["createProjectV2"]["projectV2"]
             ok("lifecycle board", board["url"])
         except GitHubError as exc:
+            from gh import is_rate_limit, rate_limit_reset
+            if is_rate_limit(exc):
+                warn("lifecycle board", f"rate limited — resets at {rate_limit_reset()}; "
+                                        "re-run `boards` then")
+                return
             warn("lifecycle board", f"skipped — {exc.message[:100]}")
             print("      Needs PROJECT_TOKEN with account-level Projects: read/write.")
             return
