@@ -1,0 +1,71 @@
+# One file parametrises a cohort. Everything cohort-specific is generated from it:
+# the schedule page, the calendar file, the milestones, the announcement threads, the
+# collaborator invitations. Edit this, never the generated files.
+#
+# Dates are ISO (YYYY-MM-DD). Times are local to `timezone`; the .ics carries the zone.
+# Nothing here is a real cohort; every value is a placeholder to replace.
+
+cohort:
+  id: 2                              # 1, 2, 3, 4
+  name: "FDE Academy · Cohort 2"
+  track: "Advanced RAG & Evals"
+  starts: 2026-10-05                 # first session
+  ends: 2026-11-27                   # last session or demo day
+  timezone: "Asia/Kolkata"
+  weekly:
+    day: Monday                      # the regular session day
+    time: "19:00"                    # 24h, local
+    minutes: 120
+  reference_repo: "fde-academy-lab/advanced-rag-lab"
+
+github:
+  owner: "fde-academy-lab"           # or the org
+  repo: "fde-academy-cohort-2"
+  private: true
+  delivery_board_number: 1           # the Delivery board's number in the owner's projects list
+
+people:
+  # role: admin (programme owner) · maintain (instructor) · triage (learner, private repo)
+  - { github: "instructor-handle", role: maintain, name: "Instructor of record" }
+  - { github: "ta-handle",         role: maintain, name: "Teaching assistant" }
+  # learners are appended from the roster; keep names out of public files
+  - { github: "learner-handle-1",  role: triage }
+
+sessions:
+  # week: 1-based. date: overrides the weekly day. prereads and drills are repository paths
+  # and simulator ids; the check step verifies they exist.
+  - week: 1
+    title: "Frame the failure, then build the harness"
+    prereads: ["docs/00-orientation/client-zero.md", "docs/02-curriculum/syllabus.md"]
+    drills: ["FD1", "RD1"]
+    exercises: ["EX-01"]
+  - week: 2
+    title: "Chunking and the floor everything stands on"
+    prereads: ["docs/09-research/measurements/fusion-rules.md"]
+    drills: ["ED1", "CD1"]
+  - week: 3
+    title: "Retrieval: BM25, dense, and what fusion actually buys"
+    prereads: ["docs/01-architecture/adr/0015-correct-the-fusion-finding.md"]
+    drills: ["RD2"]
+    units: ["R2", "R3"]
+  - week: 4
+    title: "Evaluation: intervals, judges, and the measurement smell"
+    drills: ["ED2", "ED3"]
+    units: ["E1"]
+  - week: 5
+    title: "Context and cost"
+    drills: ["XD1"]
+    units: ["C1"]
+  - week: 6
+    title: "Agentic search: stop when you have enough"
+    drills: ["AD1"]
+  - week: 7
+    title: "Ship it: the measurement note"
+    units: ["P1"]
+  - week: 8
+    title: "Demo day and retro"
+    date: 2026-11-27
+
+announcements:
+  post_days_before: 5                # seed the week's Announcements thread this many days ahead
+  standup_day: Friday                # the Weekly Standup & Retro thread opens this day

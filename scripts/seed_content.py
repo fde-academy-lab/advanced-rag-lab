@@ -1688,6 +1688,7 @@ decision record — which is the artefact almost nobody else in the pile will ha
 from seed import (  # noqa: E402
     threads_clinic,
     threads_clinic_more,
+    threads_cohort,
     threads_design,
     threads_design_more,
     threads_exercises,
@@ -2187,6 +2188,7 @@ DISCUSSIONS = (DISCUSSIONS
                + threads_interview.THREADS
                + threads_standup.THREADS
                + threads_standup_more.THREADS
+               + threads_cohort.THREADS
                + threads_more.THREADS
                + threads_prep.THREADS
                + threads_labsim.THREADS

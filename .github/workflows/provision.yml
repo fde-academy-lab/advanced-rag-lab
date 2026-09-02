@@ -60,8 +60,11 @@ jobs:
             echo "have_pat=true" >> "$GITHUB_OUTPUT"
           else
             echo "have_pat=false" >> "$GITHUB_OUTPUT"
+            # `boards` (Lifecycle) needs the PAT as much as `project` does. With only
+            # `*project*` here, a `boards` run without the secret printed nothing at run
+            # level: the step warned inside its log and the run went green.
             case "${{ inputs.steps }}" in
-              *project*)
+              *project*|*boards*)
                 echo "::warning::No PROJECT_TOKEN secret is set. A Projects v2 board belongs to the account rather than the repository, so the built-in GITHUB_TOKEN cannot create one. Add a PAT with account-level Projects: read/write as a repository secret named PROJECT_TOKEN, then re-run." ;;
             esac
           fi
