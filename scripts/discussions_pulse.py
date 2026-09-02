@@ -169,15 +169,19 @@ def render(threads: list[Thread], changes: dict[str, list[str]], days: int) -> s
 
 # ────────────────────────────────────────────────────────────────── board ──
 BOARD_TITLE = "Discussions — Pulse"
+# The first live run was refused on createProjectV2Field with "Name cannot have a reserved
+# value". GitHub does not publish the reserved list and the docs were unreachable from the
+# session that fixed this, so the three single-word names that could plausibly collide with a
+# built-in were renamed rather than guessed at one by one. A refused field is now a warning.
 BOARD_FIELDS = {
-    "Category": ("TEXT", None),
+    "Thread category": ("TEXT", None),
     "Heat": ("NUMBER", None),
     "Comments (window)": ("NUMBER", None),
     "Comments (total)": ("NUMBER", None),
     "People (window)": ("NUMBER", None),
     "Last activity": ("DATE", None),
-    "State": ("SINGLE_SELECT", ["Needs an answer", "Answered", "Open", "Content change"]),
-    "Author": ("TEXT", None),
+    "Attention": ("SINGLE_SELECT", ["Needs an answer", "Answered", "Open", "Content change"]),
+    "Opened by": ("TEXT", None),
 }
 
 from labsim_progress import (  # noqa: E402  (shared board plumbing)
@@ -210,13 +214,18 @@ def ensure_board(owner: str, dry: bool):
         if dry:
             print(f"would create field {name}")
             continue
-        if dtype == "SINGLE_SELECT":
-            graphql(CREATE_SELECT_M, {"projectId": pid, "name": name,
-                                      "options": [{"name": o, "description": "", "color": "GRAY"}
-                                                  for o in options]})
-        else:
-            graphql(CREATE_FIELD_M, {"projectId": pid, "name": name, "type": dtype})
-        print("created field", name)
+        try:
+            if dtype == "SINGLE_SELECT":
+                opts = [{"name": o, "description": "", "color": "GRAY"} for o in options]
+                graphql(CREATE_SELECT_M, {"projectId": pid, "name": name, "options": opts})
+            else:
+                graphql(CREATE_FIELD_M, {"projectId": pid, "name": name, "type": dtype})
+            print("created field", name)
+        except GitHubError as exc:
+            # One refused field used to abort the whole sync, after the board had already
+            # been created: an empty board and a red run. The upsert skips values for fields
+            # that do not exist, so the rest of the board still fills in.
+            print(f"::warning::field {name!r} was refused and is skipped: {exc.message[:140]}")
     node = graphql(FIELDS_Q, {"id": pid})["node"]
     fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
     items = {i["content"]["title"]: i["id"] for i in node["items"]["nodes"] if i.get("content")}
@@ -254,19 +263,20 @@ def sync_board(owner, threads, changes, since, dry) -> int:
         title = f"#{t.number} · {t.title}"[:250]
         state = ("Needs an answer" if t.needs_answer else "Answered" if t.answerable else "Open")
         _upsert(pid, fields, items, title, t.url,
-                {"Category": t.category, "Heat": t.heat, "Comments (window)": t.comments_window,
+                {"Thread category": t.category, "Heat": t.heat,
+                 "Comments (window)": t.comments_window,
                  "Comments (total)": t.comments_total, "People (window)": t.humans_window,
-                 "Last activity": t.last_activity.date().isoformat(), "State": state,
-                 "Author": t.author}, dry)
+                 "Last activity": t.last_activity.date().isoformat(), "Attention": state,
+                 "Opened by": t.author}, dry)
         n += 1
     if changes:
         week = since.strftime("%Y-%m-%d")
         body = "\n".join(f"**{area}**\n" + "\n".join(f"- `{f}`" for f in files)
                          for area, files in changes.items())
         _upsert(pid, fields, items, f"Content changed · week of {week}", body,
-                {"Category": "repository", "Heat": sum(len(v) for v in changes.values()),
+                {"Thread category": "repository", "Heat": sum(len(v) for v in changes.values()),
                  "Last activity": datetime.now(timezone.utc).date().isoformat(),
-                 "State": "Content change"}, dry)
+                 "Attention": "Content change"}, dry)
         n += 1
     return n
 
@@ -298,6 +308,9 @@ def explain(exc: GitHubError) -> str:
     """One readable sentence for a refusal, with the fix the message itself does not name."""
     msg = (exc.message or "").strip().replace("\n", " ")
     low = msg.lower()
+    if "reserved value" in low:
+        return (f"GitHub refused a field name it reserves: {msg[:160]}. Rename that entry in "
+                "BOARD_FIELDS; the token is fine.")
     if "createprojectv2" in low or "projectsv2" in low or "projects" in low and "scope" in low:
         return (f"GitHub refused a Projects v2 call: {msg[:160]}. The token needs the classic "
                 "`project` scope or fine-grained account permission Projects: read/write.")
