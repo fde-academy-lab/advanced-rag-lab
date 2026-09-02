@@ -41,3 +41,4 @@ package-lock.json
 
 # Your practice scores, not the repo's
 interview-bank/.progress.json
+.coverage

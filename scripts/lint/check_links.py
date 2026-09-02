@@ -21,19 +21,13 @@ GITHUB_SURFACES = ("discussions", "issues", "pulls", "projects", "wiki", "releas
                    "actions", "milestones", "labels", "security", "settings", "compare",
                    "blob", "tree", "commits")
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".ruff_cache", ".pytest_cache"}
-# Templates are copied into a cohort repository and filled in there; their links point at
-# files that do not exist until then (`docs/11-cohort/schedule.md`, `../../../PATH`). Checking
-# them here would only ever report the placeholders. tests/test_cohort_kit.py checks the kit.
-SKIP_PREFIXES = (("cohort-kit", "templates"),)
 ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
 
 
 def markdown_files():
     for p in sorted(ROOT.rglob("*.md")):
-        rel = p.relative_to(ROOT).parts
-        if any(d in p.parts for d in SKIP_DIRS) or any(rel[:len(x)] == x for x in SKIP_PREFIXES):
-            continue
-        yield p
+        if not any(d in p.parts for d in SKIP_DIRS):
+            yield p
 
 
 def tracked_paths() -> set[str] | None:
