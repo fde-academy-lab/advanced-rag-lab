@@ -426,16 +426,24 @@ def test_a_submission_naming_no_real_unit_is_not_usable():
 
 
 @pytest.mark.parametrize("text,expected", [
-    ("/check", ("check", None)),
-    ("  /hint", ("hint", None)),
-    ("stuck. /hint 3", ("hint", 3)),
-    ("/solution please", ("solution", None)),
+    ("/check", ("check", "")),
+    ("  /hint", ("hint", "")),
+    ("stuck. /hint 3", ("hint", "3")),
+    ("/solution please", ("solution", "please")),
+    ("/why every short span survives", ("why", "every short span survives")),
+    ("/progress", ("progress", "")),
     ("nothing to see", None),
     ("see docs/check for this", None),
 ])
 def test_commands_are_recognised_where_people_actually_write_them(text, expected):
     from labsim.discussion import parse_command
     assert parse_command(text) == expected
+
+
+def test_hint_index_parses_only_a_leading_integer():
+    from labsim.discussion import hint_index
+    assert hint_index("3") == 3 and hint_index(" 12 please") == 12
+    assert hint_index("") is None and hint_index("please") is None
 
 
 def test_a_command_inside_a_code_fence_is_not_a_command():
@@ -528,7 +536,7 @@ def test_the_form_labels_match_what_the_parser_looks_for():
               for f in form["body"] if f.get("type") != "markdown"}
     for label, field_id in labels.items():
         target = _target_file(label)
-        if field_id in ("solution", "decision", "measurement"):
+        if field_id in ("solution", "decision", "measurement", "answer"):
             assert target, f"form field {label!r} feeds no file"
         else:
             assert target is None, (
@@ -827,3 +835,15 @@ def test_every_brief_states_the_bars_its_unit_actually_enforces():
             assert float(stated.group(1)) == threshold, (
                 f"{directory.name}: brief says {metric} {stated.group(1)}, "
                 f"unit.yaml enforces {threshold}")
+
+
+def test_ci_guard_recognises_two_letter_drill_ids():
+    """`attempts/FD1/` is a drill attempt. The path regex used to accept one letter only, so
+    editing a drill's check.py alongside an attempt at it was not caught."""
+    from labsim import report
+    drill = next(u for u in report.all_units() if u.is_drill)
+    paths = [f"lab-simulator/attempts/{drill.uid}/solution.py",
+             f"lab-simulator/units/{drill.directory.name}/check.py"]
+    assert report.graded_units_are_also_edited(paths) == [drill.uid]
+    assert [u.uid for u in report.touched_attempts(paths)] == [drill.uid]
+

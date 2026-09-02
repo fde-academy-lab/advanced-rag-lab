@@ -1,0 +1,38 @@
+id: RD2
+slug: predict-before-you-fuse
+title: Write down what fusion will score before you look. Then look.
+kind: drill
+track: retrieval
+difficulty: medium
+minutes: 10
+mode: answer
+teaches: [calibration, hybrid fusion, the retracted finding, reading a measurement note]
+prereqs: [RD1]
+bars: []
+artefact: null
+reading:
+  - docs/09-research/measurements/fusion-rules.md
+  - docs/01-architecture/adr/0015-correct-the-fusion-finding.md
+on_fail:
+  - check: "the strongest single leg"
+    work_on: >-
+      This repository published for months that the dense leg was the weak one. It is the
+      strong one, by six points of evidence recall and twenty-four of nDCG. If you named BM25,
+      you learned it from a source that has since been retracted — and that is worth knowing.
+    read: docs/01-architecture/adr/0015-correct-the-fusion-finding.md
+  - check: "fusion against its better leg"
+    work_on: >-
+      Fusion pays when the legs fail on different queries. On this corpus they fail on the same
+      ones (overlap 0.9684), so RRF sits inside the noise band of the dense leg alone. Predicting
+      a big win for fusion is predicting complementarity nobody measured.
+    read: docs/09-research/measurements/fusion-rules.md
+  - check: "within 0.03"
+    work_on: >-
+      Being off by more than three points on all three arms means the mental model, not the
+      arithmetic. Read the measurement note's table once, then re-derive the k-grid row for k=8
+      from memory tomorrow.
+    read: docs/09-research/measurements/fusion-rules.md
+summary: >-
+  Three retrieval arms at k=8 through the cross-encoder: BM25 alone, the dense leg alone, and
+  equal-weight RRF. Commit to a number for each and to which is strongest, before opening the
+  measurement note. The grader tells you how far off you were.

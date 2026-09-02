@@ -12,6 +12,7 @@ the distribution needs chunking, not retrieval.
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -286,3 +287,76 @@ def test_the_retracted_fusion_claim_appears_only_inside_a_retraction(path):
             "Measured: RRF beats BM25 by +0.0624; the LSA leg is the stronger of the two; "
             "fusion does not separate from it because the legs fail on the same queries "
             "(overlap 0.9684). See ADR-0015.")
+
+
+# ──────────────────────────────────── the answer drills' keys, against the notes ──
+#
+# An `answer` drill pins measured values inside its check.py so it can grade in seconds. A
+# pinned number is exactly the kind that drifts, so each key is held to the note or grid that
+# regenerates it. If the note changes, the drill fails CI before it teaches a stale figure.
+UNITS = ROOT / "lab-simulator" / "units"
+
+
+def _pinned(path, name):
+    """Import a check.py far enough to read its module-level constants."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_rd2_key_matches_the_fusion_note():
+    mod = _pinned(UNITS / "RD2-predict-before-you-fuse" / "check.py", "rd2")
+    note = FUSION_NOTE.read_text(encoding="utf-8")
+    rows = dict(re.findall(r"^(bm25|dense|rrf)\s+(\d\.\d{4})", note, re.M))
+    assert rows, "the fusion note's table has changed shape"
+    for arm, want in rows.items():
+        assert mod.MEASURED[arm] == pytest.approx(float(want), abs=5e-5), (
+            f"RD2 pins {arm}={mod.MEASURED[arm]} and the note says {want}")
+    assert "(−0.0101, +0.0109)" in note, "the dense→rrf interval RD2 quotes has moved"
+
+
+def test_xd1_key_matches_the_k_grid():
+    mod = _pinned(UNITS / "XD1-which-way-does-precision-go" / "check.py", "xd1")
+    grid = (ROOT / "docs" / "04-evaluation" / "metrics.md").read_text(encoding="utf-8")
+    rows = {int(m.group(1)): (float(m.group(2)), float(m.group(5)))
+            for m in re.finditer(r"^(\d+)\s+(\d\.\d{4})\s+(\d\.\d{4})\s+(\d\.\d{4})\s+(\d\.\d{4})",
+                                 grid, re.M)}
+    assert {5, 10} <= set(rows), f"the k grid no longer has k=5 and k=10: {sorted(rows)}"
+    assert mod.K5 == {"evidence_recall": pytest.approx(rows[5][0]),
+                      "context_precision": pytest.approx(rows[5][1])}
+    assert mod.K10 == {"evidence_recall": pytest.approx(rows[10][0]),
+                       "context_precision": pytest.approx(rows[10][1])}
+
+
+def test_ed2_rows_match_the_fusion_note():
+    mod = _pinned(UNITS / "ED2-which-deltas-are-real" / "check.py", "ed2")
+    note = FUSION_NOTE.read_text(encoding="utf-8")
+    wanted = {1: ("bm25 → rrf", "evidence recall"), 2: ("dense → rrf", "evidence recall"),
+              3: ("rrf → w0.2", "nDCG"), 4: ("rrf → w0.5", "evidence recall")}
+    for n, (pair, metric) in wanted.items():
+        delta, lo, hi = mod.ROWS[n]
+        pat = (rf"\|\s*\**{re.escape(pair)}\**\s*\|\s*\**{re.escape(metric)}\**\s*\|\s*\**"
+               rf"([+−-]\d\.\d{{4}})\**\s*\|\s*\**\(([+−-]\d\.\d{{4}}),\s*([+−-]\d\.\d{{4}})\)")
+        m = re.search(pat, note)
+        assert m, f"row {n} ({pair}, {metric}) is not in the fusion note"
+        got = [float(x.replace("−", "-")) for x in m.groups()]
+        assert got == pytest.approx([delta, lo, hi], abs=5e-5), (
+            f"ED2 row {n} pins {(delta, lo, hi)} and the note says {tuple(got)}")
+
+
+def test_ed3_claims_quote_published_figures():
+    """The write-up's sound claims must be sound, and its numbers must exist."""
+    brief = (UNITS / "ED3-spot-the-measurement-smell" / "BRIEF.md").read_text(encoding="utf-8")
+    note = FUSION_NOTE.read_text(encoding="utf-8")
+    grid = (ROOT / "docs" / "04-evaluation" / "metrics.md").read_text(encoding="utf-8")
+    for fig in ("0.7118", "0.7742", "+0.0624", "(+0.0407, +0.0857)", "0.4033", "0.4115"):
+        assert fig in brief and fig in note, f"{fig} is in the brief but not in the note"
+    for fig in ("0.3029", "0.1948", "0.6329", "0.7279"):
+        assert fig in grid, f"{fig} is quoted by ED3 and is not in the k grid"
+    baseline = json.loads((ROOT / ".github" / "eval-baseline.json").read_text())["metrics"]
+    assert f"{baseline['full_chain_recall']:.4f}" in brief
+    # the two figures that make claim 4 a smell must NOT be in any note — that is the point
+    for fig in ("0.35", "0.7801"):
+        assert fig not in note, f"{fig} has appeared in the fusion note; ED3's claim 4 is no longer a smell"

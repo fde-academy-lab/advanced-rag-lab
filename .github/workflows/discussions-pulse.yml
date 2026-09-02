@@ -1,0 +1,65 @@
+# What is happening in Discussions, as a board.
+#
+# A discussion cannot be a Projects v2 item, so every thread that moved this week is mirrored
+# as a draft item on "Discussions — Pulse" with the fields a facilitator scans: category,
+# comments this week, distinct people, whether it still needs an answer, and a heat score. One
+# more item per week lists the docs, notebooks and units that changed, so new content shows up
+# beside the conversation about it.
+#
+# Daily, because "what needs an answer" is a daily question. PROJECT_TOKEN for the board; the
+# rendered pulse goes to the step summary either way.
+name: Discussions · pulse
+
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Window in days"
+        required: false
+        default: "7"
+      dry_run:
+        description: "Print what would be written without touching the board"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  discussions: read
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0              # content_changes reads the git log
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pyyaml
+
+      - name: Render
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ github.event_name == 'workflow_dispatch' && inputs.days || '7' }}
+        run: |
+          python scripts/discussions_pulse.py \
+            --owner "${GITHUB_REPOSITORY%%/*}" --repo "${GITHUB_REPOSITORY##*/}" \
+            --days "$DAYS" --out pulse.md
+          cat pulse.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sync the board
+        if: ${{ secrets.PROJECT_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          DAYS: ${{ github.event_name == 'workflow_dispatch' && inputs.days || '7' }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          args=(--owner "${GITHUB_REPOSITORY%%/*}" --repo "${GITHUB_REPOSITORY##*/}"
+                --days "$DAYS" --board)
+          if [ "$DRY" = "true" ]; then args+=(--dry-run); fi
+          python scripts/discussions_pulse.py "${args[@]}"

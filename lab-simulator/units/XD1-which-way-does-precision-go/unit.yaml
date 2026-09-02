@@ -1,0 +1,33 @@
+id: XD1
+slug: which-way-does-precision-go
+title: k goes from 5 to 10. Which way does context precision move, and by how much?
+kind: drill
+track: context
+difficulty: medium
+minutes: 8
+mode: answer
+teaches: [context precision, the denominator you chose, recall against k, gating on the wrong metric]
+prereqs: [ED1]
+bars: []
+artefact: null
+reading:
+  - docs/04-evaluation/metrics.md
+on_fail:
+  - check: "direction of context precision"
+    work_on: >-
+      Context precision divides by k, and the gold set for a question is fixed. Raising k adds
+      slots faster than it adds gold, so precision falls even as recall rises. A target on
+      precision alone is cleared by lowering k and giving back recall.
+    read: docs/04-evaluation/metrics.md
+  - check: "direction of evidence recall"
+    work_on: >-
+      More candidates in the window cannot lose evidence that was already there. Recall is
+      monotone in k by construction.
+  - check: "precision at k=10 within"
+    work_on: >-
+      Roughly halve it: the denominator doubles and the numerator gains only what the extra
+      five slots happen to catch. The k grid in metrics.md has the row.
+    read: docs/04-evaluation/metrics.md
+summary: >-
+  On the BM25 arm, context precision at k=5 is 0.3029. Predict where it sits at k=10, which way
+  evidence recall moves at the same time, and what that means for a team gating on precision.

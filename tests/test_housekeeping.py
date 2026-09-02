@@ -257,7 +257,7 @@ def test_the_play_count_in_the_heading_matches_the_plays():
     """The heading names a number. A table people add rows to will drift away from it."""
     text = _guide()
     words = {"twenty-one": 21, "twenty-two": 22, "twenty-three": 23, "twenty-four": 24,
-             "twenty-five": 25, "twenty-six": 26, "twenty-seven": 27}
+             "twenty-five": 25, "twenty-six": 26, "twenty-seven": 27, "twenty-eight": 28}
     heading = re.search(r"^## The ([a-z-]+) plays$", text, re.M)
     assert heading, "the plays section has been renamed; this test names it explicitly"
     claimed = words.get(heading.group(1))

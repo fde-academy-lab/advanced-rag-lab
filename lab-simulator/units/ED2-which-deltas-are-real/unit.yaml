@@ -1,0 +1,29 @@
+id: ED2
+slug: which-deltas-are-real
+title: Four deltas, four intervals. Which of them would you ship on?
+kind: drill
+track: evaluation
+difficulty: medium
+minutes: 8
+mode: answer
+teaches: [paired bootstrap intervals, the noise band, reading a comparison table, sign of a delta]
+prereqs: [ED1]
+bars: []
+artefact: null
+reading:
+  - docs/09-research/measurements/fusion-rules.md
+  - docs/06-interview-prep/mathematics.md
+on_fail:
+  - check: "every real delta"
+    work_on: >-
+      A delta is real when its interval excludes zero — both ends the same sign. A regression is
+      just as real as an improvement; the sign tells you which, the interval tells you whether.
+    read: docs/09-research/measurements/fusion-rules.md
+  - check: "nothing inside the noise band"
+    work_on: >-
+      An interval that straddles zero is not a small difference. It is not a difference, and
+      shipping complexity to buy one is how a system accretes.
+    read: docs/06-interview-prep/mathematics.md
+summary: >-
+  Four rows from this repository's fusion measurement — a delta and its paired-bootstrap
+  interval each. Pick the ones a release decision could rest on. The means are a trap.

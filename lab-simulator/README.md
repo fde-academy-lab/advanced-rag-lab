@@ -25,6 +25,11 @@ python -m labsim check F1      # grade it
 python -m labsim doctor        # can this machine run the lab?
 ```
 
+**Short on time?** The nine **drills** take under fifteen minutes each and start in four places
+— `FD1`, `RD1`, `ED1`, `CD1` — with no prerequisites. `python -m labsim list` shows them
+beside the units, tagged easy / medium / hard. Three of them are `answer` drills: you commit to
+a number *before* opening the measurement note, and the grader tells you how far off you were.
+
 ---
 
 ## Why this exists, and what it does differently
@@ -42,7 +47,8 @@ everything that matters is not.
 
 **A list is not a pathway.** If problem 7 does not need problem 3, the ordering is decoration.
 
-So a unit here has three gates instead of one.
+So a unit here has three gates instead of one, and a **drill** — the bite-sized kind — has one
+idea and the single check that carries it, in the same prerequisite graph.
 
 ```mermaid
 flowchart LR

@@ -1,0 +1,5 @@
+context_precision_direction: down
+evidence_recall_direction: up
+context_precision_at_k10: 0.17
+gate_can_be_cleared_by: >-
+  Lower k back to 5 or below — precision divides by k, so the gate clears while recall falls.

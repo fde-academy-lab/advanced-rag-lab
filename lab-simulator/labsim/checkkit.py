@@ -48,6 +48,37 @@ def load_solution(attempt_dir: str | Path, *, required: tuple[str, ...] = (),
     return mod
 
 
+def load_answer(attempt_dir: str | Path, *, required: tuple[str, ...] = (),
+                filename: str = "answer.yaml") -> dict:
+    """Read the learner's answer.yaml for an `answer` unit and confirm the keys it needs.
+
+    An answer unit grades a commitment rather than code — a number, a ranking, a set of
+    choices — so the file is small and the failure modes are all about it being missing,
+    unparsable, or still holding the template's placeholders. Each of those is reported as a
+    sentence, not a traceback, for the same reason `load_solution` does it.
+    """
+    import yaml
+
+    path = Path(attempt_dir) / filename
+    if not path.exists():
+        raise SolutionError(f"No {filename} at {path}. Run `labsim start <id>` and fill it in.")
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError as exc:
+        raise SolutionError(f"{filename} does not parse as YAML: {exc}") from exc
+    if not isinstance(data, dict):
+        raise SolutionError(f"{filename} must be a mapping of field: value")
+    missing = [k for k in required if k not in data or data[k] in (None, "")]
+    if missing:
+        raise SolutionError(f"{filename} leaves these blank: {', '.join(missing)}")
+    placeholders = [k for k in required
+                    if isinstance(data.get(k), str) and data[k].strip().startswith("<")]
+    if placeholders:
+        raise SolutionError(f"{filename} still holds the template placeholder for: "
+                            f"{', '.join(placeholders)}")
+    return data
+
+
 class Checker:
     """Collects pass/fail lines and knows whether the unit passed."""
 

@@ -41,6 +41,68 @@ mutation($id:ID!,$body:String!){
   updateDiscussionComment(input:{commentId:$id,body:$body}){ comment { id url } }
 }"""
 
+LABELS_Q = """
+query($owner:String!,$name:String!){
+  repository(owner:$owner,name:$name){ labels(first:100){ nodes { id name } } }
+}"""
+
+THREAD_LABELS_Q = """
+query($id:ID!){ node(id:$id){ ... on Discussion { labels(first:30){ nodes { name } } } } }"""
+
+ADD_LABELS_M = """
+mutation($id:ID!,$labels:[ID!]!){
+  addLabelsToLabelable(input:{labelableId:$id,labelIds:$labels}){ clientMutationId }
+}"""
+
+# The labels the bot may apply, with the colour and description it creates them with when
+# they are missing. Everything else on a thread is a human's decision.
+BOT_LABELS = {
+    "drill": ("5319e7", "A bite-sized L.A.B. Simulator drill: one idea, under fifteen minutes"),
+    "unit": ("5319e7", "A full L.A.B. Simulator unit: a real corpus and three gates"),
+    "cleared": ("0e8a16", "The grader accepted the submission on this thread"),
+    "difficulty: easy": ("c2e0c6", "Simulator difficulty"),
+    "difficulty: medium": ("fbca04", "Simulator difficulty"),
+    "difficulty: hard": ("e99695", "Simulator difficulty"),
+    "difficulty: brutal": ("b60205", "Simulator difficulty"),
+    "area: foundations": ("d4c5f9", "Chunking, indexing, the floor everything stands on"),
+    "area: context": ("d4c5f9", "Packing, position, the window the model actually reads"),
+    "area: delivery": ("d4c5f9", "Notes, records, the artefacts an FDE hands over"),
+}
+
+
+def apply_labels(repo: str, node_id: str, wanted: list[str]) -> list[str]:
+    """Put the unit's labels on the thread, creating any the repository lacks.
+
+    Only names in BOT_LABELS are ever applied — the list in meta.json came from a job that ran
+    a stranger's code, so it is filtered here rather than trusted. `area: retrieval` and its
+    siblings already exist from the issue taxonomy; the three new areas and the difficulty set
+    are created on first use with a description, so the label list stays legible.
+    """
+    from gh import GitHubError, request
+    wanted = [w for w in wanted if w in BOT_LABELS or w.startswith("area: ")]
+    if not wanted:
+        return []
+    owner, name = repo.split("/", 1)
+    have = {n["name"]: n["id"] for n in
+            graphql(LABELS_Q, {"owner": owner, "name": name})["repository"]["labels"]["nodes"]}
+    for label in wanted:
+        if label in have or label not in BOT_LABELS:
+            continue
+        colour, desc = BOT_LABELS[label]
+        try:
+            made = request("POST", f"/repos/{repo}/labels",
+                           {"name": label, "color": colour, "description": desc})
+            have[label] = made["node_id"]
+        except GitHubError as exc:
+            print(f"could not create label {label!r}: {exc.message[:80]}")
+    on_thread = {n["name"] for n in
+                 graphql(THREAD_LABELS_Q, {"id": node_id})["node"]["labels"]["nodes"]}
+    ids = [have[w] for w in wanted if w in have and w not in on_thread]
+    if not ids:
+        return []
+    graphql(ADD_LABELS_M, {"id": node_id, "labels": ids})
+    return [w for w in wanted if w in have and w not in on_thread]
+
 MENTION = re.compile(r"(?<![\w`])@([A-Za-z0-9][A-Za-z0-9-]{0,38})")
 HTML_COMMENT = re.compile(r"<!--(.*?)-->", re.S)
 ALLOWED_COMMENT = re.compile(r"^\s*labsim[-:]", re.S)
@@ -94,7 +156,19 @@ def main() -> int:
     ap.add_argument("--mode", default="grade",
                     choices=["grade", "append"],
                     help="grade edits the standing verdict in place; append adds a new comment")
+    ap.add_argument("--meta", help="meta.json from the grade job; its `labels` go on the thread")
+    ap.add_argument("--repo", help="owner/name, needed to create missing labels")
     args = ap.parse_args()
+
+    if args.meta and args.repo:
+        import json
+        meta = json.loads(Path(args.meta).read_text())
+        try:
+            added = apply_labels(args.repo, args.node_id, list(meta.get("labels") or []))
+            if added:
+                print("labelled:", ", ".join(added))
+        except Exception as exc:                          # noqa: BLE001 - labels are not the reply
+            print(f"labels skipped: {exc}")
 
     raw = Path(args.body_file).read_text()
     if not raw.strip():

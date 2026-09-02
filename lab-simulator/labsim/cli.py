@@ -225,19 +225,22 @@ def cmd_discuss(args) -> int:
             # handle a file that is not there.
             print("no command in the comment; nothing to do")
             Path(args.out).write_text("")
-            Path(args.meta).write_text(json.dumps(
-                {"action": "none", "unit": sub.unit_id, "passed": False,
-                 "discussion_node_id": disc.get("node_id"),
-                 "number": disc.get("number")}, indent=2))
+            Path(args.meta).write_text(json.dumps(_meta("none", sub, disc, False), indent=2))
             return 0
-        name, n = cmd
+        name, arg = cmd
         action = name
         if name == "help":
             reply = discussion.render_help(args.repo)
         elif name == "status":
             reply = discussion.render_status(sub.unit_id)
         elif name == "hint":
-            reply = discussion.render_hint(sub.unit_id or "", n)
+            reply = discussion.render_hint(sub.unit_id or "", discussion.hint_index(arg))
+        elif name == "why":
+            reply = discussion.render_why(sub.unit_id or "", arg)
+        elif name == "progress":
+            # Needs the author's history across threads, which this job cannot read — it
+            # holds no token by design. The respond job renders it; this just says whose.
+            reply = ""
         elif name == "solution":
             u, result = graded()
             passed = bool(result and result.passed)
@@ -259,11 +262,44 @@ def cmd_discuss(args) -> int:
             reply = discussion.render_grade(u.uid, result, repo=args.repo)
 
     Path(args.out).write_text(reply)
-    Path(args.meta).write_text(json.dumps(
-        {"action": action, "unit": sub.unit_id, "passed": passed,
-         "discussion_node_id": disc.get("node_id"), "number": disc.get("number")}, indent=2))
+    Path(args.meta).write_text(json.dumps(_meta(action, sub, disc, passed), indent=2))
     print(f"action={action} unit={sub.unit_id} passed={passed} reply={len(reply)} bytes")
     return 0
+
+
+def _meta(action: str, sub, disc: dict, passed: bool) -> dict:
+    """What the respond job needs to know, and nothing that came from the submission text.
+
+    Labels are derived from the unit's metadata rather than from anything the learner typed,
+    which is what makes it safe for the job that holds a token to apply them.
+    """
+    u = by_id(sub.unit_id or "")
+    labels: list[str] = []
+    if u is not None and action in ("grade", "check"):
+        labels.append("drill" if u.is_drill else "unit")
+        labels.append(f"difficulty: {u.difficulty}")
+        area = TRACK_LABEL.get(u.track)
+        if area:
+            labels.append(area)
+        if passed:
+            labels.append("cleared")
+    return {"action": action, "unit": sub.unit_id, "passed": passed,
+            "kind": (u.kind if u else None),
+            "labels": labels,
+            "author": ((disc.get("user") or {}).get("login")),
+            "discussion_node_id": disc.get("node_id"), "number": disc.get("number")}
+
+
+# Track → the `area:` label the rest of the repository already uses for it.
+TRACK_LABEL = {
+    "foundations": "area: foundations",
+    "retrieval": "area: retrieval",
+    "context": "area: context",
+    "evaluation": "area: evaluation",
+    "cost": "area: cost",
+    "agentic": "area: agent",
+    "delivery": "area: delivery",
+}
 
 
 def _cannot_grade(sub) -> str:
@@ -310,6 +346,9 @@ def cmd_start(args) -> int:
         print(f"\n  {GREEN}Ready.{RESET} {dest.relative_to(ROOT)}")
         for c in created:
             print(f"    {c}")
+        if "answer.yaml" in created:
+            print(f"\n  {BOLD}Fill answer.yaml before you run anything.{RESET} The point of this "
+                  f"one is to commit to a number\n  first and find out how far off you were.")
         if "decision.yaml" in created:
             print(f"\n  {BOLD}Fill decision.yaml first.{RESET} The grader checks it before it "
                   f"runs a single test,\n  and it checks that your falsifier is an observation "
@@ -333,8 +372,8 @@ def _open_in_editor(u: Unit, dest) -> None:
               f"Meanwhile: labsim brief {u.uid}{RESET}\n")
         return
     targets = [u.directory / "BRIEF.md"]
-    targets += [dest / n for n in ("decision.yaml", "solution.py", "measurement.md")
-                if (dest / n).exists()]
+    targets += [dest / n for n in ("decision.yaml", "answer.yaml", "solution.py",
+                                   "measurement.md") if (dest / n).exists()]
     subprocess.run([exe, "--reuse-window", *[str(t) for t in targets]], check=False)
     print(f"  {DIM}Opened {len(targets)} files. ⌘K V (Ctrl+K V) renders the brief beside "
           f"your code.{RESET}\n")

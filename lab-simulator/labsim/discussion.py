@@ -32,7 +32,8 @@ SECTION = re.compile(r"^###\s+(?P<label>.+?)\s*$", re.M)
 FENCE = re.compile(r"```(?P<lang>[\w.]*)\s*\n(?P<code>.*?)```", re.S)
 # Anywhere on a line, not only at the start: people write "any ideas? /hint" and refusing that
 # on a technicality is the same mistake as refusing a submission for missing the form.
-COMMAND = re.compile(r"(?:^|\s)/(check|hint|solution|status|help)\b[ \t]*(\d+)?", re.M | re.I)
+COMMAND = re.compile(r"(?:^|\s)/(check|hint|solution|status|help|why|progress)\b"
+                     r"[ \t]*([^\n]*)", re.M | re.I)
 
 # Which form field feeds which file in the attempt directory.
 #
@@ -44,13 +45,15 @@ COMMAND = re.compile(r"(?:^|\s)/(check|hint|solution|status|help)\b[ \t]*(\d+)?"
 # label contains "code" and captures any fenced block in it as the learner's solution — so
 # somebody who sketches an approach in code, or pastes their answer one field too early, gets a
 # grade for a file they did not submit.
-FILENAMES = ("solution.py", "decision.yaml", "measurement.md")
+FILENAMES = ("solution.py", "decision.yaml", "measurement.md", "answer.yaml")
 FIELD_TO_FILE = {
     "solution": "solution.py",
     "code": "solution.py",
     "decision": "decision.yaml",
     "measurement": "measurement.md",
     "note": "measurement.md",
+    "answer": "answer.yaml",
+    "prediction": "answer.yaml",
 }
 PROSE_FIELDS = ("approach", "surprised", "reflect", "before you post", "which unit")
 
@@ -161,8 +164,10 @@ def parse_submission(title: str, body: str) -> Submission:
     # comes first, so a learner sketching in code would be graded on the sketch.
     form_like = any(_target_file(label) for label in sections)
     if not files and not form_like:
+        unit = by_id(unit_id or "")
+        yaml_target = "answer.yaml" if unit is not None and unit.needs_answer else "decision.yaml"
         for filename, langs in (("solution.py", ("python", "py")),
-                                ("decision.yaml", ("yaml", "yml"))):
+                                (yaml_target, ("yaml", "yml"))):
             code = _first_fence(body or "", *langs)
             if code:
                 files[filename] = code
@@ -182,18 +187,24 @@ def materialise(sub: Submission) -> Path:
     return dest
 
 
-def parse_command(body: str) -> tuple[str, int | None] | None:
-    # Strip fenced code first. A pasted diff containing `/check` in a path is not a command,
-    # and a bot that thinks it is will grade somebody's thread every time they quote a file.
-    text = FENCE.sub("", body or "")
-    m = COMMAND.search(text)
-    if not m:
+def parse_command(body: str) -> tuple[str, str] | None:
+    """The first slash command in a comment, with whatever followed it on the line.
+
+    Fences are stripped first so that quoting a file which happens to contain `/check` does
+    not run the grader. The argument is returned as text: `/hint 3` gives ("hint", "3") and
+    `/why every short span` gives ("why", "every short span"). Callers parse it.
+    """
+    text = FENCE.sub(" ", body or "")
+    hit = COMMAND.search(text)
+    if not hit:
         return None
-    return m.group(1).lower(), int(m.group(2)) if m.group(2) else None
+    return hit.group(1).lower(), (hit.group(2) or "").strip()
 
 
-# ------------------------------------------------------------------ rendering
-
+def hint_index(arg: str) -> int | None:
+    """`/hint 3` → 3; `/hint` → None; `/hint please` → None."""
+    got = re.match(r"\s*(\d+)", arg or "")
+    return int(got.group(1)) if got else None
 
 def _machine_tag(unit_id: str, result: Result | None) -> str:
     """A line the weekly digest tallies. Comment syntax, so a reader never sees it.
@@ -215,8 +226,9 @@ def render_grade(unit_id: str, result: Result, *, repo: str = "") -> str:
     head = "cleared" if result.passed else "not yet"
     lines.append(f"## {'✅' if result.passed else '🔴'} `{unit.uid}` · {unit.title} — **{head}**")
     lines.append("")
-    lines.append(f"`{unit.mode}` · {unit.difficulty} · {unit.track} · graded in "
-                 f"{result.duration:.1f}s on a clean checkout")
+    lines.append(f"{'drill' if unit.is_drill else 'unit'} · `{unit.mode}` · {unit.difficulty} · "
+                 f"{unit.track} · ~{unit.minutes} min · graded in {result.duration:.1f}s on a "
+                 "clean checkout")
     lines.append("")
 
     if result.decision_ok is not None:
@@ -244,20 +256,106 @@ def render_grade(unit_id: str, result: Result, *, repo: str = "") -> str:
         lines.append("</details>")
         lines.append("")
 
-    if result.passed:
-        sol = f"lab-simulator/units/{unit.directory.name}/SOLUTION.md"
-        lines.append(f"Post `/solution` on this thread for the worked answer — including the two "
-                     f"things we got wrong first. It lives at `{sol}`.")
-        nxt = [u.uid for u in unlocked({unit.uid}) if unit.uid in u.prereqs]
-        if nxt:
-            lines.append("")
-            lines.append(f"Unlocked: {', '.join(f'`{x}`' for x in nxt)}")
-    else:
-        lines.append("Stuck? `/hint` gives you the next hint from the brief, one at a time. "
-                     "Edit your post and the bot re-grades, or comment `/check` to force a run.")
+    lines.extend(_coaching_block(unit, result, repo))
     lines.append("")
     lines.append(_footer(repo))
     return "\n".join(lines)
+
+
+def _link(repo: str, path: str) -> str:
+    return f"[`{path}`](https://github.com/{repo}/blob/main/{path})" if repo else f"`{path}`"
+
+
+def _coaching_block(unit, result: Result, repo: str) -> list[str]:
+    """The part of the reply that is about the learner rather than about the grader.
+
+    Nothing here is generated. Every sentence comes from the unit's own metadata — `teaches`,
+    `on_fail`, `reading`, and the prerequisite graph — written by whoever wrote the check, so
+    it can be specific about *this* failure without inventing anything. A reply that names
+    the skill behind the check it failed is worth more than one that praises the attempt.
+    """
+    out: list[str] = []
+    if result.passed:
+        out.append(f"**What `{unit.uid}` was for.** {_teaches(unit)}")
+        out.append("")
+        sol = f"lab-simulator/units/{unit.directory.name}/SOLUTION.md"
+        out.append(f"Post `/solution` for the worked answer — including what we got wrong first. "
+                   f"It lives at {_link(repo, sol)}.")
+        nxt = _next_after(unit)
+        if nxt:
+            out.append("")
+            out.append("**Next.** " + " · ".join(
+                f"`{u.uid}` {u.title} — {u.mode}, {u.difficulty}, ~{u.minutes} min"
+                for u in nxt))
+            out.append("")
+            out.append("Post a new thread for it in this category; the bot grades it the same way.")
+        else:
+            out.append("")
+            out.append("`/status` shows the whole pathway.")
+    else:
+        coached = [(f, unit.coach(f)) for f in result.failures]
+        named = [(f, c) for f, c in coached if c is not None]
+        if named:
+            out.append("**What to work on.** One line per check, written by whoever wrote it:")
+            out.append("")
+            for check, c in named:
+                read = f" — read {_link(repo, c.read)}" if c.read else ""
+                out.append(f"- `{check}` → {c.work_on}{read}")
+            out.append("")
+        unnamed = [f for f, c in coached if c is None]
+        if unnamed and not named:
+            out.append("The failing checks are named above; the brief's *trap table* says what "
+                       "each one is guarding against.")
+            out.append("")
+        out.append("`/hint` gives you the next hint from the brief, one at a time. "
+                   "`/why <check name>` explains a single check. Edit your post and the bot "
+                   "re-grades, or comment `/check` to force a run.")
+    if unit.reading:
+        out.append("")
+        out.append("**Read next.** " + " · ".join(_link(repo, r) for r in unit.reading))
+    return out
+
+
+def _teaches(unit) -> str:
+    items = list(unit.teaches)
+    if not items:
+        return unit.summary.strip() or "See the brief."
+    if len(items) == 1:
+        return items[0].capitalize() + "."
+    return ", ".join(items[:-1]) + f", and {items[-1]}."
+
+
+def _next_after(unit) -> list:
+    """Units this one unlocks, same track first, drills before units within a track.
+
+    When it unlocks nothing — a drill with no dependants, say — fall back to the other
+    starting points on the same track, so the reply never ends in "nothing".
+    """
+    nxt = [u for u in unlocked({unit.uid}) if unit.uid in u.prereqs]
+    if not nxt:
+        nxt = [u for u in unlocked({unit.uid})
+               if u.uid != unit.uid and u.track == unit.track and not u.prereqs]
+    nxt.sort(key=lambda u: (u.track != unit.track, not u.is_drill, u.minutes, u.uid))
+    return nxt[:3]
+
+
+def render_why(unit_id: str, check: str) -> str:
+    """`/why <check name>` — one check, explained from the unit's own coaching notes."""
+    unit = by_id(unit_id)
+    if unit is None:
+        return f"{MARKER}\n\nNo unit `{unit_id}`."
+    if not check.strip():
+        names = [c.matches for c in unit.coaching]
+        return (f"{MARKER}\n\n`/why` takes a check name — any distinctive part of it. "
+                + (f"`{unit.uid}` has notes for: " + ", ".join(f"`{n}`" for n in names)
+                   if names else f"`{unit.uid}` carries no per-check notes yet; the brief's "
+                                 "trap table is the place to look."))
+    c = unit.coach(check)
+    if c is None:
+        return (f"{MARKER}\n\nNo note on `{unit.uid}` matches `{check}`. The check names are "
+                "in the grader's reply above; `/why` with any distinctive word from one.")
+    read = f"\n\nRead: `{c.read}`" if c.read else ""
+    return (f"{MARKER}\n<!-- labsim:{unit.uid}:why -->\n\n**`{c.matches}`**\n\n{c.work_on}{read}")
 
 
 def render_hint(unit_id: str, n: int | None) -> str:
@@ -305,13 +403,18 @@ def render_status(unit_id: str | None) -> str:
     rows = []
     for u in all_units():
         mark = "→" if u.uid == unit_id else " "
-        rows.append(f"| {mark} | `{u.uid}` | {u.title} | `{u.mode}` | {u.difficulty} | "
+        rows.append(f"| {mark} | `{u.uid}` | {u.title} | {'drill' if u.is_drill else 'unit'} | "
+                    f"`{u.mode}` | {u.difficulty} | ~{u.minutes} | "
                     f"{', '.join(u.prereqs) or '—'} |")
+    drills = sum(1 for u in all_units() if u.is_drill)
     return (f"{MARKER}\n\n### The pathway\n\n"
-            "| | id | unit | mode | difficulty | needs |\n|---|---|---|---|---|---|\n"
+            "| | id | title | kind | mode | difficulty | min | needs |\n"
+            "|---|---|---|---|---|---|---|---|\n"
             + "\n".join(rows)
-            + "\n\nPrerequisites are not bureaucracy: a later unit reuses what an earlier one "
-              "built. Locally, `python -m labsim next` picks for you.")
+            + f"\n\n{len(all_units()) - drills} units and {drills} drills. A drill is one idea "
+              "in under fifteen minutes; a unit is a real corpus and three gates. Both sit in the "
+              "same prerequisite graph, so clearing either unlocks what comes after it. "
+              "Locally, `python -m labsim next` picks for you.")
 
 
 def render_help(repo: str = "") -> str:
@@ -320,7 +423,9 @@ def render_help(repo: str = "") -> str:
             "| `/check` | re-grade the submission in the first post |\n"
             "| `/hint` · `/hint 3` | the next hint from the brief, one at a time |\n"
             "| `/solution` | the worked answer — opens once the thread has cleared |\n"
-            "| `/status` | the pathway and where this unit sits in it |\n\n"
+            "| `/status` | the pathway and where this unit sits in it |\n"
+            "| `/why <check name>` | what one failing check is guarding against, in a sentence |\n"
+            "| `/progress` | what you have cleared and attempted across this category |\n\n"
             "Editing your first post re-grades it automatically. Nothing here needs a clone: "
             "paste the code in the form and the Action runs it.\n\n" + _footer(repo))
 

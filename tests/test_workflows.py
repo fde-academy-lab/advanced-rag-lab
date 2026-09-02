@@ -209,3 +209,39 @@ def test_the_provision_summary_names_the_right_categories_as_answerable():
         assert says_qa == (fmt == "ANSWER"), (
             f"{name}: CATEGORIES says {fmt}, the summary says {row.group(1)!r}")
     assert "the first four" not in text, "the positional instruction is back"
+
+
+def test_the_simulator_form_lists_every_unit():
+    """The unit dropdown is hand-maintained YAML. A unit missing from it cannot be posted.
+
+    The parser reads the id off the option text, so the format is part of the contract too:
+    the id first, then a dash.
+    """
+    import sys
+    sys.path.insert(0, str(ROOT / "lab-simulator"))
+    from labsim.registry import all_units
+
+    form = yaml.safe_load((ROOT / ".github" / "DISCUSSION_TEMPLATE" / "lab-simulator.yml")
+                          .read_text(encoding="utf-8"))
+    unit_field = next(f for f in form["body"] if f.get("id") == "unit")
+    options = unit_field["attributes"]["options"]
+    listed = {o.split(" ", 1)[0] for o in options}
+    have = {u.uid for u in all_units()}
+    assert have <= listed, f"units missing from the form dropdown: {sorted(have - listed)}"
+    assert listed <= have, f"the form lists units that do not exist: {sorted(listed - have)}"
+    for o in options:
+        assert re.match(r"^[A-Z]{1,2}\d{1,2} — ", o), f"option does not start with an id: {o!r}"
+
+
+def test_the_codespaces_pick_list_offers_every_unit():
+    """Mirror of the `Engine tests` job's devcontainer step, so it fails here before it fails in CI.
+
+    `.vscode/tasks.json` hard-codes the unit menu. Nine drills were added and the merge was
+    refused because this check — which only CI ran — went red. Now pytest runs it too.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "check_devcontainer", ROOT / "scripts" / "lint" / "check_devcontainer.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0, "the Codespaces surface has drifted — run scripts/lint/check_devcontainer.py"

@@ -1,0 +1,11 @@
+# FD1 · Which chunker drops the tail?
+#
+# Read the three implementations in BRIEF.md. Do not run them — the point is to read a loop
+# for the case it skips. List every letter that loses words off the END of a document whose
+# length is not a multiple of the stride. One or more of A, B, C.
+
+drops_the_tail: [<letters>]
+
+# One sentence: what is the condition that decides whether one more window is emitted, and
+# which document length makes it wrong?
+because: <one sentence>

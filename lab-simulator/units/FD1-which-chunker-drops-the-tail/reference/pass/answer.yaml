@@ -1,0 +1,4 @@
+drops_the_tail: [A, C]
+because: >-
+  A stops its range at len-size so the final partial window never starts; C counts len//stride
+  windows, which floors away the last one whenever the remainder is shorter than a stride.

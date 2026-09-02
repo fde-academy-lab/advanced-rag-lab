@@ -10,7 +10,7 @@ from __future__ import annotations
 import functools
 from pathlib import Path
 
-from .model import Bar, Unit
+from .model import Bar, Coaching, Unit
 
 ROOT = Path(__file__).resolve().parent.parent
 UNITS_DIR = ROOT / "units"
@@ -42,6 +42,12 @@ def _unit_from_dir(d: Path) -> Unit:
         mode=meta.get("mode", "implement"), teaches=tuple(meta.get("teaches", []) or []),
         prereqs=tuple(meta.get("prereqs", []) or []), bars=bars,
         artefact=meta.get("artefact"), directory=d, summary=meta.get("summary", ""),
+        kind=meta.get("kind", "unit"),
+        reading=tuple(meta.get("reading", []) or []),
+        coaching=tuple(
+            Coaching(matches=str(c.get("check", "")), work_on=str(c.get("work_on", "")),
+                     read=str(c.get("read", "") or ""))
+            for c in (meta.get("on_fail", []) or [])),
     )
 
 

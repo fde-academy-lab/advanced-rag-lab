@@ -132,6 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       discussions: write
+      issues: write            # labels live on the issues API even when applied to a discussion
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
@@ -161,10 +162,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_ID: ${{ github.event.discussion.node_id }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          action=$(python -c "import json;print(json.load(open('out/meta.json'))['action'])")
+          if [ "$action" = "progress" ]; then
+            # Rendered here rather than in the grade job, because it needs to read every
+            # thread the author has posted and the grade job holds no token by design.
+            author=$(python -c "import json;print(json.load(open('out/meta.json')).get('author') or '')")
+            python scripts/labsim_progress.py --owner "${REPO%%/*}" --repo "${REPO##*/}" \
+              --login "$author" --render out/reply.md
+          fi
           [ -s out/reply.md ] || { echo "empty reply, nothing to post"; exit 0; }
           python scripts/discussion_bot.py \
             --node-id "$NODE_ID" \
             --body-file out/reply.md \
-            --mode "${{ steps.how.outputs.mode }}"
+            --mode "${{ steps.how.outputs.mode }}" \
+            --meta out/meta.json \
+            --repo "$REPO"

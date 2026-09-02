@@ -345,3 +345,16 @@ def test_no_seeded_thread_quotes_a_figure_the_repository_cannot_justify():
     assert not offenders, (
         "figures with nothing in the repository behind them:\n"
         + "\n".join(f"  {k}: {v}" for k, v in offenders.items()))
+
+
+def test_the_drills_index_thread_names_every_drill():
+    """The seeded drills thread is a table; a drill missing from it cannot be found from it."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lab-simulator"))
+    import seed_content
+    from labsim.registry import all_units
+    thread = next(t for t in seed_content.DISCUSSIONS if t["title"].startswith("Drills — "))
+    for u in all_units():
+        if u.is_drill:
+            assert f"`{u.uid}`" in thread["body"], f"{u.uid} is not in the drills index thread"

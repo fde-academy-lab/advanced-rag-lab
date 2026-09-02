@@ -1,0 +1,5 @@
+context_precision_direction: up
+evidence_recall_direction: up
+context_precision_at_k10: 0.35
+gate_can_be_cleared_by: >-
+  Improve the reranker so more of the packed slots carry gold evidence.
