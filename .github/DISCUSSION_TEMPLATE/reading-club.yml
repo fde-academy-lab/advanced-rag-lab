@@ -1,0 +1,52 @@
+# A paper thread earns its place by testing the paper's claim against this corpus rather than
+# summarising it. The form asks for the claim and the test, and treats the summary as optional.
+labels: ["type: reading"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The argument about the paper, not the assignment.** The assignment is an issue; this
+        is where somebody says the claim does not survive contact with our corpus, and shows it.
+
+        The reading list is in
+        [docs/09-research/reading-list.md](../../blob/main/docs/09-research/reading-list.md).
+
+  - type: input
+    id: paper
+    attributes:
+      label: The paper
+      placeholder: "Lost in the Middle (Liu et al., 2023), arXiv:2307.03172"
+    validations: { required: true }
+
+  - type: textarea
+    id: claim
+    attributes:
+      label: The one claim you are taking seriously
+      description: >-
+        Not the abstract. The single specific claim that would change what we build if it held
+        here, stated so that it could be false.
+    validations: { required: true }
+
+  - type: textarea
+    id: test
+    attributes:
+      label: How it would be tested on this corpus
+      description: >-
+        The configuration, the metric, and what result would count as the claim surviving.
+        Decide this before you run it.
+    validations: { required: true }
+
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened, if you ran it
+      description: >-
+        Including — especially — if it did not reproduce. A paper's claim failing on a 484-document
+        synthetic corpus is a fact about the corpus as often as about the paper, and saying which
+        is the interesting part.
+
+  - type: input
+    id: conditions
+    attributes:
+      label: The condition under which the paper would be right here
+      description: "Every negative result should name the thing that would flip it."

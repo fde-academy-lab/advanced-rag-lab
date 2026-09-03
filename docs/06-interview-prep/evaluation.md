@@ -34,11 +34,17 @@ questions before they tell you.
 > **Full-chain recall** — of all questions, what fraction had *every* required piece in the
 > window. Per-question. This is the one that predicts whether the generator can actually answer.
 >
-> If retrieval events were independent with probability p and a question needs two pieces,
-> full-chain would be p². At p = 0.76 that's 0.58. We measure 0.47 — meaningfully *below*
-> independence, and the shortfall is the diagnosis: the two pieces are not independently
-> retrievable. Hop-1 evidence resembles the query and hop-2 evidence resembles the *answer to
-> hop 1*, so widening k buys you more hop-1 and nothing else.
+> The interesting question is whether the gap between them is more than arithmetic. If pieces
+> were retrieved independently at p, a question needing k of them clears at p^k — weighted over
+> the real distribution of k, which on our corpus is half the questions needing four or more.
+> That predicts 0.4603 against a measured 0.4686. We are *at* independence, so there is no
+> correlated-failure structure to hunt: the gap is the arithmetic of needing four pieces at 76%
+> each, and nothing else.
+>
+> I'd say that carefully, because we published the opposite for months — a 21-point shortfall,
+> computed over hops instead of evidence pieces and against a question mixture that did not
+> exist. The lesson I took is that a derived number needs a command that regenerates it, or
+> nobody re-derives it.
 >
 > I'd report both plus the ratio, because a system that improves per-piece recall while the
 > ratio falls has got worse at the thing users care about while its headline number improved."
@@ -206,9 +212,11 @@ they measured something and it came out **against** them, with the mechanism.
 Three are available from this repository, and each has the follow-up structure interviewers
 reward — a result, a mechanism, and the condition under which the expected outcome returns:
 
-1. **Equal-weight RRF loses to BM25 alone here.** Because fusing a strong leg with a weak one at
-   equal weight moves toward the weak one. Weighted at α = 0.2 wins. Returns when the legs are
-   comparable in strength.
+1. **Fusion does not separate from its better single leg here.** Dense alone 0.7733 against
+   equal-weight RRF 0.7742 — +0.0008, ci (−0.0101, +0.0109) — and on nDCG the unfused leg wins by
+   0.075. Because fusion pays only when the legs fail on *different* queries, and here they fail
+   together. Returns when the legs are complementary; the diagnostic is the per-query overlap of
+   failures, not the aggregate table.
 2. **Comparison starvation does not reproduce.** Because the corpus is balanced by construction —
    prevalence ratio ≈ 1 — so the precondition is absent. Which is itself a finding *about eval
    sets*: a balanced generator cannot measure imbalance failures, and most generators are
@@ -216,5 +224,23 @@ reward — a result, a mechanism, and the condition under which the expected out
 3. **No retrieval-score threshold separates answerable from unanswerable.** Best F1 0.38. Because
    the unanswerable questions are lexically closer to the corpus than the answerable ones.
 
+4. **No retrieval configuration moves answer correctness.** Evidence recall spans 0.7118 → 0.7790
+   across five configurations — real, 9.4% relative — while `answer_correct` stays inside the
+   noise band on every comparison, and the best answers come from the worst retriever. The system
+   is generation-limited. Returns when retrieval is the binding constraint, which is an
+   assumption almost nobody checks before spending a quarter on it.
+
 Saying "we measured that and it went the other way, here's why" is the single most credible
 thing you can do in an evaluation round. It cannot be bluffed, and interviewers know it.
+
+**There is a fifth, and it is the strongest one to have ready.** Finding 1 above previously read
+*"equal-weight RRF loses to BM25 alone"*. It was wrong, it was quoted in about twenty places, and
+it stood for months. What caught it was re-running the comparison; what let it stand was an eval
+gate that compares one configuration against its own history and never against alternatives — so
+nothing in the system was capable of noticing. The fix was a command
+(`run_eval.py --compare`) and a retraction ([ADR-0015](../01-architecture/adr/0015-correct-the-fusion-finding.md)).
+
+If you are asked *"tell me about a time you were wrong"*, this is the shape interviewers are
+listening for: not a mistake and an apology, but a mistake, the structural reason it survived,
+and the change that makes the class of mistake detectable. Have the mechanism ready, not the
+contrition.

@@ -178,9 +178,18 @@ The code is easy. The marks are in the discussion:
   rather than of relevance.
 - **`enumerate(..., start=1)`** — starting at 0 makes rank 0 score `1/k` and rank 1 score
   `1/(k+1)`, which is a subtle and real bug. Interviewers watch for the `start=1`.
-- **When does RRF lose?** When the legs differ a lot in strength. Equal-weight fusion is a
-  voting rule that treats both voters as equally credible; fuse a strong leg with a weak one and
-  you move toward the weak one. Bringing a measured instance of this is a strong move.
+- **When does RRF lose?** The textbook answer is "when the legs differ a lot in strength" —
+  equal-weight fusion is a voting rule that treats both voters as equally credible. It is a
+  reasonable answer and it is only half of one. The condition that actually matters is
+  **complementarity**: fusion turns two signals into a better one only when the legs fail on
+  *different* queries. Legs of identical strength that fail together carry one signal between
+  them, and fusing a signal with itself returns the signal.
+
+  The sharper answer, and the one that gets a follow-up: *"the question I'd want answered before
+  choosing is the per-query overlap of the two legs' failures — the aggregate table can't
+  distinguish disjoint failures, where fusion is worth a lot, from nested ones, where it's worth
+  nothing."* Bringing a measured instance is a strong move; bringing the diagnostic you'd run
+  first is stronger.
 
 ---
 

@@ -1,0 +1,2 @@
+fails:
+  - empty input yields no markers and does not crash

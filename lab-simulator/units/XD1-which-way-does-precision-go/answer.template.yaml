@@ -1,0 +1,12 @@
+# XD1 · Which way does precision go?
+#
+# BM25 arm, cross-encoder reranked. At k=5: context_precision 0.3029, evidence_recall 0.6329.
+# Predict k=10 before opening docs/04-evaluation/metrics.md.
+
+context_precision_direction: <up or down>
+evidence_recall_direction: <up or down>
+context_precision_at_k10: <0.xxxx>
+
+# A team sets a gate: "context_precision must stay above 0.30". Name the config change that
+# clears it without improving retrieval at all.
+gate_can_be_cleared_by: <one sentence>

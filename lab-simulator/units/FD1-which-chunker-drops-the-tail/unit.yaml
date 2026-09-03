@@ -1,0 +1,31 @@
+id: FD1
+slug: which-chunker-drops-the-tail
+title: Three chunkers, one of them loses the end of every document — which?
+kind: drill
+track: foundations
+difficulty: easy
+minutes: 8
+mode: answer
+teaches: [chunk boundaries, the tail bound, reading a loop for the case it skips]
+prereqs: []
+bars: []
+artefact: null
+reading:
+  - lab-simulator/units/F1-chunk-boundaries/BRIEF.md
+  - docs/01-architecture/lld/chunking.md
+on_fail:
+  - check: "the chunkers you named are the ones that drop words"
+    work_on: >-
+      Read each loop for the document it was NOT written against — one whose length is not a
+      multiple of the stride. The bug is never in the window arithmetic; it is in the condition
+      that decides whether to emit one more.
+    read: lab-simulator/units/F1-chunk-boundaries/SOLUTION.md
+  - check: "you did not accuse a chunker that is correct"
+    work_on: >-
+      A chunker that emits more words than the document holds is overlapping, not broken.
+      Count what reaches the last chunk, not how many chunks there are.
+    read: lab-simulator/units/F1-chunk-boundaries/BRIEF.md
+summary: >-
+  Three chunk() implementations. All three pass the size checks. Read them — do not run them —
+  and name the ones that drop the end of a document whose length is not a multiple of the
+  stride. Then the grader runs them and tells you whether you were right.

@@ -1,0 +1,71 @@
+# Exercises run as threads, and the thread is the deliverable. The form enforces the one rule
+# that makes the whole loop work: the approach is stated before the result, in its own field,
+# so it cannot be written after the fact.
+labels: ["type: exercise", "status: needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The thread is the deliverable, not the diff.** Post your approach first and your
+        result second, and expect the peer review to be about the reasoning rather than the
+        code. The full loop is in
+        [exercise-workflow.md](../../blob/main/docs/10-community/exercise-workflow.md).
+
+        **One review owed before one is asked for.** Review somebody else's submission before
+        you ask for yours, and say below whose.
+
+  - type: input
+    id: exercise
+    attributes:
+      label: Which exercise
+      placeholder: "EX-04"
+    validations: { required: true }
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: What this post is
+      options:
+        - "Approach — before I write anything"
+        - "Submission — I have a result"
+        - "Revision — responding to a review"
+    validations: { required: true }
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: The approach, and what you expect to happen
+      description: >-
+        State the expected direction and rough size. "I expect evidence recall to move by about
+        +0.01; if it moves the other way my model of the cause is wrong." That sentence is what
+        turns the work into an experiment that can fail informatively, and it is exactly what a
+        senior interviewer listens for.
+    validations: { required: true }
+
+  - type: textarea
+    id: result
+    attributes:
+      label: The result
+      description: >-
+        A table with before, after, delta and a 95% interval. Leave empty for an approach post.
+      value: |
+        | Metric | Before | After | Δ | 95% CI |
+        |---|---|---|---|---|
+        |  |  |  |  |  |
+
+        Slice: 
+        Frozen slice: touched / not touched
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: What it cost
+      description: >-
+        Latency, tokens, storage, or a second system to maintain. Every change has one, and a
+        submission that reports only the win is not finished.
+
+  - type: input
+    id: reviewed
+    attributes:
+      label: Whose submission you reviewed
+      description: "One review owed before one is asked for. Link the thread."

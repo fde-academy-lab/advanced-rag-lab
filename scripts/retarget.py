@@ -6,7 +6,7 @@ relative — CI badge URLs, the clone command, CODEOWNERS handles, CITATION.cff,
 metadata — so they carry a placeholder that this script rewrites in one pass.
 
     python scripts/retarget.py --owner your-handle
-    python scripts/retarget.py --owner your-org --repo nanorag --package nanorag
+    python scripts/retarget.py --owner your-org --repo my-rag-lab --package myrag
 
 With no flags it reads `git remote get-url origin` and retargets to whatever that points at,
 which is what `setup_github.py` calls before it pushes.
@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 IDENTITY = ROOT / ".identity.json"
-DEFAULT = {"owner": "OWNER", "repo": "nanorag", "package": "nanorag"}
+DEFAULT = {"owner": "OWNER", "repo": "advanced-rag-lab", "package": "raglab"}
 
 SKIP_DIRS = {".git", "__pycache__", ".ruff_cache", ".ipynb_checkpoints", ".venv",
              "node_modules", ".pytest_cache", "dist", "build"}
@@ -123,7 +123,7 @@ def main() -> int:
         (f"users/{old['owner']}/projects", f"users/{new['owner']}/projects"),
         (old["package"], new["package"]),
     ]
-    # A bare repo name is too short to rewrite blindly ("nanorag" also appears as prose and,
+    # A bare repo name is too short to rewrite blindly (it may also appear as prose and,
     # by default, as the package name). Only touch it where it is unambiguous.
     if old["repo"] != new["repo"] and old["repo"] != old["package"]:
         pairs.append((old["repo"], new["repo"]))

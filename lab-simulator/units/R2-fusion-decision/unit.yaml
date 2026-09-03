@@ -1,0 +1,15 @@
+id: R2
+slug: fusion-decision
+title: Decide whether to fuse at all, and say what would make you wrong
+track: retrieval
+difficulty: medium
+minutes: 30
+mode: decide
+teaches: [hybrid fusion, complementarity, noise bands, decision records, falsifiability]
+prereqs: [R1]
+bars: []
+artefact: adr-lite
+summary: >-
+  No code. You have two retrievers, four fusion configurations and the intervals on all of them.
+  The deck says fuse; the measurement says the fused system is inside the noise band of one of
+  its own legs. Commit a decision with the observation that would make it wrong.

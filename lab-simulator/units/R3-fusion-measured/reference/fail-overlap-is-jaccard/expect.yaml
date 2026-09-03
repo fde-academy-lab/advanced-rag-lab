@@ -1,0 +1,5 @@
+# NOT `failure_overlap is conditional, not symmetric` — that check uses a subset case
+# where the conditional and the Jaccard are both 0.75, which its own message says. The
+# discriminating check is the one whose sets are not nested.
+fails:
+  - failure_overlap divides by |D|, not by the union

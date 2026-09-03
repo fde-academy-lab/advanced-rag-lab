@@ -1,0 +1,5 @@
+smells: [2, 3, 4]
+shapes:
+  2: no-interval
+  3: denominator
+  4: tuned-on-frozen

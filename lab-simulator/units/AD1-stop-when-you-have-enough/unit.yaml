@@ -1,0 +1,40 @@
+id: AD1
+slug: stop-when-you-have-enough
+title: An agent that keeps searching after it has the answer is paying for confidence it already had
+kind: drill
+track: agentic
+difficulty: hard
+minutes: 15
+mode: implement
+teaches: [sufficiency, stopping rules, evidence retention across steps, cost of an extra step]
+prereqs: [ED1, RD1]
+bars: []
+artefact: null
+reading:
+  - docs/01-architecture/lld/agent.md
+  - docs/04-evaluation/metrics.md
+on_fail:
+  - check: "stops at the first sufficient step"
+    work_on: >-
+      Sufficiency is a statement about the set of evidence gathered so far, not about the
+      latest step. Check the union after each step, and stop the first time it covers every
+      required piece.
+    read: docs/01-architecture/lld/agent.md
+  - check: "does not stop early"
+    work_on: >-
+      Finding some evidence is not finding enough. A stop rule that fires on the first non-empty
+      result is the agentic version of evidence recall being mistaken for full-chain recall.
+    read: docs/04-evaluation/metrics.md
+  - check: "returns None when the budget runs out"
+    work_on: >-
+      An agent that never finds enough must say so rather than answer. None is the abstention;
+      the caller decides what to do with it.
+  - check: "evidence carries across steps"
+    work_on: >-
+      A piece found at step 1 is still known at step 3. Recomputing sufficiency from only the
+      current step forgets what the loop already paid for.
+summary: >-
+  Implement the stop rule for a multi-hop search loop: given the evidence each step returns and
+  the pieces a question requires, return the index of the first step at which the union of
+  everything gathered covers every piece — or None if the budget runs out. The four checks are
+  the four ways this is shipped wrong.

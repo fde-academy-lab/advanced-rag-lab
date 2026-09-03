@@ -11,11 +11,11 @@ the answer is a link rather than an argument.
 |---|---|---|
 | [0001](0001-in-memory-sqlite.md) | Run the entire retrieval stack in in-memory SQLite | Accepted |
 | [0002](0002-synthetic-corpus.md) | Generate the corpus from a fact graph rather than download MultiHop-RAG | Accepted |
-| [0003](0003-lsa-default-encoder.md) | Ship LSA as the default encoder, not a neural model | Accepted |
+| [0003](0003-lsa-default-encoder.md) | Ship LSA as the default encoder, not a neural model | Accepted, amended by 0015 |
 | [0004](0004-stable-chunk-ids.md) | Derive chunk ids from doc_id + ordinal + content hash | Accepted |
 | [0005](0005-learned-reranker.md) | Make the reranker a fitted model rather than hand-tuned weights | Accepted |
 | [0006](0006-matplotlib-diagrams.md) | Draw notebook diagrams with matplotlib, not Mermaid | Accepted |
-| [0007](0007-report-negative-results.md) | Report findings that contradict the deck rather than tuning them away | Accepted |
+| [0007](0007-report-negative-results.md) | Report findings that contradict the deck rather than tuning them away | Accepted, amended by 0015 |
 | [0008](0008-eval-gate-in-ci.md) | Block merges on metric regressions with a CI gate | Accepted |
 | [0009](0009-frozen-slice-lifecycle.md) | What happens to the frozen slice when the corpus grows | Accepted |
 | [0010](0010-ann-long-range-links.md) | Long-range links in the ANN graph | Accepted |
@@ -23,6 +23,7 @@ the answer is a link rather than an argument.
 | [0012](0012-prompt-block-ordering.md) | Order prompt blocks by volatility | Accepted |
 | [0013](0013-analyzer-in-index-identity.md) | The analyzer is part of the index identity | Accepted |
 | [0014](0014-docs-code-is-tested.md) | Code published in documentation is executed by tests | Accepted |
+| [0015](0015-correct-the-fusion-finding.md) | Correct the fusion finding, and say publicly that we got it wrong | Accepted |
 
 ## Writing a new one
 

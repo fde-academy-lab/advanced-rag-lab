@@ -108,18 +108,38 @@ intent: RRF is a voting rule, and $k$ sets how much a single voter's first prefe
 
 ### The measured result in this repository, which contradicts the folklore
 
-Equal-weight RRF **loses to BM25 alone** here. Evidence Recall@8: BM25 0.7645, equal-weight
-RRF materially lower; weighted fusion at $\alpha = 0.2$ wins.
+RRF works exactly as Cormack advertises — and the whole exercise was inside the noise band of one
+of its own legs. Evidence Recall@8, 243 questions, paired bootstrap:
 
-The mechanism: fusing a strong leg with a weak one at equal weight moves the result toward the
-weak one. RRF's scale-invariance is a virtue when legs are comparable and a liability when they
-are not, because it throws away the one signal that would have told you to down-weight the weak
-leg — the score distribution. With an LSA dense leg that is much weaker than BM25 on this
-corpus, rank-parity is exactly the wrong prior.
+| Configuration | Evidence recall@8 | nDCG@8 |
+|---|---|---|
+| BM25 alone | 0.7118 | 0.3639 |
+| Dense (LSA) alone | 0.7733 | **0.6055** |
+| Equal-weight RRF | **0.7742** | 0.5302 |
+| Weighted, $\alpha = 0.2$ | 0.7645 | 0.4767 |
 
-**Saying this in an interview is a strong move**, provided you give the condition under which
-the expected result returns: comparable-strength legs, or a learned weight. It demonstrates you
-ran the experiment rather than repeating the blog post.
+RRF beats BM25 by $+0.0624$, ci $(+0.0407, +0.0857)$, and beats the tuned weighted rule on nDCG
+by $0.0535$ — the parameter-free rule wins against the parameterised one, which is the paper's
+claim. But `dense → rrf` is $+0.0008$ with ci $(-0.0101, +0.0109)$, and on nDCG the *unfused*
+dense leg wins by $0.0753$.
+
+The mechanism is **complementarity, not comparable strength.** Fusion turns two signals into a
+better one only when the legs fail on different queries; two retrievers that fail together carry
+one signal between them. Cormack's setup is fusion over TREC runs — mature systems that are good
+in *different ways*. On this corpus the legs are not: the questions are paraphrase and inference
+over prose, the dense leg handles nearly all of it, and BM25 contributes on the exact-identifier
+slice, which is real and small.
+
+**Saying this in an interview is a strong move**, provided you give the condition under which the
+expected result returns — complementary legs — and name the diagnostic that would have told you
+in advance: the per-query overlap of failures between the legs, which nobody ran before choosing.
+
+> **This section was itself wrong until 2026-09-01.** It read *"equal-weight RRF loses to BM25
+> alone; BM25 0.7645"* — RRF in fact wins, the dense leg is the stronger of the two, and 0.7645
+> is the tuned configuration's number mis-attributed to BM25. See
+> [ADR-0015](../01-architecture/adr/0015-correct-the-fusion-finding.md). If you quoted the old
+> version in an interview, the recovery is the better story: the reason it survived is that the
+> eval gate compares a configuration against its own history and never against alternatives.
 
 ### The follow-up
 
@@ -243,7 +263,7 @@ that is disconnected there.
 
 ---
 
-## M5 · Cohen's κ is 0.31 but the annotators agree 85% of the time. Explain.
+## M5 · Cohen's kappa is 0.31 but the annotators agree 85% of the time. Explain.
 
 **Asked at:** Anthropic, Scale, Surge, any team building an LLM judge.
 

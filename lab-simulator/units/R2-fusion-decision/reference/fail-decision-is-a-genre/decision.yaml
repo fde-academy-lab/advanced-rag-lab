@@ -1,0 +1,22 @@
+# Decoy · names a family instead of a configuration.
+#
+# "We will use hybrid search" is the sentence that gets nodded at in a design review and cannot
+# be implemented, because it does not say which rule, which weight, or whether to fuse at all.
+# The reasoning underneath is fine. The decision is not a decision.
+
+decision: >-
+  We will adopt a sensible retrieval approach that combines the available signals well.
+
+why: >-
+  The fused configurations do not separate from the better single leg. The gap is inside the
+  confidence interval, so it is not a gap. Fusion pays when the legs are complementary and fail
+  on different queries, and here BM25 is the weak leg on paraphrase prose and largely re-finds
+  what the dense leg had already retrieved.
+
+rejected: >-
+  Running a single retriever with no second index at all, which would have been right if the
+  identifier slice were smaller than it is.
+
+would_change_if: >-
+  The per-query failure overlap between the legs drops, which would say BM25 is reaching
+  questions the dense leg misses rather than a subset of them.

@@ -6,7 +6,7 @@ history — is provisioned by one script, from your machine.
 
 ```bash
 export GITHUB_TOKEN=github_pat_...
-python scripts/setup_github.py --owner OWNER --repo nanorag
+python scripts/setup_github.py --owner OWNER --repo raglab
 ```
 
 Preview it first with `--dry-run`; it prints the full plan and changes nothing. The script is
@@ -22,6 +22,7 @@ step fails independently, so a token without Projects access still gets you the 
 | `issues` | 15 issues — 8 closed real defects with their fixes, 7 open | REST |
 | `discussions` | 17 seeded threads across 7 categories | **GraphQL** |
 | `project` | Projects v2 board, 5 custom fields, every issue placed | **GraphQL** |
+| `boards` | The Lifecycle board: 7 phases, 19 practices, each with its artefact | **GraphQL**, needs `PROJECT_TOKEN` |
 | `push` | Adds `origin`, pushes `main` with its 20 phased commits | git |
 
 ### If you cannot run this from a terminal
@@ -43,6 +44,31 @@ no permissions block can widen it. Add a PAT with account-level Projects: read/w
 repository secret named `PROJECT_TOKEN` (Settings ▸ Secrets and variables ▸ Actions), then run
 the workflow with `project`. Without the secret the run warns and stops rather than failing
 obscurely.
+
+### Branch protection, and why reviews are not required by default
+
+The `settings` step protects `main` with **required status checks** and **no required reviews**.
+
+That is deliberate and it is a reversal of the first version, which required one approving review
+and made every pull request wait on a human who was also its author. GitHub does not let an
+author approve their own pull request, so on a single-maintainer repository a review requirement
+is not a second pair of eyes — it is a button that person presses to unblock themselves. A
+control everybody learns to click through stops being read.
+
+The checks that run without a human are kept, because they have caught real defects: a link
+checker that had drifted from the one `make lint` runs, three documentation directories that were
+empty and therefore untracked and therefore 404 in a fresh clone, and a metric regression against
+the committed baseline.
+
+If two or more people genuinely review here, turn it back on:
+
+```bash
+REQUIRED_REVIEWERS=1 python scripts/setup_github.py --owner OWNER --repo REPO --only settings
+```
+
+`required_conversation_resolution` follows the same switch, because an unresolved conversation
+cannot be resolved by the person who opened it either — leaving it on with zero reviewers
+reintroduces the same block by a different route.
 
 ### Renaming or forking
 
@@ -122,7 +148,7 @@ three, and an initial commit on the remote means a merge before you can push.
 The `push` step does this too. By hand:
 
 ```bash
-cd nanorag
+cd raglab
 git remote add origin https://github.com/fde-academy-lab/advanced-rag-lab.git
 git push -u origin main
 ```

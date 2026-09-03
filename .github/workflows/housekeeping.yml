@@ -1,0 +1,124 @@
+# The repository tidying up after itself.
+#
+# Two things kept needing a human, and neither is a decision:
+#
+#   * branches whose pull request merged weeks ago, still sitting in the branch list
+#   * seeded discussion content that changed on main but was never re-seeded, because
+#     re-seeding is a workflow_dispatch somebody has to remember to click
+#
+# Both run here, on a push to main, so the act that *causes* the work is the act that does it.
+#
+# Deleting branches automatically is destructive, so the predicate is deliberately narrow: a
+# branch goes only when every pull request that ever pointed at it is merged and none is open.
+# That is stronger than "merged into main" — a squash merge leaves the branch tip absent from
+# main's history, so an ancestry check would keep exactly the branches you most want gone — and
+# it is safer, because a branch nobody ever opened a pull request for is never touched.
+name: Housekeeping
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would happen without doing it"
+        required: false
+        default: true
+        type: boolean
+      seed:
+        description: "Also seed discussions (off only to sweep branches on their own)"
+        required: false
+        default: true
+        type: boolean
+
+permissions: {}
+
+jobs:
+  branches:
+    name: Delete branches whose pull request is finished
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # deleting a ref is a contents write; nothing else is needed
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Sweep
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: python scripts/sweep_branches.py
+
+  discussions:
+    name: Seed any discussion thread that is missing
+    if: github.event_name != 'workflow_dispatch' || inputs.seed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      discussions: write
+      issues: write          # labels live on the issues API even when applied to a discussion
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Seed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          # Unconditional, and that is the fix rather than an oversight.
+          #
+          # This step used to run only when `git diff HEAD^ HEAD -- scripts/seed*` showed a
+          # change, to avoid re-walking 36 threads on every merge. It cost more than it saved:
+          # when the seeding run that *did* have a change failed — it did, on an Actions token
+          # preflight bug — every later push correctly reported "nothing changed" and skipped,
+          # so the content stayed unseeded until an unrelated commit happened to touch a seed
+          # file. A guard that makes a failure unrecoverable is worse than the work it avoids.
+          #
+          # Running every time is safe and nearly free: the seeder skips any thread whose title
+          # already exists, and skips any thread whose category does not exist rather than
+          # misfiling it. The steady-state cost is one listing query.
+          # `labels` rides along with `discussions` because thread labelling needs the
+          # label set to exist and to say what it currently means. Two label descriptions
+          # went on saying "the nanorag package" for weeks after the package was renamed,
+          # because nothing re-ran the labels step. It is a PATCH per label, idempotent.
+          args=(--owner "${GITHUB_REPOSITORY%%/*}"
+                --repo  "${GITHUB_REPOSITORY##*/}"
+                --only  labels,discussions)
+          # An `if`, not `[ … ] && …`: under `set -e` a false test is a non-zero exit and
+          # would abort the step on every non-dry run, which is every real run.
+          if [ "$DRY" = "true" ]; then args+=(--dry-run); fi
+          python scripts/setup_github.py "${args[@]}" | tee seed.log
+
+      # The step summary is not retrievable through the API, and neither are job logs on a
+      # restricted network. An artifact is — so when seeding warns about something, the warning
+      # can actually be read afterwards instead of inferred from what did not change.
+      - name: Keep the seed log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: seed.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Discussions"
+            echo ""
+            echo '```'
+            sed -e 's/\x1b\[[0-9;]*m//g' seed.log 2>/dev/null | tail -60 || echo "did not run"
+            echo '```'
+            echo ""
+            echo "Threads whose category does not exist are skipped rather than misfiled."
+            echo "No GitHub API creates a discussion category — see lab-simulator/DISCUSSIONS.md."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -17,8 +17,11 @@ kernel.
 
 ## What this is
 
-A retrieval, RAG and evaluation system small enough to read in full and complete enough to be
-wrong in interesting ways. Ten notebooks build it; a ~6,800-line toolkit implements it; an
+The **Client Zero** engagement: Meridian Group, twenty-four subsidiaries, 484 documents nobody
+can search. Read [client-zero.md](client-zero.md) for the brief and the eight phases.
+
+Mechanically, it is a retrieval, RAG and evaluation system small enough to read in full and
+complete enough to be wrong in interesting ways. Ten notebooks build it; a ~6,800-line toolkit implements it; an
 evaluation harness judges it and gates changes to it in CI.
 
 The point is not the retrieval. Thousands of repositories implement retrieval. The point is
@@ -42,12 +45,20 @@ Each is measured, reproducible from a notebook cell, and contradicts what most m
 subject says. Each also names the condition under which the expected result returns — a
 negative finding without that is just an anecdote.
 
-**1 · Equal-weight RRF loses to BM25 alone on this corpus.**
-Weighted fusion at α = 0.2 wins instead. Fusing a strong retrieval leg with a weak one at equal
-weight moves the result toward the weak one; RRF's scale-invariance is a virtue when the legs
-are comparable and a liability when they are not, because it discards the score distribution
-that would have told you to down-weight the weak leg. Returns to the expected result when both
-legs are comparably strong. *Notebook `04`.*
+**1 · Fusion does not separate from its better single leg on this corpus.**
+Dense alone scores 0.7733 evidence recall; equal-weight RRF scores 0.7742. The gap is +0.0008
+with a 95% interval of (−0.0101, +0.0109) — not a small difference, *not a difference*. On nDCG
+the unfused dense leg wins outright by 0.075. Fusion pays when the two legs fail on **different**
+queries, and here they do not: BM25 is the weak leg (these questions are paraphrase and inference
+over prose, where term overlap has almost nothing to score) and it adds little the dense leg
+missed. Returns to the expected result when the legs are complementary — and the diagnostic for
+that is the per-query overlap of failures, not the aggregate table.
+Reproduce: `python scripts/run_eval.py --compare`. *Notebook `04`.*
+
+> This finding previously read *"equal-weight RRF loses to BM25 alone"*. It does not reproduce
+> and has been retracted — RRF beats BM25 by +0.0624, and the dense leg is the stronger of the
+> two, not the weaker. [ADR-0015](../01-architecture/adr/0015-correct-the-fusion-finding.md)
+> records what was claimed, what was measured, and why nothing caught it.
 
 **2 · Comparison starvation does not reproduce here.**
 The corpus is generated from a fact graph that emits organisations on a balanced schedule, so

@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from nanorag import metrics, retrieve
-from nanorag.store import InMemoryIndex
+from raglab import metrics, retrieve
+from raglab.store import InMemoryIndex
 
 
 def test_identifiers_survive_the_analyzer(system):
@@ -92,7 +92,7 @@ def test_mixed_version_index_is_detected(system):
 
 
 def test_rrf_is_rank_based_and_ignores_score_magnitude():
-    from nanorag.store import Hit
+    from raglab.store import Hit
 
     a = [Hit("x", 1000.0, 1, "bm25"), Hit("y", 999.0, 2, "bm25")]
     b = [Hit("x", 0.001, 1, "dense"), Hit("y", 0.0009, 2, "dense")]

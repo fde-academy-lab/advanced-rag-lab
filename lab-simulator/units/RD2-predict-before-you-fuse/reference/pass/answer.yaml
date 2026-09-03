@@ -1,0 +1,9 @@
+evidence_recall:
+  bm25: 0.70
+  dense: 0.78
+  rrf: 0.78
+strongest_single_leg: dense
+fusion_beats_its_better_leg: no
+because: >-
+  The questions paraphrase their evidence, so lexical overlap is weak and the dense leg should
+  lead; both legs miss the same paraphrase-heavy questions, so fusion has little to recover.

@@ -346,9 +346,12 @@ from the corpus wording: paraphrase, description instead of name, a user's regis
 than the author's.
 
 Hybrid when both, which is most enterprise corpora. But I would add two things most answers
-miss. First, **hybrid is not free** — fusing a strong retriever with a weak one at equal weight
-moves you toward the weak one, and I have measured a corpus where naive equal-weight RRF was
-worse than BM25 alone. Second, **the merge method is a real decision**: RRF is rank-based, needs
+miss. First, **hybrid is not free, and it is not automatically better** — fusion pays only when
+the legs fail on *different* queries. I have measured a corpus where they did not: 96.8% of the
+questions the dense leg missed were missed by the lexical leg too, and fusion came out
+indistinguishable from the better single leg (+0.0008, ci −0.0101 to +0.0109) while losing 0.075
+nDCG against it. The diagnostic is the per-query failure overlap and it takes one line; almost
+nobody runs it before choosing. Second, **the merge method is a real decision**: RRF is rank-based, needs
 no tuning and survives score drift; weighted fusion keeps magnitude so a dominant exact match
 can win outright, but it needs a labelled set to tune α and that α will not survive a corpus
 refresh. Default to RRF, move to weighted only with a labelled set and a plan to re-tune on a

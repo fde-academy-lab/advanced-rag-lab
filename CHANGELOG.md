@@ -28,9 +28,12 @@ inside the noise band.
   from the Actions tab, for environments that cannot reach GitHub's GraphQL API.
 
 ### Changed
+- **Breaking:** package renamed `nanorag` → `raglab`. Re-run `pip install -e ".[dev]"` after
+  pulling; the import error otherwise raised does not indicate the fix.
+- Reframed as the **Client Zero** engagement — Meridian Group, 24 subsidiaries, 484 documents.
 - `docs/` restructured into ten numbered domains, each with an index. All 153 relative links
   rewritten and verified.
-- Package renamed `fde_rag` → `nanorag`.
+- Package renamed `fde_rag` → `raglab`.
 - Every seeded thread now carries a conversation. Nine previously had none.
 
 ### Fixed
@@ -64,20 +67,28 @@ gate.
 | `answer_correct` | 0.4115 |
 | `cost_usd` per run | 0.0039 |
 
-### The three findings that contradict the received wisdom
+### The findings that contradict the received wisdom
 
 Each names the condition under which the expected result returns. A negative result without that
 is an anecdote.
 
-1. **Equal-weight RRF loses to BM25 alone.** Weighted at α = 0.2 wins:
-   evidence recall 0.7645 → 0.7891, [+0.008, +0.041], holds on frozen. Fusing a strong leg with a
-   weak one at equal weight moves toward the weak one. Returns when the legs are comparable.
+1. ~~**Equal-weight RRF loses to BM25 alone.**~~ **Retracted 2026-09-01 — it does not
+   reproduce.** Re-measured: RRF *beats* BM25 by +0.0624 evidence recall, ci (+0.0407, +0.0857),
+   and the dense leg is the stronger of the two, not the weaker. See
+   [ADR-0015](docs/01-architecture/adr/0015-correct-the-fusion-finding.md). Replaced by:
+   **fusion does not separate from its better single leg** — dense alone 0.7733 against
+   equal-weight RRF 0.7742, a gap of +0.0008 with an interval straddling zero, and the unfused
+   dense leg wins nDCG outright. Returns when the legs fail on different queries.
 2. **Comparison starvation does not reproduce.** Prevalence ratio ≈ 1 by construction, so the
    precondition is absent. The finding is about eval sets: a balanced generator cannot measure
    imbalance failures.
 3. **No retrieval-score threshold separates answerable from unanswerable questions.** Best F1
    0.38 across four signals. Null questions name real entities in the corpus's own vocabulary
    while genuine questions paraphrase, so the unanswerable ones are lexically *closer*.
+4. **No retrieval configuration moves answer correctness.** Evidence recall spans 0.7118 → 0.7790
+   across five fusion configurations — real, 9.4% relative — while `answer_correct` stays inside
+   the noise band on every pairwise comparison, and the numerically best answers come from the
+   numerically worst retriever. The system is generation-limited.
 
 ### Defects found and fixed during the build
 

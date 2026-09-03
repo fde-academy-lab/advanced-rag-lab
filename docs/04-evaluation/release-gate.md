@@ -42,8 +42,9 @@ The rules around it:
 
 1. **In the same PR as the change that moved it.** A baseline moved separately is a baseline
    moved silently.
-2. **With the reason in the PR body**, including the interval. "Reranker now uses semantic pair
-   features; evidence recall 0.7645 → 0.7891, [+0.008, +0.041], holds on frozen."
+2. **With the reason in the PR body**, including the interval. "Dense weight moved from α=0.2 to
+   α=0.5; evidence recall 0.7645 → 0.7790, [+0.0048, +0.0254], nDCG +0.1200, answer_correct
+   unchanged inside the noise band."
 3. **Never to make a failing gate pass.** If you cannot explain the movement, you do not
    understand your change yet.
 

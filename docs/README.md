@@ -1,12 +1,18 @@
 # Documentation
 
+**Advanced RAG & Evals Lab · FDE LAB · Client Zero engagement**
+
+New here? [The engagement brief](00-orientation/client-zero.md) explains what Client Zero is and
+why a synthetic client is the right first one.
+
+
 Ten numbered domains. The numbering is reading order for someone new and shelf order for
 someone returning — `00` orients you, `01` explains how the thing is built, and the rest
 follow the lifecycle of the work rather than the alphabet.
 
 | | Domain | Start with | For |
 |---|---|---|---|
-| `00` | [Orientation](00-orientation/) | [start-here.md](00-orientation/start-here.md) | Day one. What this is, what to run, what to read |
+| `00` | [Orientation](00-orientation/) | [client-zero.md](00-orientation/client-zero.md) | The engagement, then [start-here.md](00-orientation/start-here.md) for day one |
 | `01` | [Architecture](01-architecture/) | [overview.md](01-architecture/overview.md) | HLD, per-module LLDs, data model, the ten seams, 8 ADRs |
 | `02` | [Curriculum](02-curriculum/) | [syllabus.md](02-curriculum/syllabus.md) | Session plans, prerequisites, delivery formats |
 | `03` | [Exercises](03-exercises/) | [catalogue.md](03-exercises/catalogue.md) | 22 exercises + capstone, briefs, rubrics, submission flow |
@@ -17,6 +23,12 @@ follow the lifecycle of the work rather than the alphabet.
 | `08` | [Project management](08-project-management/) | [board.md](08-project-management/board.md) | Board, phases, ceremonies, definition of done, GitHub setup |
 | `09` | [Research](09-research/) | [reading-list.md](09-research/reading-list.md) | Papers with notes, 20 extension points |
 | `10` | [Community](10-community/) | [discussions-guide.md](10-community/discussions-guide.md) | How Discussions work, and how exercises run through them |
+
+## Also
+
+- [The wiki](../../../wiki): how-tos, the architecture breakdown, interview questions with
+  graded answers, trivia with the file behind each fact, the monthly newsletter, and twenty
+  experiments to try. Its pages live in [`wiki/`](../wiki/) and sync on every merge.
 
 ## Conventions
 

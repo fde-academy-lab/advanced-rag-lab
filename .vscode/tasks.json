@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "options": { "cwd": "${workspaceFolder}/lab-simulator" },
+  "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+  "inputs": [
+    {
+      "id": "unit",
+      "type": "pickString",
+      "description": "Which unit?",
+      "default": "F1",
+      "options": [
+        { "label": "F1 · Chunk so the answer survives the cut  (implement, easy, ~30 min)", "value": "F1" },
+        { "label": "R1 · Make a citation resolve  (implement, easy, ~25 min)", "value": "R1" },
+        { "label": "E1 · Build the two recalls that disagree by thirty points  (implement, medium, ~40 min)", "value": "E1" },
+        { "label": "P1 · Write the measurement note that survives you leaving  (ship, medium, ~40 min)", "value": "P1" },
+        { "label": "R2 · Decide whether to fuse at all, and say what would make you wrong  (decide, medium, ~30 min)", "value": "R2" },
+        { "label": "C1 · Find the five characters that cost two thirds of the bill  (diagnose, hard, ~40 min)", "value": "C1" },
+        { "label": "R3 · Build the rule you rejected, and the measurement that rejected it  (measure, hard, ~45 min)", "value": "R3" },
+        { "label": "CD1 · One line makes every request a cache miss. Move it, do not delete it.  (drill · diagnose, easy, ~10 min)", "value": "CD1" },
+        { "label": "ED1 · This full-chain recall returns 0.667 on a question it did not answer. Fix it.  (drill · diagnose, easy, ~10 min)", "value": "ED1" },
+        { "label": "FD1 · Three chunkers, one of them loses the end of every document — which?  (drill · answer, easy, ~8 min)", "value": "FD1" },
+        { "label": "RD1 · Reciprocal rank fusion, with the two blanks everyone fills in wrong  (drill · implement, easy, ~10 min)", "value": "RD1" },
+        { "label": "ED2 · Four deltas, four intervals. Which of them would you ship on?  (drill · answer, medium, ~8 min)", "value": "ED2" },
+        { "label": "RD2 · Write down what fusion will score before you look. Then look.  (drill · answer, medium, ~10 min)", "value": "RD2" },
+        { "label": "XD1 · k goes from 5 to 10. Which way does context precision move, and by how much?  (drill · answer, medium, ~8 min)", "value": "XD1" },
+        { "label": "AD1 · An agent that keeps searching after it has the answer is paying for confidence it already had  (drill · implement, hard, ~15 min)", "value": "AD1" },
+        { "label": "ED3 · Five claims in a write-up. Three of them are the reason this repo has an ADR-0015.  (drill · answer, hard, ~12 min)", "value": "ED3" }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "label": "L.A.B: what should I do now",
+      "type": "shell",
+      "command": "python -m labsim next",
+      "problemMatcher": [],
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "L.A.B: read the brief",
+      "type": "shell",
+      "command": "python -m labsim brief ${input:unit}",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: start a unit (opens brief + attempt)",
+      "type": "shell",
+      "command": "python -m labsim start ${input:unit} --open",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: spend a hint",
+      "type": "shell",
+      "command": "python -m labsim hint ${input:unit}",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: grade my attempt",
+      "type": "shell",
+      "command": "python -m labsim check ${input:unit}",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: where am I",
+      "type": "shell",
+      "command": "python -m labsim progress",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: doctor",
+      "type": "shell",
+      "command": "python -m labsim doctor",
+      "problemMatcher": []
+    },
+    {
+      "label": "L.A.B: what I can put on a CV",
+      "type": "shell",
+      "command": "python -m labsim badge",
+      "problemMatcher": []
+    }
+  ]
+}

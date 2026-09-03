@@ -56,7 +56,7 @@ def request(method: str, path: str, payload=None, accept="application/vnd.github
     req.add_header("Accept", accept)
     req.add_header("X-GitHub-Api-Version", "2022-11-28")
     req.add_header("Content-Type", "application/json")
-    req.add_header("User-Agent", "nanorag-setup")
+    req.add_header("User-Agent", "raglab-setup")
 
     for attempt in range(retries):
         try:
@@ -104,6 +104,30 @@ def graphql(query: str, variables: dict | None = None, partial_ok: bool = False)
         if not (partial_ok and any(v is not None for v in data.values())):
             raise GitHubError(200, json.dumps(errors)[:500], GRAPHQL)
     return out["data"]
+
+
+RATE_LIMITED = ("RATE_LIMIT", "rate limit", "graphql_rate_limit")
+
+
+def is_rate_limit(exc: GitHubError) -> bool:
+    return any(m.lower() in (exc.message or "").lower() for m in RATE_LIMITED)
+
+
+def rate_limit_reset() -> str:
+    """When the quota comes back, as HH:MM UTC. `/rate_limit` itself is not counted.
+
+    The GraphQL error says only "API rate limit already exceeded", which leaves a person
+    deciding whether to click again now or in an hour. This is the missing half of that.
+    """
+    import datetime
+    try:
+        data = request("GET", "/rate_limit")["resources"]
+    except GitHubError:
+        return "the top of the hour"
+    stamp = max(data["core"]["reset"], data["graphql"]["reset"])
+    when = datetime.datetime.fromtimestamp(stamp, datetime.timezone.utc)
+    mins = int((when - datetime.datetime.now(datetime.timezone.utc)).total_seconds() // 60)
+    return f"{when.strftime('%H:%M')} UTC, in {max(mins, 0)} min"
 
 
 def ok(label: str, detail: str = ""):

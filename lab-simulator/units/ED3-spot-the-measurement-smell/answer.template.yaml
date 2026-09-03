@@ -1,0 +1,10 @@
+# ED3 · Spot the measurement smell.
+#
+# Read the write-up in BRIEF.md. Which numbered claims are unsupported as stated?
+
+smells: [<claim numbers>]
+
+# One line per smell you named: which shape is it? Use the words in the brief's table
+# (no-interval, denominator, tuned-on-frozen, no-command, wrong-sign).
+shapes:
+  <n>: <shape>

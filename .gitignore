@@ -27,9 +27,18 @@ credentials*
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
+
+# .vscode/ is tracked on purpose. The tasks file *is* the Codespaces UI — it puts the whole
+# lab loop in the command palette — and CI checks its unit pick-list against the registry.
+# Personal overrides go in .vscode/*.local.json, which is ignored below.
+.vscode/*.local.json
+.vscode/launch.json
 !.vscode/settings.json
 
 # Documentation linters only — see package.json
 node_modules/
 package-lock.json
+
+# Your practice scores, not the repo's
+interview-bank/.progress.json
+.coverage

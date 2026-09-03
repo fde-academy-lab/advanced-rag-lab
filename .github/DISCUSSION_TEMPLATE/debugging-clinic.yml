@@ -1,0 +1,68 @@
+# The Clinic is for a failure you can only describe, so the form asks for the description in
+# the order a diagnosis actually needs it: what you see, then what it is not, then what you
+# think. `status: triage` because a clinic thread without a maintainer's eye on it is a thread
+# that gets three guesses and no diagnosis.
+labels: ["status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Bring a failure you cannot explain.** This is the category for the case where you
+        cannot yet state the question — if you can state it, **Q&A** answers faster.
+
+        Threads here are long on purpose. The diagnosis is the artefact, and the wrong turns on
+        the way to it are worth as much as the answer.
+
+  - type: input
+    id: symptom
+    attributes:
+      label: The symptom, in one line
+      description: "What you observe, not what you think causes it."
+      placeholder: "ANN recall is 0.00 at ef=64. Not degraded — zero."
+    validations: { required: true }
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead, and why
+      description: >-
+        The model of the system that this failure violates. Half of all clinic threads resolve
+        here, because writing down the expectation exposes the assumption that is wrong.
+    validations: { required: true }
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: The output, the traceback, or the numbers
+      description: "Text in a fence, not a screenshot. A screenshot cannot be copied into a reply."
+      render: text
+    validations: { required: true }
+
+  - type: textarea
+    id: ruled-out
+    attributes:
+      label: What you have already ruled out
+      description: >-
+        One line per thing, with how you ruled it out. This is the field that stops four people
+        suggesting the same first guess.
+      placeholder: |
+        - Not the index: `store.stats()` reports 2,430 vectors, same as the chunk count
+        - Not the query encoder: the same query at ef=512 returns the right chunk at rank 2
+    validations: { required: true }
+
+  - type: input
+    id: reproduce
+    attributes:
+      label: The smallest command that shows it
+      placeholder: "python scripts/run_eval.py --retriever ann --ef 64"
+
+  - type: dropdown
+    id: changed
+    attributes:
+      label: Did this ever work?
+      options:
+        - "Never worked — first time I have run it"
+        - "Worked before a change I made"
+        - "Worked before a change somebody else made"
+        - "Worked yesterday and nothing changed, which I know is what everyone says"
+    validations: { required: true }

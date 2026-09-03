@@ -1,8 +1,12 @@
 <div align="center">
 
-# nanorag
+# Advanced RAG &amp; Evals Lab
 
-**The whole retrieval stack — BM25, dense, ANN, fusion, reranking, evaluation — with no vector database, no framework, and no API key. It runs in memory, in about ten seconds.**
+**FDE LAB · Client Zero engagement**
+
+*The whole retrieval stack — BM25, dense, ANN, fusion, reranking — and the evaluation that
+decides whether any of it worked. No vector database, no framework, no API key. It runs in
+memory, in about ten seconds.*
 
 [![CI](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/ci.yml)
 [![Notebooks](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml/badge.svg)](https://github.com/fde-academy-lab/advanced-rag-lab/actions/workflows/notebooks.yml)
@@ -11,38 +15,86 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Discussions](https://img.shields.io/badge/ask-Discussions-8A63D2)](../../discussions)
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Curriculum](docs/02-curriculum/syllabus.md) · [Exercises](docs/03-exercises/catalogue.md) · [Interview prep](docs/06-interview-prep/legacy-bank.md) · [Put it on your CV](docs/07-career/portfolio.md)
+[Client Zero](docs/00-orientation/client-zero.md) · [Quick start](#quick-start) · [Architecture](#architecture) · [Exercises](docs/03-exercises/) · [Interview prep](docs/06-interview-prep/) · [Put it on your CV](docs/07-career/portfolio.md)
 
 </div>
 
 ---
 
+## Find it in ten seconds
+
+| You want | Go to |
+|---|---|
+| To run something and see a number | [Quick start](#quick-start), or a Codespace: Code ▸ Codespaces ▸ Create |
+| To be graded without cloning | [Discussions ▸ LAB Simulator](../../discussions/categories/lab-simulator), post a drill |
+| To ask a question | [Discussions ▸ Q&A](../../discussions/categories/q-a), say what you tried |
+| How-tos, the architecture in one page, interview questions with answers, trivia, the newsletter | [The wiki](../../wiki) |
+| Where the work stands | [The boards](https://github.com/fde-academy-lab?tab=projects): Delivery, Hands-on, Pulse, Lifecycle, Reading Club, Extension points, Newsletter |
+| Every document, in reading order | [docs/README.md](docs/README.md) |
+| The notebooks rendered as a site | [fde-academy-lab.github.io/advanced-rag-lab](https://fde-academy-lab.github.io/advanced-rag-lab/) |
+
+---
+
+## The brief
+
+> "We have all this documentation and our people can't find answers in it. Can you put an AI
+> search thing on it? How long would that take?"
+
+That is the entire brief, and it is how briefs actually arrive.
+
+**Client Zero** is Meridian Group — a mid-market holding company, twenty-four operating
+subsidiaries, six quarters of accumulated documentation. 484 documents. 2,430 chunks. Nobody has
+ever been able to find anything in them.
+
+You have been deployed. Everything in this repository is the work of turning that sentence into
+something you can build, measure and defend.
+
+Client Zero is synthetic on purpose, and the reasons are the point rather than an apology: gold
+evidence is **true by construction** so there is no annotation-error floor under any number,
+nothing is under NDA so every result can be published, and every failure mode is in the corpus
+because the curriculum needs it. [The full engagement brief →](docs/00-orientation/client-zero.md)
+
+## LAB — Learn, Apply, Build
+
+```mermaid
+flowchart LR
+    L["LEARN<br/>ten notebooks<br/>run it, watch the number move"] --> A["APPLY<br/>exercises in Discussions<br/>approach before code"]
+    A --> B["BUILD<br/>capstone on Client Zero<br/>propose, measure, defend"]
+    B --> D["DEFEND<br/>interview prep<br/>portfolio"]
+```
+
+| Mode | Where it lives | What you produce |
+|---|---|---|
+| **Learn** | [notebooks/](notebooks/) — ten sections, ~10 min of compute for all of them | A number you ran yourself |
+| **Apply** | [Discussions → Exercises &amp; Submissions](../../discussions/categories/exercises-submissions) | A submission with an interval, and one peer review |
+| **Build** | [The capstone](docs/03-exercises/) | A change to Client Zero's system, measured and defended |
+| **Defend** | [Interview prep](docs/06-interview-prep/), [portfolio](docs/07-career/portfolio.md) | The story, and the three findings that make it worth hearing |
+
 ## What this is
 
 Ten Jupyter notebooks and a ~6,800-line toolkit that implement the whole retrieval stack —
-BM25 over a real inverted index, dense retrieval, an approximate-nearest-neighbour graph you
-can watch lose recall, hybrid fusion, a reranker you *fit and then verify*, context packing
-under a hard token budget, an LLM judge you calibrate with Cohen's κ, prompt-cache economics,
-and an agentic search loop scored on its trace rather than its answer.
+BM25 over a real inverted index, dense retrieval, an approximate-nearest-neighbour graph you can
+watch lose recall, hybrid fusion, a reranker you *fit and then verify*, context packing under a
+hard token budget, an LLM judge you calibrate with Cohen's κ, prompt-cache economics, and an
+agentic search loop scored on its trace rather than its answer.
 
 There is **no dataset to download, no API key to set, and no service to start.** The entire
 retrieval stack lives inside `sqlite3.connect(":memory:")` and disappears when you stop the
 kernel. Press **Run All**; that is the whole procedure.
 
-The *nano* is the **stack**, not the scope: numpy, matplotlib and the standard library, and
-nothing else is required to run any of it. Every component you would normally import — the
-inverted index, the embedder, the ANN graph, the fusion, the reranker, the judge, the cost
-model — is implemented here, in readable Python, because the point is to see the mechanism
-rather than configure it.
+Everything you would normally pip-install — the inverted index, the embedder, the ANN graph, the
+fusion, the reranker, the judge, the cost model — is implemented here, in readable Python,
+because the point is to see the mechanism rather than configure it. numpy, matplotlib and the
+standard library are the whole dependency set.
 
-Everything has a documented upgrade path to a real stack — Amazon Bedrock Knowledge Bases,
-Titan embeddings, Bedrock rerank, a model judge — and swapping any of them changes the
-retriever, **not** the harness, the metrics, or the eval set. That property is the lesson.
+Everything has a documented upgrade path to a real stack — Amazon Bedrock Knowledge Bases, Titan
+embeddings, Bedrock rerank, a model judge — and swapping any of them changes the retriever,
+**not** the harness, the metrics, or the eval set. That property is the lesson.
 
 > **This repository is also a working example of how a delivery team operates.** Issues with
-> acceptance criteria, a board that moves itself, a PR template that demands a measurement,
-> an evaluation gate that blocks a merge on a metric regression, ADRs for the decisions that
-> were hard, and Discussions used the way a good internal Stack Overflow gets used.
+> acceptance criteria, a board that moves itself, a PR template that demands a measurement, an
+> evaluation gate that blocks a merge on a metric regression, ADRs for the decisions that were
+> hard, and Discussions used the way a good internal Stack Overflow gets used.
 
 ---
 
@@ -50,7 +102,7 @@ retriever, **not** the harness, the metrics, or the eval set. That property is t
 
 ```bash
 git clone https://github.com/fde-academy-lab/advanced-rag-lab.git
-cd nanorag
+cd raglab
 make setup          # or: pip install -e ".[dev]"
 make lab            # opens JupyterLab → start with 00_start_here.ipynb
 ```
@@ -58,8 +110,8 @@ make lab            # opens JupyterLab → start with 00_start_here.ipynb
 Prefer to see it work in one line first?
 
 ```python
-import nanorag
-bundle, index, pipe = nanorag.quickstart(**nanorag.TUNED)
+import raglab
+bundle, index, pipe = raglab.quickstart(**raglab.TUNED)
 trace = pipe.run("Which organization acquired Tessera Analytics?")
 
 print(trace.answer)                 # a cited answer
@@ -109,6 +161,56 @@ panel actually asks, and a checkpoint that re-derives its own answers.
 
 ---
 
+## The L.A.B. Simulator
+
+The notebooks show you. [`lab-simulator/`](lab-simulator/) makes you do it, and grades the
+result — in an editor, in a discussion thread, or in your terminal, with the same grader behind
+all three.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/fde-academy-lab/advanced-rag-lab?quickstart=1)
+
+```bash
+cd lab-simulator
+python -m labsim next              # what to do now
+python -m labsim brief F1          # read it, rendered, hints collapsed
+python -m labsim start F1 --open   # scaffold an attempt, open it beside the brief
+python -m labsim check F1          # grade it
+```
+
+Or without cloning anything: post a unit in the **LAB Simulator** discussion category and a bot
+grades it and replies with the named checks that failed — `/hint` for the next hint, `/solution`
+once you clear. [How that works, and why it is safe to run strangers' code](lab-simulator/DISCUSSIONS.md).
+
+Practice material for this subject has converged on one shape — a starter function with a `TODO`
+and hidden tests. It teaches syntax and not judgement, for three reasons that drove every design
+decision here: **you cannot be wrong interestingly**, **nothing produces a number**, and **a list
+of problems whose order does not matter is not a pathway**.
+
+So a unit has three gates instead of one: a **decision**, committed before any code and rejected
+if its falsifier names the conclusion rather than an observation; the **checks**; and a **metric
+bar**, measured on the real corpus by the same code that produces the numbers in this README.
+
+| | Unit | Mode | Difficulty | What it is really about |
+|---|---|---|---|---|
+| **F1** | Chunk so the answer survives the cut | `implement` | easy | Overlap is a length budget, not a tuning knob |
+| **R1** | Make a citation resolve | `implement` | easy | A citation a human cannot follow is decoration |
+| **E1** | Build the two recalls that disagree by thirty points | `implement` | medium | Why a metric normalised against its own output cannot go down |
+| **R2** | Decide whether to fuse at all | `decide` | medium | No code. The deck says fuse; the measurement says otherwise |
+| **C1** | Find the five characters that cost two thirds of the bill | `diagnose` | hard | A correct feature, a passing test, a bill three times the estimate |
+| **R3** | Build the rule you rejected, and the measurement that rejected it | `measure` | hard | The real corpus, the real reranker, and the diagnostic nobody ran |
+| **P1** | Write the measurement note that survives you leaving | `ship` | medium | The grader re-runs your measurement and checks your numbers match |
+
+Every unit ships a worked answer the grader must **accept** and decoys it must **reject**, with
+`expect.yaml` naming which check has to catch each one — because a check that has never rejected
+anything is a function that returns `True`, and you cannot tell those apart by reading it. CI runs
+both directions on every change.
+
+Open a pull request touching `lab-simulator/attempts/` and
+[the Action](.github/workflows/lab-simulator.yml) grades it and comments the result. A failed
+attempt does not fail the build.
+
+---
+
 ## Architecture
 
 ### Context — who touches this, and what it touches
@@ -121,7 +223,7 @@ graph TB
         R["🔍 Recruiter / interviewer<br/>reads the decision records"]
     end
 
-    P["Advanced RAG — Hands On<br/>10 notebooks + nanorag toolkit<br/>runs offline, deterministic"]
+    P["Advanced RAG — Hands On<br/>10 notebooks + raglab toolkit<br/>runs offline, deterministic"]
 
     subgraph optional["Optional — nothing fails without these"]
         BR["Amazon Bedrock<br/>Knowledge Base · Titan · rerank · Converse"]
@@ -417,16 +519,27 @@ measurement discipline transfers; the values do not.
 
 ---
 
-## Three results that contradict the expected answer
+## Four results that contradict the expected answer
 
 These are the parts worth your attention, and they are reported rather than tuned away.
+
+The first one is also a correction: it previously read *"equal-weight RRF does not beat BM25
+alone"*, which was quoted in about twenty places here and **does not reproduce**. It was
+re-measured, retracted and replaced — [ADR-0015](docs/01-architecture/adr/0015-correct-the-fusion-finding.md)
+records what was claimed, what was measured, and why nothing was structured to notice. Every row
+below is now re-runnable in one command: `python scripts/run_eval.py --compare`.
 
 <table>
 <tr><th>Finding</th><th>Why it happens</th><th>When the expected result returns</th></tr>
 <tr>
-<td><b>Equal-weight RRF does not beat BM25 alone</b> here; weighted fusion at α=0.2 does.</td>
-<td>RRF gives both legs the same vote, and the offline dense leg is a fifty-year-old method that is genuinely weaker on this corpus. Fusing strong with weak at equal weight moves you toward the weak one.</td>
-<td>With a modern encoder the balance shifts and α moves up. The <i>procedure</i> — default to RRF, then measure once you have a labelled set — does not change.</td>
+<td><b>Fusion does not separate from its better single leg.</b> Dense alone 0.7733, equal-weight RRF 0.7742 — a gap of +0.0008 with a 95% interval of (−0.0101, +0.0109). On nDCG the <i>unfused</i> dense leg wins outright, by 0.075.</td>
+<td>Fusion pays when the legs fail on <i>different</i> queries. Here they do not: BM25 is the weak leg on this corpus (paraphrase and inference over prose, where term overlap has little to score) and it adds almost nothing the dense leg missed. The second index, second pipeline and per-corpus α buy a difference that cannot be measured.</td>
+<td>When the legs are complementary. The diagnostic is the per-query overlap of failures, not the aggregate table — and running it is the point. <code>EX-15</code> repeats this with a real sentence encoder.</td>
+</tr>
+<tr>
+<td><b>No retrieval configuration moves answer correctness.</b> Evidence recall spans 0.7118 → 0.7790 across five configurations — real, 9.4% relative — while <code>answer_correct</code> stays inside the noise band on <i>every</i> pairwise comparison. The best answers come from the worst retriever.</td>
+<td>The system is generation-limited, not retrieval-limited. It was already visible in the 0.4686 → 0.4115 gap between full-chain recall and answer correctness, and nobody joined it up.</td>
+<td>When retrieval is the binding constraint. Here it is not, which makes <code>evidence_recall</code> the right metric for catching regressions and the wrong one for justifying a roadmap.</td>
 </tr>
 <tr>
 <td><b>Comparison-question starvation does not reproduce.</b></td>
@@ -501,7 +614,7 @@ export BEDROCK_RERANK_MODEL_ARN=arn:aws:bedrock:...:rerank-model/amazon.rerank-v
 ```
 
 ```python
-from nanorag.bedrock import BedrockConfig, preflight, BedrockKnowledgeBaseRetriever
+from raglab.bedrock import BedrockConfig, preflight, BedrockKnowledgeBaseRetriever
 
 preflight()                              # read-only: reports config, makes NO AWS calls
 kb = BedrockKnowledgeBaseRetriever()     # returns the same Hit records as the local index
@@ -509,7 +622,7 @@ hits = kb.search("Which organization acquired Tessera Analytics?", n=25)
 ```
 
 Credentials come from the ordinary boto3 chain. **Nothing in this repository reads or stores a
-key.** `nanorag.bedrock.LOCAL_TO_AWS` maps every local component to its managed equivalent and
+key.** `raglab.bedrock.LOCAL_TO_AWS` maps every local component to its managed equivalent and
 names what changes when you move — see [docs/01-architecture/overview.md](docs/01-architecture/overview.md#local--aws).
 
 ---
@@ -564,6 +677,7 @@ flowchart LR
 | If you are… | Start here |
 |---|---|
 | Working through the course | [notebooks/00_start_here.ipynb](notebooks/00_start_here.ipynb), then [docs/03-exercises/catalogue.md](docs/03-exercises/catalogue.md) |
+| Wanting to be graded rather than to read | [lab-simulator/](lab-simulator/) — seven units, five modes, `python -m labsim next` |
 | Preparing for an AI-engineer interview | [docs/06-interview-prep/legacy-bank.md](docs/06-interview-prep/legacy-bank.md) — 18 questions with full answers |
 | Deciding what to build next | [docs/09-research/extension-points.md](docs/09-research/extension-points.md) — 20 techniques with hypotheses and seams |
 | Wanting to understand the code | [docs/01-architecture/overview.md](docs/01-architecture/overview.md) — HLD, LLD, every seam |

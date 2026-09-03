@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
 import sys
 
 LINK = re.compile(r'(?<!!)\[[^\]]*\]\(([^)\s]+?)(#[^)\s]*)?\)')
@@ -29,7 +30,24 @@ def markdown_files():
             yield p
 
 
+def tracked_paths() -> set[str] | None:
+    """Everything git tracks, as repo-relative posix paths.
+
+    A link is checked against git rather than the filesystem because an **empty directory is
+    not tracked**. It exists on the machine that made it and does not exist in a fresh clone,
+    so a link to it passes locally and 404s on GitHub — which is exactly how this check passed
+    here and failed in CI.
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z"],
+                             capture_output=True, text=True, check=True).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None  # not a git repo; fall back to the filesystem
+    return {p for p in out.split("\0") if p}
+
+
 def main() -> int:
+    tracked = tracked_paths()
     broken, checked = [], 0
     for p in markdown_files():
         for m in LINK.finditer(p.read_text()):
@@ -43,6 +61,19 @@ def main() -> int:
             resolved = (p.parent / target).resolve()
             if not resolved.exists():
                 broken.append((p.relative_to(ROOT), target))
+                continue
+            if tracked is None:
+                continue
+            rel = resolved.relative_to(ROOT).as_posix()
+            if rel == ".":
+                continue  # the repository root, which always exists
+            if resolved.is_dir():
+                # A directory with nothing tracked under it does not exist in a clone.
+                if not any(t == rel or t.startswith(rel + "/") for t in tracked):
+                    broken.append((p.relative_to(ROOT), target + "  (empty — git tracks no file "
+                                                               "here, so it 404s in a clone)"))
+            elif rel not in tracked:
+                broken.append((p.relative_to(ROOT), target + "  (untracked)"))
     for src, target in broken:
         print(f"BROKEN  {src}  →  {target}")
     print(f"\n{checked} relative links checked, {len(broken)} broken")

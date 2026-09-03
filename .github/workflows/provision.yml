@@ -27,7 +27,8 @@ on:
           - project
           - settings
           - discussions,project
-          - settings,labels,milestones,issues,discussions,project
+          - boards
+          - settings,labels,milestones,issues,discussions,boards,project
       dry_run:
         description: "Print the plan without changing anything"
         required: false
@@ -59,8 +60,11 @@ jobs:
             echo "have_pat=true" >> "$GITHUB_OUTPUT"
           else
             echo "have_pat=false" >> "$GITHUB_OUTPUT"
+            # `boards` (Lifecycle) needs the PAT as much as `project` does. With only
+            # `*project*` here, a `boards` run without the secret printed nothing at run
+            # level: the step warned inside its log and the run went green.
             case "${{ inputs.steps }}" in
-              *project*)
+              *project*|*boards*)
                 echo "::warning::No PROJECT_TOKEN secret is set. A Projects v2 board belongs to the account rather than the repository, so the built-in GITHUB_TOKEN cannot create one. Add a PAT with account-level Projects: read/write as a repository secret named PROJECT_TOKEN, then re-run." ;;
             esac
           fi
@@ -87,10 +91,29 @@ jobs:
             echo ""
             echo "GitHub has no API for these, so they stay manual:"
             echo ""
-            echo "1. **Discussion categories** — Settings ▸ Discussions ▸ New category:"
-            echo "   *Design Reviews*, *Reading Club*, *Interview Prep*. Set **Q&A** to the"
-            echo "   Question / Answer format. Seeded threads whose category is missing are"
-            echo "   skipped, so create these *before* running the \`discussions\` step."
+            echo "1. **Discussion categories** — Settings ▸ Discussions ▸ New category."
+            echo "   The format is not cosmetic: only a **Q&A** category can carry an"
+            echo "   accepted answer, and asking GitHub to mark one elsewhere is an error"
+            echo "   rather than a no-op."
+            echo ""
+            echo "   | Category | Format |"
+            echo "   |---|---|"
+            echo "   | Interview Prep | **Q&A** |"
+            echo "   | Exercises & Submissions | **Q&A** |"
+            echo "   | Math & Theory | **Q&A** |"
+            echo "   | Debugging Clinic | **Q&A** |"
+            echo "   | LAB Simulator | **Q&A** |"
+            echo "   | Design Reviews | Open-ended |"
+            echo "   | Reading Club | Open-ended |"
+            echo "   | Weekly Standup & Retro | Announcement |"
+            echo ""
+            echo "   Paste each description from \`CATEGORIES\` in scripts/seed_content.py —"
+            echo "   no API can set a description or an emoji after creation. Seeded threads"
+            echo "   whose category is missing are skipped rather than misfiled, so create"
+            echo "   these *before* seeding."
+            echo ""
+            echo "   You rarely need to run \`discussions\` by hand: Housekeeping re-seeds"
+            echo "   on every push to main."
             echo "2. **Pages** — Settings ▸ Pages ▸ Source: **GitHub Actions**."
             echo "3. **Pins** — pin 2 announcements and 3–4 issues."
             echo "4. **Social preview** — Settings ▸ General ▸ Social preview."

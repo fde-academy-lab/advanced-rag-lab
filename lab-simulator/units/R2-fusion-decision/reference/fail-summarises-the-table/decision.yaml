@@ -1,0 +1,22 @@
+# Decoy · reaches a defensible answer without the mechanism.
+#
+# Reading a table feels like reasoning. It is worth nothing on the next corpus, and the next
+# corpus is the only reason to learn this. The gate has to tell "I know why" from "I know which
+# row was highest".
+
+decision: >-
+  Ship weighted fusion at alpha 0.5, because it scores highest on evidence recall.
+
+why: >-
+  The measurements are clear. Weighted fusion at alpha 0.5 reaches 0.7790 evidence recall,
+  ahead of RRF at 0.7742, the dense leg at 0.7733 and BM25 alone at 0.7118. The improvement
+  from alpha 0.2 to alpha 0.5 is +0.0145 with an interval that excludes zero, so it is real.
+  The highest measured configuration is the one that should ship.
+
+rejected: >-
+  BM25 alone, which the numbers rule out, and which would only have been right if the other
+  rows had scored below it.
+
+would_change_if: >-
+  I re-run the evaluation on a refreshed corpus snapshot next quarter and alpha 0.5 no longer
+  comes out at the top of the table.

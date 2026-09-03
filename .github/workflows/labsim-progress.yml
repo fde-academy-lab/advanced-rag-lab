@@ -1,0 +1,73 @@
+# Who is doing the hands-on work, on a board rather than in a feeling.
+#
+# Reads the grading bot's own replies, groups them by the learner who opened each thread, and
+# upserts one draft item per learner onto the "L.A.B. Simulator — Hands-on" board: attempts,
+# clears, retries, hints, the units still open, and how far along the pathway they are.
+#
+# Not a leaderboard. Rows are sorted by login and there is no score. Counting is tracking;
+# ranking learners on a public repository ranks who had a free weekend.
+#
+# Needs PROJECT_TOKEN: a board belongs to the account, not the repository, and the built-in
+# token cannot write to one. Without the secret the workflow prints the table and stops.
+name: L.A.B. Simulator · hands-on board
+
+on:
+  schedule:
+    - cron: "41 8 * * 1"          # Monday morning, after the digest
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print what would be written without touching the board"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  discussions: read
+
+jobs:
+  board:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pyyaml
+
+      # `secrets` may not appear in an `if`; GitHub rejects the whole file on push, silently
+      # from the schedule's point of view. So the secret is read here, into an output, and the
+      # steps below branch on that — the same shape provision.yml uses.
+      - name: Is there a PAT
+        id: tok
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then echo "have_pat=true" >> "$GITHUB_OUTPUT"
+          else echo "have_pat=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Print the table
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/labsim_progress.py \
+            --owner "${GITHUB_REPOSITORY%%/*}" --repo "${GITHUB_REPOSITORY##*/}" \
+            | tee progress.md
+          { echo "### Hands-on progress"; echo; cat progress.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sync the board
+        if: steps.tok.outputs.have_pat == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          args=(--owner "${GITHUB_REPOSITORY%%/*}" --repo "${GITHUB_REPOSITORY##*/}" --board)
+          if [ "$DRY" = "true" ]; then args+=(--dry-run); fi
+          python scripts/labsim_progress.py "${args[@]}"
+
+      - name: Say why the board was skipped
+        if: steps.tok.outputs.have_pat != 'true'
+        run: |
+          echo "::warning::No PROJECT_TOKEN secret. The table above is the same data; the board needs a PAT with account-level Projects: read/write."

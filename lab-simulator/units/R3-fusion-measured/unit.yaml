@@ -1,0 +1,28 @@
+id: R3
+slug: fusion-measured
+title: Build the rule you rejected, and the measurement that rejected it
+track: retrieval
+difficulty: hard
+minutes: 45
+mode: measure
+teaches: [reciprocal rank fusion, complementarity, failure overlap, metric bars]
+prereqs: [R2, E1]
+bars:
+  - metric: evidence_recall
+    threshold: 0.7700
+    direction: at_least
+    note: >-
+      measured on the real corpus, 207 answerable questions, through the same cross-encoder the
+      repository ships. A correct RRF scores 0.7709. Passing the structural checks and missing
+      this means the arithmetic is right and something upstream is not
+  - metric: failure_overlap
+    threshold: 0.9000
+    direction: at_least
+    note: >-
+      P(BM25 also misses | dense misses). The true value is 0.9684 and a Jaccard index of the
+      same two sets gives 0.8762, which is why the bar sits between them
+artefact: measurement
+summary: >-
+  Implement reciprocal rank fusion properly, then implement the one-line diagnostic that would
+  have told you in advance whether it was worth building. Both are graded against the real
+  corpus, and the second one is the point.

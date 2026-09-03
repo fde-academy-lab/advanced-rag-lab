@@ -6,12 +6,12 @@ seeded issues (open and closed), Discussions with their categories and seeded th
 Projects v2 board with custom fields and items.
 
     export GITHUB_TOKEN=github_pat_...
-    python scripts/setup_github.py --owner OWNER --repo nanorag
+    python scripts/setup_github.py --owner OWNER --repo raglab
 
 Idempotent: safe to re-run. Anything that already exists is skipped rather than duplicated.
 
     --dry-run     print what would happen, change nothing
-    --only        create,settings,labels,milestones,issues,discussions,project,push
+    --only        create,settings,labels,milestones,issues,discussions,boards,project,push
     --private     create the repository private (default public)
     --skip        same vocabulary, inverted
 
@@ -29,6 +29,8 @@ reported as skipped with the manual instructions.
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -39,22 +41,40 @@ import seed_content as content  # noqa: E402
 from gh import GitHubError, fail, graphql, ok, request, skip, warn  # noqa: E402
 from gh import token as gh_token  # noqa: E402
 
-STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions",
+STEPS = ("create", "settings", "labels", "milestones", "issues", "discussions", "boards",
          "project", "push")
 
 
 
 
-def preflight(owner):
+def preflight(owner, repo=None):
     """Prove the token works and report who it is, before anything is created.
 
     Every later failure is easier to read once this has run: a 404 means the repository is
     missing rather than the token being wrong, and a 403 means a permission is missing rather
     than the credential being bad.
+
+    `GET /user` is the wrong question for one caller. An Actions `GITHUB_TOKEN` is an
+    *installation* token: it has no user identity, so that endpoint answers 403 even though the
+    token is perfectly good for everything this script does. Treating that as a failure is why
+    provisioning only ever ran with a PAT — and why the housekeeping workflow, which
+    deliberately holds no PAT, could not seed a discussion.
     """
     try:
         me = request("GET", "/user")
     except GitHubError as exc:
+        if exc.status == 403 and repo:
+            # Could still be a working installation token. Ask a question it can answer.
+            try:
+                request("GET", f"/repos/{owner}/{repo}")
+            except GitHubError:
+                pass
+            else:
+                preflight.login = "github-actions[bot]"
+                print("  authenticated as \033[1mthe GitHub Actions token\033[0m"
+                      "  \033[90m(installation token — no /user identity, which is normal)"
+                      "\033[0m")
+                return True
         if exc.status == 401:
             print("\n\033[31mGITHUB_TOKEN is not valid.\033[0m  GitHub answered: "
                   f"{exc.message}")
@@ -122,8 +142,9 @@ def create_repository(owner, repo, private, dry):
     payload = {
         "name": repo,
         "private": bool(private),
-        "description": ("Runnable retrieval / RAG / evaluation curriculum — 10 notebooks and a "
-                        "toolkit that run entirely in memory, with an eval gate in CI"),
+        "description": ("Advanced RAG & Evals Lab — the Client Zero engagement. Ten runnable "
+                        "notebooks, a from-scratch retrieval stack, and an eval harness that "
+                        "gates releases. No vector DB, no API key."),
         "homepage": f"https://{owner}.github.io/{repo}/",
         "has_issues": True,
         "has_projects": True,
@@ -228,8 +249,9 @@ def push_repository(owner, repo, dry):
 def configure_repository(owner, repo, dry):
     """Description, topics, features, merge policy, branch protection."""
     payload = {
-        "description": ("Runnable retrieval / RAG / evaluation curriculum — 10 notebooks and a "
-                        "toolkit that run entirely in memory, with an eval gate in CI"),
+        "description": ("Advanced RAG & Evals Lab — the Client Zero engagement. Ten runnable "
+                        "notebooks, a from-scratch retrieval stack, and an eval harness that "
+                        "gates releases. No vector DB, no API key."),
         "homepage": f"https://{owner}.github.io/{repo}/",
         "has_issues": True,
         "has_projects": True,
@@ -262,29 +284,65 @@ def configure_repository(owner, repo, dry):
     except GitHubError as exc:
         warn("topics", exc.message[:100])
 
-    # Branch protection: require CI + the eval gate, and a review. Best-effort — this needs
-    # Administration:write and is unavailable on some plans for private repos.
+    # Branch protection.
+    #
+    # Required status checks, yes: they run without a human and they have caught real defects —
+    # a link checker that had drifted from the one `make lint` runs, three doc directories that
+    # were empty and therefore untracked and therefore 404 in a clone, and a metric regression.
+    #
+    # Required *reviews*, no, and this is a deliberate reversal. A review requirement assumes two
+    # people. GitHub does not let an author approve their own pull request, so on a repository
+    # with one maintainer it is not a second pair of eyes — it is a button that person presses to
+    # unblock themselves. That is worse than no control, because it looks like one, and a control
+    # everybody learns to click through stops being read.
+    #
+    # Set REVIEWERS to the number of people who will actually review, which for most forks of
+    # this repository is zero.
+    reviewers = int(os.environ.get("REQUIRED_REVIEWERS", "0"))
     protection = {
-        "required_status_checks": {
-            "strict": True,
-            "contexts": ["Lint", "Tests (py3.11)",
-                         "One-click promise (fresh machine, no pip install)"],
-        },
+        "required_status_checks": {"strict": True, "contexts": list(REQUIRED_CHECKS)},
         "enforce_admins": False,
-        "required_pull_request_reviews": {
-            "required_approving_review_count": 1,
-            "dismiss_stale_reviews": True,
-        },
+        "required_pull_request_reviews": (
+            {"required_approving_review_count": reviewers, "dismiss_stale_reviews": True}
+            if reviewers else None
+        ),
         "restrictions": None,
         "allow_force_pushes": False,
         "allow_deletions": False,
-        "required_conversation_resolution": True,
+        # Off with zero reviewers: an unresolved conversation cannot be resolved by the person
+        # who opened it either, so this reintroduces the same block by a different route.
+        "required_conversation_resolution": bool(reviewers),
     }
     try:
         request("PUT", f"/repos/{owner}/{repo}/branches/main/protection", protection)
-        ok("branch protection", "main requires CI + 1 review")
+        # Report what was actually applied. This line used to say "CI + 1 review" whatever
+        # REQUIRED_REVIEWERS was, so a run that set zero reviewers logged that it had set one —
+        # and the only way to find out otherwise was to be refused by a merge.
+        ok("branch protection",
+           "main requires CI"
+           + (f" + {reviewers} review(s)" if reviewers else ", no review requirement"))
     except GitHubError as exc:
         warn("branch protection", f"skipped — {exc.message[:90]}")
+
+
+# Status checks `main` requires before a merge.
+#
+# Every one of these must be produced by a job that runs on **every** pull request. A required
+# context whose workflow is `paths`-filtered never reports on a pull request outside those
+# paths, GitHub shows it as "Expected" forever, and the pull request cannot be merged by
+# anybody who is not an administrator bypassing protection. That deadlock shipped here and was
+# invisible for a day, because every merge until then was an admin bypass.
+#
+# tests/test_workflows.py enforces the invariant. Add a context here and the test tells you if
+# its workflow is filtered.
+REQUIRED_CHECKS = (
+    "Lint",
+    "Tests (py3.11)",
+    "One-click promise (fresh machine, no pip install)",
+    # The two doc checks. Cheap, and both have failed for real reasons.
+    "links",
+    "Mermaid renders on GitHub",
+)
 
 
 # ──────────────────────────────────────────────────────────────────── labels ──
@@ -374,10 +432,38 @@ REPO_Q = """
 query($owner:String!,$name:String!){
   repository(owner:$owner,name:$name){
     id hasDiscussionsEnabled
-    discussionCategories(first:50){ nodes { id name slug } }
-    discussions(first:100){ nodes { title } }
+    discussionCategories(first:50){ nodes { id name slug isAnswerable description } }
   }
 }"""
+
+# Paginated, because `first:100` is not a listing — it is the first page of one, in an
+# unspecified order. The seeder decides what already exists from this map, so a repository
+# past a hundred threads would stop recognising its own content and seed a second copy of
+# everything it could not see. There are 44 defined today.
+DISCUSSIONS_PAGE_Q = """
+query($owner:String!,$name:String!,$after:String){
+  repository(owner:$owner,name:$name){
+    discussions(first:100, after:$after){
+      nodes { title number }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+}"""
+
+
+def all_discussions(owner, repo) -> dict:
+    """Every discussion title in the repository, mapped to its number."""
+    out, after = {}, None
+    while True:
+        page = graphql(DISCUSSIONS_PAGE_Q,
+                       {"owner": owner, "name": repo,
+                        "after": after})["repository"]["discussions"]
+        for node in page["nodes"]:
+            out[node["title"]] = node["number"]
+        if not page["pageInfo"]["hasNextPage"]:
+            return out
+        after = page["pageInfo"]["endCursor"]
+
 
 CREATE_DISCUSSION_M = """
 mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
@@ -397,6 +483,420 @@ DISCUSSION_ID_Q = """
 query($owner:String!,$name:String!,$number:Int!){
   repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
 }"""
+
+# Enough to repair a thread that already exists: is it answered, and which comment should be
+# the answer. Seeding is create-only otherwise, so a thread created before a bug was fixed
+# stays broken forever unless somebody deletes it by hand.
+# Lets the fallback recognise its own work, so a retraction comment is posted once.
+RETRACTION_MARK = "<!-- labsim-retraction -->"
+
+UPDATE_DISCUSSION_M = """
+mutation($id:ID!,$body:String!){
+  updateDiscussion(input:{discussionId:$id,body:$body}){ discussion { number url } }
+}"""
+
+LABELS_Q = """
+query($owner:String!,$name:String!){
+  repository(owner:$owner,name:$name){ labels(first:100){ nodes { id name } } }
+}"""
+
+DISCUSSION_LABELS_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){
+    discussion(number:$number){ id labels(first:30){ nodes { name } } }
+  }
+}"""
+
+ADD_LABELS_M = """
+mutation($id:ID!,$labels:[ID!]!){
+  addLabelsToLabelable(input:{labelableId:$id,labelIds:$labels}){ clientMutationId }
+}"""
+
+RETITLE_M = """
+mutation($id:ID!,$title:String!){
+  updateDiscussion(input:{discussionId:$id,title:$title}){ discussion { number title } }
+}"""
+
+DISCUSSION_STATE_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){
+    discussion(number:$number){
+      id isAnswered
+      comments(first:100){ nodes { id body } }
+    }
+  }
+}"""
+
+DISCUSSION_BODY_Q = """
+query($owner:String!,$name:String!,$number:Int!){
+  repository(owner:$owner,name:$name){ discussion(number:$number){ id body } }
+}"""
+
+
+def label_discussions(owner, repo, existing, dry) -> int:
+    """Give threads a second axis.
+
+    A category answers "what kind of post is this" and never "what is it about". With only
+    categories, somebody looking for every thread on cost, or every one where a measurement came
+    back negative, has no way to ask — and thirty-eight threads carried no label at all.
+
+    Topic labels reuse the `area:` set the issues already use, so one query spans both surfaces.
+    """
+    wanted = getattr(content, "THREAD_LABELS", {})
+    if not wanted:
+        return 0
+
+    # Make sure the discussion-specific labels exist. This needs issues:write; where the token
+    # lacks it, the labels that already exist are still usable and the rest are reported.
+    for name, colour, description in getattr(content, "DISCUSSION_LABELS", []):
+        if dry:
+            continue
+        try:
+            request("POST", f"/repos/{owner}/{repo}/labels",
+                    {"name": name, "color": colour, "description": description})
+        except GitHubError as exc:
+            if exc.status != 422:            # 422 is "already exists", which is the happy path
+                warn(f"label {name}", exc.message[:70])
+
+    try:
+        ids = {n["name"]: n["id"]
+               for n in graphql(LABELS_Q, {"owner": owner, "name": repo})
+               ["repository"]["labels"]["nodes"]}
+    except GitHubError as exc:
+        warn("labels", f"could not read the label set — {exc.message[:60]}")
+        return 0
+
+    applied = 0
+    for title, names in wanted.items():
+        number = existing.get(title)
+        if number is None:
+            continue
+        if dry:
+            skip(f"label #{number}", ", ".join(names))
+            continue
+        try:
+            disc = graphql(DISCUSSION_LABELS_Q,
+                           {"owner": owner, "name": repo, "number": number})
+            node = disc["repository"]["discussion"]
+            have = {x["name"] for x in node["labels"]["nodes"]}
+        except GitHubError as exc:
+            warn(f"label #{number}", exc.message[:70])
+            continue
+
+        missing_defs = [n for n in names if n not in ids]
+        if missing_defs:
+            warn(f"label #{number}", f"no such label: {', '.join(missing_defs)}")
+        todo = [ids[n] for n in names if n in ids and n not in have]
+        if not todo:
+            continue
+        try:
+            mutate(ADD_LABELS_M, {"id": node["id"], "labels": todo})
+        except GitHubError as exc:
+            warn(f"label #{number}", f"addLabelsToLabelable refused: {exc.message}")
+            continue
+        ok(f"#{number}", f"{'labelled':<24} {', '.join(n for n in names if n in ids)[:44]}")
+        applied += 1
+        time.sleep(1.1)
+    return applied
+
+
+def rename_threads(owner, repo, existing, dry) -> tuple[int, set[str]]:
+    """Retitle threads in place, rather than creating a second copy under the new name.
+
+    Seeding is keyed by title. Change a title in seed_content and the seeder does not rename
+    anything — it creates a new thread and leaves the old one, which is how a retracted finding
+    stayed live in Announcements for a day.
+
+    `updateDiscussion` edits a thread this token may not have authored, so this can be refused
+    for the built-in Actions token and succeed for the PAT the provision workflow uses. It says
+    which happened rather than failing silently.
+
+    Returns the count **and the new titles it could not apply**, because saying so was not
+    enough. When all nine renames were refused, the create loop saw nine new titles that were
+    not live, created them, and left nine duplicate pairs — the exact failure this function
+    exists to prevent, arrived at through its own error path.
+    """
+    renamed, refused = 0, set()
+    for old, new in getattr(content, "RENAMED", {}).items():
+        if old not in existing:
+            continue
+        if new in existing:
+            warn(f"rename #{existing[old]}", f"“{new[:44]}” already exists as #{existing[new]}")
+            continue
+        number = existing[old]
+        if dry:
+            skip(f"rename #{number}", f"would retitle to “{new[:44]}”")
+            continue
+        try:
+            disc = graphql(DISCUSSION_BODY_Q,
+                           {"owner": owner, "name": repo, "number": number})
+            mutate(RETITLE_M, {"id": disc["repository"]["discussion"]["id"], "title": new})
+        except GitHubError as exc:
+            warn(f"rename #{number}", f"updateDiscussion refused: {exc.message}")
+            refused.add(new)
+            continue
+        ok(f"#{number}", f"{'retitled':<24} {new[:48]}")
+        existing[new] = existing.pop(old)
+        renamed += 1
+        time.sleep(1.1)
+    if refused:
+        warn("renames refused", f"{len(refused)} thread(s) keep their old title")
+        print("      The threads below already exist under their previous names and will NOT be "
+              "created\n      a second time. Run the provision workflow with PROJECT_TOKEN to "
+              "apply the renames.")
+    return renamed, refused
+
+
+def cross_link(owner, repo, existing, dry) -> int:
+    """Point two threads on the same subject at each other, once.
+
+    Neither closing one as a duplicate nor merging them is right here. Both pairs are a worked
+    example and the real question somebody asked anyway, and the real one is the better thread —
+    so the answer is not to hide either, it is to make each findable from the other. The third
+    entry is GitHub's own boilerplate welcome post, which cannot be deleted and outranks the
+    maintained one in the sidebar.
+
+    Fingerprinted by a marker comment, so re-running adds nothing.
+    """
+    linked = 0
+    for title, (reason, others) in getattr(content, "SEE_ALSO", {}).items():
+        number = existing.get(title)
+        if number is None:
+            warn(f"link “{title[:40]}”", "no live thread with that title")
+            continue
+        targets = [(t, existing[t]) for t in others if t in existing]
+        if len(targets) != len(others):
+            missing = [t for t in others if t not in existing]
+            warn(f"link #{number}", f"cannot point at {missing[0][:44]!r} — not live")
+            if not targets:
+                continue
+        if dry:
+            skip(f"link #{number}", f"would point at {', '.join(f'#{n}' for _, n in targets)}")
+            continue
+        try:
+            disc = graphql(DISCUSSION_STATE_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]
+        except GitHubError as exc:
+            warn(f"link #{number}", f"could not read it — {exc.message[:60]}")
+            continue
+        if any(content.SEE_ALSO_MARK in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"link #{number}", "already cross-linked")
+            continue
+        lines = [content.SEE_ALSO_MARK, f"**See also.** {reason}", ""]
+        lines += [f"- [{t}](/{owner}/{repo}/discussions/{n})" for t, n in targets]
+        try:
+            mutate(ADD_COMMENT_M, {"discussionId": disc["id"], "body": "\n".join(lines)})
+        except GitHubError as exc:
+            warn(f"link #{number}", f"could not comment: {exc.message[:60]}")
+            continue
+        linked += 1
+        ok(f"#{number}", f"{'cross-linked':<24} → "
+                         f"{', '.join(f'#{n}' for _, n in targets)}")
+        time.sleep(1.1)
+    return linked
+
+
+def post_corrections(owner, repo, existing, answerable, dry) -> int:
+    """Post a correction on a live thread and promote it to the accepted answer.
+
+    Renaming a thread away from a claim fixes the sidebar and nothing else. The fusion thread
+    kept its body — "the notebook measures RRF losing to BM25 alone" — and, worse, kept an
+    **accepted answer** explaining the result with the leg weighting reversed. An accepted
+    answer carries more authority than a title, so a retraction that leaves one standing has
+    not retracted anything.
+
+    The wrong answer is not deleted. It stays below the correction, which is the point: it is
+    the evidence that a roomful of people found it convincing, and that is the part with
+    teaching value.
+    """
+    posted = 0
+    for title, text in getattr(content, "CORRECTED", {}).items():
+        number = existing.get(title)
+        if number is None:
+            # The rename may have been refused — `updateDiscussion` is the one mutation the
+            # Actions token does not reliably hold. The correction matters more than the
+            # title, so fall back to the pre-rename title rather than skipping.
+            was = next((o for o, n in getattr(content, "RENAMED", {}).items() if n == title), None)
+            number = existing.get(was) if was else None
+            if number is None:
+                warn(f"correct “{title[:40]}”", "no live thread with that title")
+                continue
+            warn(f"correct #{number}", "still under its old title; correcting it anyway")
+        if dry:
+            skip(f"correct #{number}", "would post the correction and re-mark the answer")
+            continue
+        try:
+            disc = graphql(DISCUSSION_STATE_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]
+        except GitHubError as exc:
+            warn(f"correct #{number}", f"could not read it — {exc.message[:60]}")
+            continue
+        mark = content.CORRECTION_MARK
+        if any(mark in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"correct #{number}", "already corrected")
+            continue
+        body = mark + "\n" + text.format(owner=owner, repo=repo)
+        try:
+            res = mutate(ADD_COMMENT_M, {"discussionId": disc["id"], "body": body})
+        except GitHubError as exc:
+            fail(f"correct #{number}", f"could not post the correction: {exc.message}")
+            continue
+        posted += 1
+        comment_id = res["addDiscussionComment"]["comment"]["id"]
+        ok(f"#{number}", f"{'corrected':<24} {title[:44]}")
+        time.sleep(1.1)
+
+        # Re-marking replaces whatever was marked before; GitHub allows exactly one answer.
+        # If the category is not answerable there is nothing to move and the comment alone is
+        # the correction, which is how the non-Q&A categories work anyway.
+        cat = next((d["category"] for d in content.DISCUSSIONS if d["title"] == title), None)
+        if cat is None or cat not in answerable:
+            continue
+        try:
+            mutate(MARK_ANSWER_M, {"id": comment_id})
+            ok(f"#{number}", f"{'correction is the answer':<24} {title[:44]}")
+            time.sleep(1.1)
+        except GitHubError as exc:
+            warn(f"correct #{number}",
+                 f"posted, but could not move the accepted answer: {exc.message[:60]}")
+    return posted
+
+
+def retire_orphans(owner, repo, existing, dry) -> int:
+    """Band a renamed thread with a retraction notice, and report anything else orphaned.
+
+    A live thread the seed no longer defines is invisible to every check in this repository:
+    the seeder skips by title, so a renamed thread is simply never looked at again. One of them
+    spent a day in Announcements teaching a finding that had been retracted.
+    """
+    banded = 0
+    for old_title, new_title in getattr(content, "RETIRED", {}).items():
+        if old_title not in existing:
+            continue
+        number, new_number = existing[old_title], existing.get(new_title)
+        if new_number is None:
+            warn(f"retire “{old_title[:40]}”", f"replacement “{new_title[:40]}” is not live yet")
+            continue
+        if dry:
+            skip(f"retire #{number}", f"would band, pointing at #{new_number}")
+            continue
+        try:
+            state = graphql(DISCUSSION_STATE_Q,
+                            {"owner": owner, "name": repo, "number": number})
+            disc = state["repository"]["discussion"]
+            body = graphql(DISCUSSION_BODY_Q,
+                           {"owner": owner, "name": repo,
+                            "number": number})["repository"]["discussion"]["body"] or ""
+        except GitHubError as exc:
+            warn(f"retire #{number}", f"could not read it — {exc.message}")
+            continue
+        if body.lstrip().startswith("> [!WARNING]"):
+            skip(f"retire #{number}", "already banded")
+            continue
+        banner = content.RETIREMENT_BANNER.format(
+            replacement=new_title, owner=owner, repo=repo,
+            url=f"/{owner}/{repo}/discussions/{new_number}")
+        # Two ways to say "retracted", and the second one is the reason this works.
+        #
+        # Editing the body is better — the notice sits above the wrong text where nobody can
+        # miss it. But `updateDiscussion` edits a thread this token did not author, and that is
+        # a permission the built-in Actions token may simply not have. Adding a comment is a
+        # mutation the seeder already performs a hundred times a run, so it is known to work.
+        #
+        # Try the good one, fall back to the certain one. A retraction that depends on a
+        # permission you have not verified is a retraction that silently does not happen.
+        try:
+            mutate(UPDATE_DISCUSSION_M, {"id": disc["id"], "body": banner + body})
+            ok(f"#{number}", f"{'retracted in the body':<24} {old_title[:44]}")
+            banded += 1
+            time.sleep(1.1)
+            continue
+        except GitHubError as exc:
+            warn(f"retire #{number}", f"updateDiscussion refused: {exc.message}")
+
+        if any(RETRACTION_MARK in (c["body"] or "") for c in disc["comments"]["nodes"]):
+            skip(f"retire #{number}", "already carries a retraction comment")
+            continue
+        try:
+            mutate(ADD_COMMENT_M, {"discussionId": disc["id"],
+                                   "body": RETRACTION_MARK + "\n" + banner})
+            ok(f"#{number}", f"{'retracted by comment':<24} {old_title[:44]}")
+            banded += 1
+            time.sleep(1.1)
+        except GitHubError as exc:
+            fail(f"retire #{number}", f"could not retract at all: {exc.message}")
+
+    defined = {t["title"] for t in content.DISCUSSIONS} | set(getattr(content, "RETIRED", {}))
+    strays = [t for t in existing if t not in defined and "Discussions!" not in t]
+    if strays:
+        warn("orphaned threads", f"{len(strays)} live thread(s) the seed does not define")
+        for t in strays:
+            print(f"        #{existing[t]}  {t[:70]}")
+    return banded
+
+
+def answer_fingerprint(reply) -> str:
+    """A stretch of the reply's own prose, long enough to identify it among its siblings.
+
+    Matching on the rendered body would be brittle — the attribution header and the disclosure
+    footer are generated and can change wording. The first line of what the persona actually
+    wrote does not.
+    """
+    first = next((ln.strip() for ln in reply["body"].splitlines() if ln.strip()), "")
+    return first[:70]
+
+
+def _repair_answer(owner, repo, spec, number, answerable, dry) -> int:
+    """Mark the intended answer on a thread that already exists. Returns 1 if it repaired one.
+
+    Seeding skips a thread whose title is present, which is what makes it safe to re-run — and
+    also what made it useless for fixing anything. Twenty-four threads were created while the
+    repository query forgot to select `isAnswerable`, so `answerable` was empty, so no answer was
+    ever marked; re-running could not fix them because they already existed.
+
+    A seeder that can only create is a seeder that can only be right the first time.
+    """
+    title = spec["title"]
+    wanted = next((r for r in spec.get("replies", []) if r.get("accepted")), None)
+    if not wanted or spec["category"] not in answerable:
+        skip(f"“{title[:56]}”", "exists")
+        return 0
+    if dry:
+        skip(f"“{title[:46]}”", "exists — would check its accepted answer")
+        return 0
+
+    try:
+        disc = graphql(DISCUSSION_STATE_Q,
+                       {"owner": owner, "name": repo, "number": number})["repository"]["discussion"]
+    except GitHubError as exc:
+        warn(f"“{title[:46]}”", f"could not read state — {exc.message[:60]}")
+        return 0
+    if disc.get("isAnswered"):
+        skip(f"“{title[:56]}”", "exists, answered")
+        return 0
+
+    nodes = disc["comments"]["nodes"]
+    mark = answer_fingerprint(wanted)
+    match = next((c for c in nodes if mark and mark in (c["body"] or "")), None)
+    if not match and len(nodes) == 1 and len(spec.get("replies", [])) == 1:
+        # The seeded text has been edited since the thread was created — a rename, a correction —
+        # so the fingerprint no longer appears in the live comment. With exactly one comment and
+        # exactly one intended answer there is nothing to get wrong, so mark it and say so.
+        match = nodes[0]
+        warn(f"“{title[:46]}”", "reply text has drifted since seeding; marked the only comment")
+    if not match:
+        warn(f"“{title[:46]}”", "exists, but its accepted reply was not found to mark")
+        return 0
+    try:
+        mutate(MARK_ANSWER_M, {"id": match["id"]})
+    except GitHubError as exc:
+        warn(f"“{title[:46]}”", f"could not mark the answer — {exc.message[:60]}")
+        return 0
+    ok(f"#{number}", f"{'answer marked (repair)':<24} {title[:44]}")
+    time.sleep(1.1)
+    return 1
 
 
 def create_discussions(owner, repo, dry):
@@ -418,7 +918,7 @@ def create_discussions(owner, repo, dry):
     categories = {c["name"]: c["id"] for c in data["discussionCategories"]["nodes"]}
     answerable = {c["name"] for c in data["discussionCategories"]["nodes"]
                   if c.get("isAnswerable")}
-    existing = {d["title"] for d in data["discussions"]["nodes"]}
+    existing = all_discussions(owner, repo)
 
     missing = {name for name, *_ in content.CATEGORIES} - set(categories)
     if missing:
@@ -426,11 +926,34 @@ def create_discussions(owner, repo, dry):
         print("      No API creates a discussion category. Settings → Discussions → New "
               "category.\n      Threads for a missing category are skipped, not misfiled.")
 
-    created, posts, answers = [], 0, 0
+    # A category's description is set by hand at creation time and no API — REST or GraphQL —
+    # can change it afterwards. Every one of the eight this repository adds shipped blank,
+    # because the text lives in CATEGORIES and nothing was ever able to apply it. The seeder
+    # cannot fix that, so it does the next best thing: says exactly which ones are blank and
+    # prints the text to paste, rather than leaving it to be noticed by a reader.
+    live_desc = {c["name"]: (c.get("description") or "").strip()
+                 for c in data["discussionCategories"]["nodes"]}
+    blank = [(name, desc) for name, _emoji, desc, _fmt in content.CATEGORIES
+             if name in categories and not live_desc.get(name)]
+    if blank:
+        warn("category descriptions", f"{len(blank)} of {len(content.CATEGORIES)} are blank on "
+                                      "GitHub — no API can set them")
+        for name, desc in blank:
+            print(f"        Settings → Discussions → {name} → Edit → Description:")
+            print(f"          {desc}")
+
+    renamed, rename_refused = rename_threads(owner, repo, existing, dry)
+
+    created, posts, answers, repaired = [], 0, 0, 0
+    broken: list[str] = []          # failed for a reason that is not "category missing"
     for spec in content.DISCUSSIONS:
         title = spec["title"]
+        if title in rename_refused:
+            # The thread exists under its previous name. Creating it here is how you get two.
+            skip(f"“{title[:52]}”", "exists under its old title")
+            continue
         if title in existing:
-            skip(f"“{title[:56]}”", "exists")
+            repaired += _repair_answer(owner, repo, spec, existing[title], answerable, dry)
             continue
         cat = spec["category"]
         cat_id = categories.get(cat)
@@ -442,12 +965,13 @@ def create_discussions(owner, repo, dry):
             continue
 
         try:
-            out = graphql(CREATE_DISCUSSION_M, {
+            out = mutate(CREATE_DISCUSSION_M, {
                 "repoId": data["id"], "catId": cat_id, "title": title,
                 "body": render(spec.get("author", "maintainer"), spec["body"])})
             disc = out["createDiscussion"]["discussion"]
         except GitHubError as exc:
             fail(f"“{title[:46]}”", exc.message[:90])
+            broken.append(title)
             continue
 
         created.append((disc["number"], title))
@@ -459,7 +983,7 @@ def create_discussions(owner, repo, dry):
         accepted_id = None
         for reply in spec.get("replies", []):
             try:
-                res = graphql(ADD_COMMENT_M, {
+                res = mutate(ADD_COMMENT_M, {
                     "discussionId": disc_id,
                     "body": render(reply["by"], reply["body"])})
                 posts += 1
@@ -467,27 +991,70 @@ def create_discussions(owner, repo, dry):
                     accepted_id = res["addDiscussionComment"]["comment"]["id"]
             except GitHubError as exc:
                 warn("  ↳ reply", exc.message[:70])
-            time.sleep(0.35)
+            time.sleep(1.1)
 
         # Only answerable categories accept an answer; marking one elsewhere is an error,
         # not a no-op, so the category's own flag decides rather than a hardcoded list.
         if accepted_id and cat in answerable:
             try:
-                graphql(MARK_ANSWER_M, {"id": accepted_id})
+                mutate(MARK_ANSWER_M, {"id": accepted_id})
                 answers += 1
             except GitHubError as exc:
                 warn("  ↳ mark answer", exc.message[:70])
 
         ok(f"#{disc['number']}", f"{cat:<24} {len(spec.get('replies', [])):>2} replies  "
                                  f"{title[:44]}")
-        time.sleep(0.5)
+        time.sleep(1.1)
 
-    ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked")
-    return created
+    # Renames run BEFORE the create loop reads `existing`, so a retitled thread is recognised
+    # as present and not created a second time under its new name.
+    banded = retire_orphans(owner, repo, existing, dry)
+    corrected = post_corrections(owner, repo, existing, answerable, dry)
+    linked = cross_link(owner, repo, existing, dry)
+    labelled = label_discussions(owner, repo, existing, dry)
+    ok("discussions", f"{len(created)} threads · {posts} posts · {answers} answers marked"
+                      + (f" · {repaired} repaired" if repaired else "")
+                      + (f" · {renamed} retitled" if renamed else "")
+                      + (f" · {banded} retracted" if banded else "")
+                      + (f" · {corrected} corrected" if corrected else "")
+                      + (f" · {linked} cross-linked" if linked else "")
+                      + (f" · {labelled} labelled" if labelled else ""))
+    if broken:
+        # A missing category is expected and skipped quietly. Anything else is a real failure,
+        # and a step that stays green through one is a step nobody will look at again.
+        fail("discussions", f"{len(broken)} thread(s) could not be created")
+        for title in broken:
+            print(f"        {title[:76]}")
+    return created, broken
 
 
 MARK_ANSWER_M = """
 mutation($id:ID!){ markDiscussionCommentAsAnswer(input:{id:$id}){ clientMutationId } }"""
+
+# GitHub's *secondary* rate limit is not the hourly quota and is not reported in the usual
+# headers. It trips on the rate of content-creating requests — roughly 80 a minute — and the
+# only signal is a 403 whose message says so.
+#
+# Seeding this repository is about 150 mutations. At the old 0.35-0.5s spacing that is ~120 a
+# minute, which is over the line: three threads at the tail of the run failed and the step still
+# reported success, because a per-thread failure was printed and swallowed. The retry is the fix;
+# the wider spacing below just makes the retry rare.
+RETRYABLE = re.compile(r"secondary rate limit|abuse detection|try again later|rate limit", re.I)
+
+
+def mutate(query, variables, *, attempts=4):
+    """A content-creating GraphQL call that survives the secondary rate limit."""
+    delay = 5
+    for attempt in range(1, attempts + 1):
+        try:
+            return graphql(query, variables)
+        except GitHubError as exc:
+            if attempt == attempts or not RETRYABLE.search(exc.message or ""):
+                raise
+            warn("  ↳ rate limited", f"waiting {delay}s (attempt {attempt}/{attempts - 1})")
+            time.sleep(delay)
+            delay *= 3
+    raise AssertionError("unreachable")
 
 ADD_REACTION_M = """
 mutation($id:ID!,$content:ReactionContent!){
@@ -592,6 +1159,162 @@ def create_project(owner, repo, issues, dry):
     ok("  items", f"{added} issues added to the board")
 
 
+# ─────────────────────────────────────────────────────────── the lifecycle board ──
+LIFECYCLE_FIELDS_Q = """query($id:ID!){ node(id:$id){ ... on ProjectV2 {
+  fields(first:50){ nodes{ ... on ProjectV2Field { id name dataType }
+    ... on ProjectV2SingleSelectField { id name dataType options { id name } } } }
+  items(first:100){ nodes{ id content { ... on DraftIssue { id title } } } } } } }"""
+PROJECTS_Q = """query($login:String!){ repositoryOwner(login:$login){ id
+  ... on User { projectsV2(first:50){ nodes{ id title url } } }
+  ... on Organization { projectsV2(first:50){ nodes{ id title url } } } } }"""
+ADD_DRAFT_M = """mutation($projectId:ID!,$title:String!,$body:String!){
+  addProjectV2DraftIssue(input:{projectId:$projectId,title:$title,body:$body}){
+    projectItem { id } } }"""
+SET_FIELD_M = """mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$value:ProjectV2FieldValue!){
+  updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,
+                                       fieldId:$fieldId,value:$value}){ projectV2Item { id } } }"""
+
+
+def create_boards(owner, repo, dry):
+    """The lifecycle board, seeded from `content.LIFECYCLE`; and a note about the other two.
+
+    Three boards besides Delivery. The Hands-on and Pulse boards are created by their own sync
+    scripts on first run, because their contents come from live activity. The lifecycle board
+    is content — nineteen practices with the file that proves each — so it is seeded here.
+    """
+    if dry:
+        skip("lifecycle board", f"would seed {len(content.LIFECYCLE)} items in "
+                                f"{len(content.LIFECYCLE_PHASES)} phases")
+        return
+    try:
+        data = graphql(PROJECTS_Q, {"login": owner}, partial_ok=True)["repositoryOwner"]
+    except GitHubError as exc:
+        warn("lifecycle board", f"cannot list boards — {exc.message[:80]}")
+        return
+    board = next((p for p in data["projectsV2"]["nodes"]
+                  if p["title"] == content.LIFECYCLE_BOARD), None)
+    if board is None:
+        try:
+            board = graphql(CREATE_PROJECT_M, {"ownerId": data["id"],
+                                               "title": content.LIFECYCLE_BOARD}
+                            )["createProjectV2"]["projectV2"]
+            ok("lifecycle board", board["url"])
+        except GitHubError as exc:
+            from gh import is_rate_limit, rate_limit_reset
+            if is_rate_limit(exc):
+                warn("lifecycle board", f"rate limited — resets at {rate_limit_reset()}; "
+                                        "re-run `boards` then")
+                return
+            warn("lifecycle board", f"skipped — {exc.message[:100]}")
+            print("      Needs PROJECT_TOKEN with account-level Projects: read/write.")
+            return
+    pid = board["id"]
+    node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+    fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+    if "Phase" not in fields:
+        graphql(CREATE_FIELD_M, {"projectId": pid, "name": "Phase",
+                                 "options": [{"name": o, "description": "", "color": "GRAY"}
+                                             for o in content.LIFECYCLE_PHASES]})
+        ok("  field Phase", f"{len(content.LIFECYCLE_PHASES)} phases")
+    for name in ("Artefact", "Where in this repository"):
+        if name not in fields:
+            graphql(CREATE_TEXT_FIELD_M, {"projectId": pid, "name": name})
+            ok(f"  field {name}", "text")
+    node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+    fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+    have = {i["content"]["title"]: i["id"] for i in node["items"]["nodes"] if i.get("content")}
+    phase_ids = {o["name"]: o["id"] for o in fields["Phase"]["options"]}
+
+    added = 0
+    for phase, title, artefact, where in content.LIFECYCLE:
+        if title in have:
+            continue
+        body = (f"**Phase** {phase}\n\n**Artefact that proves it:** {artefact}\n\n"
+                f"**Where this repository did it:** `{where}`\n\n"
+                "See docs/08-project-management/lifecycle.md.")
+        try:
+            item = graphql(ADD_DRAFT_M, {"projectId": pid, "title": title,
+                                         "body": body})["addProjectV2DraftIssue"]["projectItem"]
+            for fname, val in (("Phase", {"singleSelectOptionId": phase_ids[phase]}),
+                               ("Artefact", {"text": artefact}),
+                               ("Where in this repository", {"text": where})):
+                graphql(SET_FIELD_M, {"projectId": pid, "itemId": item["id"],
+                                      "fieldId": fields[fname]["id"], "value": val})
+            added += 1
+            time.sleep(0.5)
+        except GitHubError as exc:
+            warn(f"  {title[:40]}", exc.message[:70])
+    ok("lifecycle board", f"{added} items added, {len(have)} already there")
+    print("      The Hands-on and Pulse boards are created by their sync workflows on first run:")
+    print("      Actions → 'L.A.B. Simulator · hands-on board' and 'Discussions · pulse'.")
+
+
+def create_content_boards(owner, repo, dry):
+    """The three content boards in `content.CONTENT_BOARDS`: a Status field and draft items.
+
+    Same mechanics as the lifecycle board, generalised: find or create the board by title,
+    make sure the Status field exists with the spec's options, add every item whose title is
+    not there yet. A refused field or item is a warning; the rest of the board still fills in.
+    """
+    if dry:
+        for spec in content.CONTENT_BOARDS:
+            skip(spec["title"], f"would seed {len(spec['items'])} items")
+        return
+    try:
+        data = graphql(PROJECTS_Q, {"login": owner}, partial_ok=True)["repositoryOwner"]
+    except GitHubError as exc:
+        warn("content boards", f"cannot list boards — {exc.message[:80]}")
+        return
+    have_boards = {p["title"]: p for p in data["projectsV2"]["nodes"]}
+    for spec in content.CONTENT_BOARDS:
+        board = have_boards.get(spec["title"])
+        if board is None:
+            try:
+                board = graphql(CREATE_PROJECT_M, {"ownerId": data["id"], "title": spec["title"]}
+                                )["createProjectV2"]["projectV2"]
+                ok(spec["title"], board["url"])
+            except GitHubError as exc:
+                from gh import is_rate_limit, rate_limit_reset
+                if is_rate_limit(exc):
+                    warn(spec["title"], f"rate limited — resets at {rate_limit_reset()}")
+                    return
+                warn(spec["title"], f"skipped — {exc.message[:100]}")
+                continue
+        pid = board["id"]
+        node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+        fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+        # "Status" is a built-in single-select on every board, with GitHub's own options. It
+        # cannot be created again, so the spec's options go on a field named "Stage".
+        if "Stage" not in fields:
+            try:
+                graphql(CREATE_FIELD_M, {"projectId": pid, "name": "Stage",
+                                         "options": [{"name": o, "description": "", "color": "GRAY"}
+                                                     for o in spec["statuses"]]})
+                ok("  field Stage", ", ".join(spec["statuses"]))
+            except GitHubError as exc:
+                warn("  field Stage", exc.message[:100])
+        node = graphql(LIFECYCLE_FIELDS_Q, {"id": pid})["node"]
+        fields = {f["name"]: f for f in node["fields"]["nodes"] if f}
+        have = {i["content"]["title"] for i in node["items"]["nodes"] if i.get("content")}
+        stage_ids = {o["name"]: o["id"] for o in (fields.get("Stage") or {}).get("options", [])}
+        added = 0
+        for title, body, stage in spec["items"]:
+            if title in have:
+                continue
+            try:
+                item = graphql(ADD_DRAFT_M, {"projectId": pid, "title": title,
+                                             "body": body})["addProjectV2DraftIssue"]["projectItem"]
+                if stage in stage_ids:
+                    graphql(SET_FIELD_M, {"projectId": pid, "itemId": item["id"],
+                                          "fieldId": fields["Stage"]["id"],
+                                          "value": {"singleSelectOptionId": stage_ids[stage]}})
+                added += 1
+                time.sleep(0.5)
+            except GitHubError as exc:
+                warn(f"  {title[:40]}", exc.message[:70])
+        ok(spec["title"], f"{added} items added, {len(have)} already there")
+
+
 # ────────────────────────────────────────────────────────────────────── main ──
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -611,12 +1334,16 @@ def main() -> int:
     print(f"\n\033[1mProvisioning {args.owner}/{args.repo}\033[0m"
           + ("  \033[33m(dry run)\033[0m" if args.dry_run else ""))
 
-    if not preflight(args.owner):
+    if not preflight(args.owner, args.repo):
         return 1
 
     # Keep the tree's badges, clone URL, CODEOWNERS and packaging metadata in step with the
     # owner/repo actually being provisioned, so a fork does not ship badges pointing upstream.
-    if not args.dry_run:
+    #
+    # Only for the steps that stand up a repository. A run that just seeds discussions has no
+    # business rewriting the working tree, and on a runner those edits are discarded anyway —
+    # so all it can do is confuse whoever reads the log.
+    if not args.dry_run and wanted & {"create", "settings", "push"}:
         import subprocess
         subprocess.run([sys.executable, str(Path(__file__).with_name("retarget.py")),
                         "--owner", args.owner, "--repo", args.repo], check=False)
@@ -656,10 +1383,22 @@ def main() -> int:
                 f"/repos/{args.owner}/{args.repo}/milestones?state=all&per_page=100",
                 args.dry_run, [])}
         issues = create_issues(args.owner, args.repo, milestones, args.dry_run)
+    seed_failures = []
     if "discussions" in wanted:
         print("\n\033[1mDiscussions\033[0m")
-        run_step("discussions", create_discussions,
-                 args.owner, args.repo, args.dry_run)
+        outcome = run_step("discussions", create_discussions,
+                           args.owner, args.repo, args.dry_run)
+        # `run_step` returns None when the step raised, and `None or (None, [])` gives an
+        # empty failure list — identical to a clean run. A 502 partway through 196 mutations
+        # therefore printed one red line and exited 0, leaving the job green and the content
+        # permanently half-seeded, because the next run skips every title that already exists.
+        # An aborted step is a failure even though it has no per-thread failures to report.
+        seed_failures = ["the discussions step aborted before it finished"] \
+            if outcome is None else outcome[1]
+    if "boards" in wanted:
+        print("\n\033[1mLifecycle board\033[0m")
+        run_step("boards", create_boards, args.owner, args.repo, args.dry_run)
+        run_step("content boards", create_content_boards, args.owner, args.repo, args.dry_run)
     if "project" in wanted:
         print("\n\033[1mProject board\033[0m")
         if not issues and not args.dry_run:
@@ -675,10 +1414,18 @@ def main() -> int:
 
     print(f"\n\033[1mDone.\033[0m  https://github.com/{args.owner}/{args.repo}")
     print("\nManual steps the API cannot do:")
-    print("  1. Settings → Discussions → create the custom categories listed above")
-    print("     (Design Reviews, Reading Club, Interview Prep) and set Q&A to answerable")
+    print("  1. Settings → Discussions → create any category reported missing above.")
+    print("     No API creates one. The full set this repository seeds into:")
+    for name, _emoji, _desc, fmt in content.CATEGORIES:
+        print(f"       {name:<26} {'Q&A (answerable)' if fmt == 'ANSWER' else fmt.lower()}")
     print("  2. Settings → Pages → source: GitHub Actions   (enables the notebook site)")
     print("  3. Pin 2–3 discussions and 3–4 issues")
+    if seed_failures:
+        print("\n\033[31mSeeding did not complete cleanly:\033[0m")
+        for item in seed_failures:
+            print(f"  {item}")
+        print("Re-running is safe — existing threads are skipped.")
+        return 1
     print("  4. Add a repository social preview image (Settings → General)")
     return 0
 

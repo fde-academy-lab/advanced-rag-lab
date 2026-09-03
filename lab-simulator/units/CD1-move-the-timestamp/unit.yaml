@@ -1,0 +1,33 @@
+id: CD1
+slug: move-the-timestamp
+title: One line makes every request a cache miss. Move it, do not delete it.
+kind: drill
+track: cost
+difficulty: easy
+minutes: 10
+mode: diagnose
+teaches: [prompt cache, prefix stability, volatility ordering]
+prereqs: []
+bars: []
+artefact: null
+reading:
+  - docs/01-architecture/adr/0012-prompt-block-ordering.md
+  - lab-simulator/units/C1-cache-barrier/BRIEF.md
+on_fail:
+  - check: "stable blocks share a prefix"
+    work_on: >-
+      A prefix cache reuses the longest byte-identical prefix. One volatile field does not make
+      its own block uncacheable — it makes everything after it uncacheable. Order by volatility,
+      most stable first.
+    read: docs/01-architecture/adr/0012-prompt-block-ordering.md
+  - check: "the timestamp is still in the prompt"
+    work_on: >-
+      Deleting the field clears the cache check and breaks the feature it was added for. The
+      fix is a position, not a removal.
+  - check: "the evidence still comes before the question"
+    work_on: >-
+      Moving the volatile field is not licence to reorder everything. Blocks that were already
+      after it gain nothing from moving, and the model reads them in order.
+summary: >-
+  A three-block prompt assembler with a timestamp in the first block. Every request is a full-
+  price cache miss. Fix it without removing the timestamp — the grader can tell the difference.

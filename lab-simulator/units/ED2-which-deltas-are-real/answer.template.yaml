@@ -1,0 +1,15 @@
+# ED2 · Which deltas are real?
+#
+# Rows from docs/09-research/measurements/fusion-rules.md, delta = second arm minus first:
+#
+#   1  bm25 → rrf     evidence recall   +0.0624   ci (+0.0407, +0.0857)
+#   2  dense → rrf    evidence recall   +0.0008   ci (−0.0101, +0.0109)
+#   3  rrf → w0.2     nDCG              −0.0535   ci (−0.0776, −0.0295)
+#   4  rrf → w0.5     evidence recall   +0.0048   ci (−0.0024, +0.0145)
+#
+# Which rows describe a real difference — one a release decision could rest on?
+
+real: [<row numbers>]
+
+# For row 3: is the weighted rule better or worse than RRF on nDCG?
+row_3_means_weighted_is: <better or worse>

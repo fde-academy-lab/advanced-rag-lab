@@ -37,7 +37,7 @@ precise about it is part of the lesson.
 **This repository never reads, stores or logs a credential.**
 
 - AWS credentials come from the standard boto3 chain (environment, `~/.aws/credentials`, SSO,
-  instance role). `nanorag.bedrock` never accepts a key as an argument.
+  instance role). `raglab.bedrock` never accepts a key as an argument.
 - `preflight()` is deliberately read-only: it reports what is *configured* and makes no AWS
   calls, so nobody bills an account by hitting Run All.
 - `.gitignore` excludes `.env`, `*.pem`, `credentials*` and `.aws/`.

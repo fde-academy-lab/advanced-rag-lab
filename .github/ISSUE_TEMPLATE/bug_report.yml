@@ -7,13 +7,13 @@ body:
     attributes:
       value: |
         Before filing: does it reproduce on a fresh kernel with **Run All**? A stale kernel
-        holding an old `nanorag` module is the single most common false alarm here.
+        holding an old `raglab` module is the single most common false alarm here.
   - type: input
     id: where
     attributes:
       label: Where
       description: Notebook and cell, or module and function
-      placeholder: "04_retrieval_methods_and_reranking.ipynb, §4.6 — or nanorag/store.py:ann_vector"
+      placeholder: "04_retrieval_methods_and_reranking.ipynb, §4.6 — or raglab/store.py:ann_vector"
     validations: { required: true }
   - type: textarea
     id: expected
@@ -31,7 +31,7 @@ body:
     id: repro
     attributes:
       label: Minimal reproduction
-      description: The fewest lines that show it. Start from `nanorag.quickstart()` if you can.
+      description: The fewest lines that show it. Start from `raglab.quickstart()` if you can.
       render: python
   - type: dropdown
     id: severity

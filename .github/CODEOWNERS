@@ -9,6 +9,6 @@
 /docs/EXERCISES.md      @fde-academy-lab
 
 # The measurement. A change here silently changes every number in the repo.
-/nanorag/metrics.py     @fde-academy-lab
-/nanorag/corpus.py      @fde-academy-lab
+/raglab/metrics.py     @fde-academy-lab
+/raglab/corpus.py      @fde-academy-lab
 /.github/eval-baseline.json @fde-academy-lab

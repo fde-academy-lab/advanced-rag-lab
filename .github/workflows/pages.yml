@@ -1,16 +1,28 @@
-# Publish executed notebooks as a browsable static site, so a recruiter or an
-# interviewer can read the work without installing anything.
+# Publish the lab as a browsable site: a landing page that explains the Client Zero engagement,
+# and the ten notebooks executed with their outputs.
+#
+# The landing page builds in seconds and does not depend on the notebooks. That split is
+# deliberate — a notebook that fails to execute degrades one list entry to a GitHub link rather
+# than taking the whole site down with it.
 name: Pages
 on:
-  push: { branches: [main], paths: ["notebooks/**", "nanorag/**", "docs/**"] }
+  push: { branches: [main], paths: ["notebooks/**", "raglab/**", "docs/**"] }
   workflow_dispatch:
+    inputs:
+      notebooks:
+        description: "Execute and export the notebooks (adds ~12 min)"
+        type: boolean
+        default: true
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,29 +31,27 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
       - run: pip install -e ".[dev]" nbconvert
-      - name: Execute and export notebooks to HTML
+
+      - name: Build the site
         run: |
-          mkdir -p _site
-          for nb in notebooks/*.ipynb; do
-            jupyter nbconvert --to html --execute --ExecutePreprocessor.timeout=900 \
-              --output-dir _site "$nb" || echo "::warning::$nb failed to export"
-          done
-          python - <<'PY'
-          import pathlib
-          links = "\n".join(
-              f'<li><a href="{p.name}">{p.stem.replace("_", " ")}</a></li>'
-              for p in sorted(pathlib.Path("_site").glob("*.html")))
-          pathlib.Path("_site/index.html").write_text(f"""<!doctype html>
-          <meta charset=utf-8><title>Advanced RAG — executed notebooks</title>
-          <style>body{{font:16px/1.6 system-ui;max-width:52rem;margin:4rem auto;padding:0 1rem}}
-          h1{{letter-spacing:-.02em}} li{{margin:.4rem 0}}</style>
-          <h1>Advanced RAG — hands on</h1>
-          <p>Executed notebooks, rendered with their outputs. Source:
-          <a href="https://github.com/fde-academy-lab/advanced-rag-lab">GitHub</a>.</p>
-          <ul>{links}</ul>""")
-          PY
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+             && [ "${{ inputs.notebooks }}" = "false" ]; then
+            python scripts/build_site.py --out _site
+          else
+            python scripts/build_site.py --out _site --notebooks
+          fi
+
+      - name: Sanity-check the output
+        run: |
+          test -f _site/index.html || { echo "::error::no index.html produced"; exit 1; }
+          test -f _site/.nojekyll || { echo "::error::missing .nojekyll"; exit 1; }
+          echo "index.html $(wc -c < _site/index.html) bytes, \
+          $(find _site -name '*.html' | wc -l) html files total"
+
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }
+
   deploy:
     needs: build
     runs-on: ubuntu-latest

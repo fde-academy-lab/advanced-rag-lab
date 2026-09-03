@@ -1,0 +1,2 @@
+fails:
+  - nDCG is normalised against the ideal ranking
