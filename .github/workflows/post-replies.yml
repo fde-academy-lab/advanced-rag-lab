@@ -1,0 +1,38 @@
+# Posts queued discussion replies from .github/pending-replies/*.json as github-actions[bot],
+# threaded under the comment each one answers, then deletes the queue file and commits.
+# Queue files are written by a reviewer (usually a Claude Code session, which can read
+# Discussions but not write them) and land here by pull request, so every reply is reviewed
+# before it is posted and nothing posts twice.
+name: Post replies
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/pending-replies/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  discussions: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Post and dequeue
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          set -o pipefail
+          python scripts/post_replies.py | tee post.log
+      - name: Commit the emptied queue
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/pending-replies
+          git diff --cached --quiet && echo "queue unchanged" || (git commit -qm "chore: dequeue posted discussion replies" && git push)
+      - name: Summary
+        if: always()
+        run: |
+          { echo "### Post replies"; echo; echo '```'; cat post.log 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
