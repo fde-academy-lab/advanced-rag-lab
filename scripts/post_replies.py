@@ -27,13 +27,47 @@ mutation($discussion: ID!, $reply: ID!, $body: String!) {
 }
 """
 
+# Every reply the queue posts carries a hidden marker naming the queue entry, and existing
+# replies under a parent are read before posting. Main is a protected branch, so the
+# dequeue commit below can be refused; the marker is what makes a re-run harmless.
+POSTED_Q = """
+query($discussion: ID!) {
+  node(id: $discussion) { ... on Discussion {
+    comments(first: 100) { nodes { id replies(first: 100) { nodes { body } } } }
+  } }
+}
+"""
+
+
+def marker(queue: dict, r: dict) -> str:
+    return f"<!-- post-replies:{queue['discussion']}:{r.get('parent_comment')} -->"
+
+
+def already_posted(queue: dict) -> dict[str, set[str]]:
+    """parent comment node id -> the markers found in its existing replies."""
+    node = graphql(POSTED_Q, {"discussion": queue["discussion_id"]})["node"]
+    out: dict[str, set[str]] = {}
+    for c in node["comments"]["nodes"]:
+        found = set()
+        for reply in c["replies"]["nodes"]:
+            for line in reply["body"].splitlines():
+                if line.startswith("<!-- post-replies:") and line.endswith("-->"):
+                    found.add(line.strip())
+        out[c["id"]] = found
+    return out
+
 
 def post(path: Path) -> list[str]:
     queue = json.loads(path.read_text())
+    done = already_posted(queue)
     urls = []
     for r in queue["replies"]:
+        mark = marker(queue, r)
+        if mark in done.get(r["reply_to"], set()):
+            print(f"already posted under {r.get('parent_comment')}; skipped")
+            continue
         out = graphql(REPLY_M, {"discussion": queue["discussion_id"], "reply": r["reply_to"],
-                                "body": r["body"]})
+                                "body": f"{r['body'].rstrip()}\n\n{mark}"})
         urls.append(out["addDiscussionComment"]["comment"]["url"])
         print(f"posted reply to {r.get('parent_comment')}: {urls[-1]}")
     return urls
