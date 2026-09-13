@@ -28,10 +28,15 @@ jobs:
           set -o pipefail
           python scripts/post_replies.py | tee post.log
       - name: Commit the emptied queue
+        # main is protected, so this push is usually refused. That is fine: every posted reply
+        # carries a marker and the script skips it on a re-run, so the queue file can be removed
+        # in the next pull request instead.
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A .github/pending-replies
-          git diff --cached --quiet && echo "queue unchanged" || (git commit -qm "chore: dequeue posted discussion replies" && git push)
+          if git diff --cached --quiet; then echo "queue unchanged"; exit 0; fi
+          git commit -qm "chore: dequeue posted discussion replies"
+          git push || echo "::warning::main is protected; the replies are posted and marked. Remove the queue file in the next pull request."
       - name: Summary
         if: always()
         run: |
